@@ -66,7 +66,7 @@
         .btn-warning { background-color: #f0b232; color: #2b2d31; }
         .btn-warning:hover { background-color: #dcb348; }
 
-        /* 토글 아이콘 버튼 스타일 (위치/정보) */
+        /* 토글 아이콘 버튼 */
         .btn-icon-toggle {
             background-color: #4e5058;
             color: #f2f3f5;
@@ -83,7 +83,7 @@
 
         /* 숨겨진 텍스트 박스 */
         .info-text-box {
-            display: none; /* 기본 숨김 */
+            display: none;
             margin-top: 5px;
             font-size: 0.8em;
             color: #ffd6a5;
@@ -123,6 +123,7 @@
             border: 1px solid #3f4147;
         }
         .input-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;}
+        
         input[type="text"], select {
             background-color: #383a40;
             border: 1px solid #202225;
@@ -130,6 +131,18 @@
             padding: 10px;
             border-radius: 4px;
         }
+        
+        /* 컬러 픽커 스타일 */
+        input[type="color"] {
+            background-color: #383a40;
+            border: 1px solid #202225;
+            padding: 0;
+            border-radius: 4px;
+            height: 40px;
+            width: 50px;
+            cursor: pointer;
+        }
+
         input:focus { outline: 2px solid #00a8fc; }
 
         /* 테이블 레이아웃 */
@@ -140,8 +153,8 @@
         
         /* 컬럼 너비 조정 */
         .col-name { width: 15%; }
-        .col-loc { width: 80px; text-align: center !important;} /* 아이콘이라 좁게 */
-        .col-info { width: 80px; text-align: center !important;} /* 아이콘이라 좁게 */
+        .col-loc { width: 80px; text-align: center !important;} 
+        .col-info { width: 80px; text-align: center !important;} 
         .col-cycle { width: 80px; text-align: center !important; }
         .col-time { width: 220px; text-align: center !important; }
         .col-next { width: 140px; text-align: center !important; font-size: 0.9em; color: #f2f3f5; font-weight: bold; white-space: nowrap; }
@@ -172,6 +185,7 @@
 
         <div id="form-container">
             <div class="input-group">
+                <input type="color" id="input-color" value="#ffadad" title="이름 색상 선택">
                 <input type="text" id="input-name" placeholder="보스명 (예: 타하바타)" style="flex: 2;">
                 <input type="text" id="input-location" placeholder="위치 정보" style="flex: 1;">
             </div>
@@ -228,7 +242,6 @@
         messagingSenderId: "985334026286",
         appId: "1:985334026286:web:4959921d864700b5cf0fbf"
     };
-
     // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
     const app = initializeApp(firebaseConfig);
@@ -261,7 +274,6 @@
         }
     });
 
-    // timestamp를 input value(YYYY-MM-DDTHH:mm)로 변환
     function toLocalInputValue(timestamp) {
         if (!timestamp) return "";
         const d = new Date(timestamp);
@@ -269,7 +281,6 @@
         return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
     }
 
-    // 화면 표시용 시간 포맷 (MM/DD HH:mm)
     function formatTimeDisplay(timestamp) {
         if(!timestamp) return '-';
         const d = new Date(timestamp);
@@ -308,7 +319,9 @@
 
         if (nearestBoss) {
             nameEl.innerText = `[${nearestBoss.name}] 젠까지`;
-            nameEl.style.color = '#00a8fc';
+            // 여기는 시스템 색상이므로 고정 (파란색)
+            nameEl.style.color = '#00a8fc'; 
+            
             const hours = Math.floor(minDiff / 3600000);
             const mins = Math.floor((minDiff % 3600000) / 60000);
             const secs = Math.floor((minDiff % 60000) / 1000);
@@ -339,12 +352,14 @@
             const inputValue = toLocalInputValue(boss.lastKillTimestamp);
             const nextTimeStr = boss.nextSpawnTimestamp ? formatTimeDisplay(boss.nextSpawnTimestamp) : '-';
 
-            // 토글 데이터 준비
             const locInfo = boss.location || '위치 미설정';
             const dropInfo = boss.drop || '정보 없음';
+            
+            // 이름 색상 적용 (없으면 기본값)
+            const nameColor = boss.color || '#ffadad';
 
             tr.innerHTML = `
-                <td style="font-weight: bold; color: #ffadad;">${boss.name}</td>
+                <td style="font-weight: bold; color: ${nameColor};">${boss.name}</td>
                 
                 <td style="text-align:center;">
                     <button class="btn-icon-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">📍</button>
@@ -372,7 +387,6 @@
     }
 
     function attachEventListeners() {
-        // [직접 시간 수정]
         document.querySelectorAll('.input-time-edit').forEach(input => {
             input.addEventListener('change', (e) => {
                 const key = e.target.getAttribute('data-key');
@@ -407,7 +421,6 @@
             });
         });
 
-        // [컷] 버튼
         document.querySelectorAll('.btn-kill').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const key = e.target.getAttribute('data-key');
@@ -436,7 +449,6 @@
             });
         });
 
-        // [삭제] 버튼
         document.querySelectorAll('.btn-del').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const key = e.target.getAttribute('data-key');
@@ -446,7 +458,6 @@
             });
         });
 
-        // 드래그 앤 드롭
         const draggables = document.querySelectorAll('.draggable-row');
         const container = document.getElementById('table-body');
         draggables.forEach(draggable => {
@@ -536,6 +547,7 @@
 
     document.getElementById('btn-add').addEventListener('click', () => {
         const name = document.getElementById('input-name').value;
+        const color = document.getElementById('input-color').value; // 색상 값 가져오기
         const location = document.getElementById('input-location').value;
         const drop = document.getElementById('input-drop').value;
         const interval = document.getElementById('input-interval').value;
@@ -544,6 +556,7 @@
 
         update(ref(db, `${ROOM_ID}/bosses/${name}`), {
             name: name,
+            color: color, // 색상 저장
             location: location,
             drop: drop,
             interval: interval,
@@ -551,6 +564,7 @@
         });
         
         document.getElementById('input-name').value = '';
+        document.getElementById('input-color').value = '#ffadad'; // 색상 초기화
         document.getElementById('input-location').value = '';
         document.getElementById('input-drop').value = '';
     });

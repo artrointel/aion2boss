@@ -15,10 +15,10 @@
             flex-direction: column;
             align-items: center;
         }
-        .container { max-width: 950px; width: 100%; }
+        .container { max-width: 1000px; width: 100%; }
         
         .card {
-            position: relative; /* 우상단 텍스트 배치를 위해 */
+            position: relative;
             background-color: #2b2d31;
             border-radius: 8px;
             padding: 20px;
@@ -28,7 +28,6 @@
         
         h2 { margin-top: 0; color: #f2f3f5; border-bottom: 2px solid #3f4147; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         
-        /* 제작자 정보 (우상단) */
         .credits {
             position: absolute;
             top: 15px;
@@ -38,13 +37,13 @@
             font-weight: normal;
         }
 
-        /* 메인 타이머 스타일 */
+        /* 메인 타이머 */
         #timer-box { text-align: center; padding: 30px 20px; }
         #timer-boss-name { font-size: 1.2rem; color: #00a8fc; margin-bottom: 5px; font-weight: bold; }
         #timer-display { font-size: 3.5rem; font-weight: bold; font-variant-numeric: tabular-nums; color: #f2f3f5; margin: 0; line-height: 1; }
         .timer-warning { color: #f23f42 !important; animation: blink 1s infinite; }
         
-        /* 버튼 스타일 */
+        /* 버튼 공통 스타일 */
         button {
             border: none;
             padding: 8px 12px;
@@ -64,13 +63,57 @@
         .btn-danger:hover { background-color: #a1282c; }
         .btn-secondary { background-color: #4e5058; }
         .btn-secondary:hover { background-color: #404249; }
-        .btn-warning { background-color: #f0b232; color: #2b2d31; } /* Undo/Redo 용 */
+        .btn-warning { background-color: #f0b232; color: #2b2d31; }
         .btn-warning:hover { background-color: #dcb348; }
 
-        /* 컨트롤 패널 버튼 그룹 */
+        /* 토글 아이콘 버튼 스타일 (위치/정보) */
+        .btn-icon-toggle {
+            background-color: #4e5058;
+            color: #f2f3f5;
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            padding: 0;
+            font-size: 14px;
+            line-height: 26px;
+            text-align: center;
+            display: inline-block;
+        }
+        .btn-icon-toggle:hover { background-color: #00a8fc; transform: scale(1.1); }
+
+        /* 숨겨진 텍스트 박스 */
+        .info-text-box {
+            display: none; /* 기본 숨김 */
+            margin-top: 5px;
+            font-size: 0.8em;
+            color: #ffd6a5;
+            background-color: #202225;
+            padding: 5px;
+            border-radius: 4px;
+            word-break: break-all;
+            white-space: normal;
+        }
+
+        /* 시간 입력 인풋 스타일 */
+        .input-time-edit {
+            background-color: #1e1f22;
+            border: 1px solid #3f4147;
+            color: #dbdee1;
+            padding: 5px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            font-family: inherit;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+        }
+        .input-time-edit::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+            cursor: pointer;
+        }
+
         .control-group { display: flex; gap: 10px; justify-content: center; }
 
-        /* 입력 폼 */
         #form-container {
             display: none;
             background-color: #1e1f22;
@@ -80,7 +123,7 @@
             border: 1px solid #3f4147;
         }
         .input-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;}
-        input, select {
+        input[type="text"], select {
             background-color: #383a40;
             border: 1px solid #202225;
             color: white;
@@ -89,22 +132,21 @@
         }
         input:focus { outline: 2px solid #00a8fc; }
 
-        /* 테이블 스타일 */
-        .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 800px; }
+        /* 테이블 레이아웃 */
+        .table-wrapper { overflow-x: auto; min-height: 300px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 900px; }
         th, td { text-align: left; padding: 12px 8px; border-bottom: 1px solid #3f4147; vertical-align: middle; }
         th { color: #b5bac1; font-size: 0.85em; text-transform: uppercase; text-align: center; }
         
-        /* 컬럼 너비 지정 */
+        /* 컬럼 너비 조정 */
         .col-name { width: 15%; }
-        .col-loc { width: 10%; text-align: center !important;}
-        .col-drop { width: 15%; }
+        .col-loc { width: 80px; text-align: center !important;} /* 아이콘이라 좁게 */
+        .col-info { width: 80px; text-align: center !important;} /* 아이콘이라 좁게 */
         .col-cycle { width: 80px; text-align: center !important; }
-        .col-time { width: 140px; text-align: center !important; font-size: 0.85em; color: #949BA4; white-space: nowrap; }
+        .col-time { width: 220px; text-align: center !important; }
         .col-next { width: 140px; text-align: center !important; font-size: 0.9em; color: #f2f3f5; font-weight: bold; white-space: nowrap; }
         .col-action { width: 110px; text-align: center !important; }
 
-        /* 드래그 앤 드롭 */
         .draggable-row { cursor: move; }
         .draggable-row:hover { background-color: #32353b; }
         .draggable-row.dragging { opacity: 0.5; background-color: #404249; }
@@ -131,13 +173,13 @@
         <div id="form-container">
             <div class="input-group">
                 <input type="text" id="input-name" placeholder="보스명 (예: 타하바타)" style="flex: 2;">
-                <input type="text" id="input-location" placeholder="위치" style="flex: 1;">
+                <input type="text" id="input-location" placeholder="위치 정보" style="flex: 1;">
             </div>
             <div class="input-group">
                 <select id="input-interval" style="width: 100px;">
                     <option value="" disabled selected>젠 주기</option>
                 </select>
-                <input type="text" id="input-drop" placeholder="주요 드랍 아이템" style="flex: 2;">
+                <input type="text" id="input-drop" placeholder="주요 드랍 아이템 정보" style="flex: 2;">
                 <button class="btn-primary" id="btn-add">등록</button>
             </div>
         </div>
@@ -148,9 +190,9 @@
                     <tr>
                         <th class="col-name">보스명</th>
                         <th class="col-loc">위치</th>
-                        <th class="col-drop">드랍</th>
+                        <th class="col-info">정보</th>
                         <th class="col-cycle">주기</th>
-                        <th class="col-time">최근 컷 시간</th>
+                        <th class="col-time">최근 컷 시간 (수정가능)</th>
                         <th class="col-next">다음 젠 시간</th>
                         <th class="col-action">관리</th>
                     </tr>
@@ -165,8 +207,9 @@
     <div class="card" style="padding: 15px;">
         <div class="control-group">
             <button class="btn-primary" id="btn-sort">⏳ 다음 젠 시간순 정렬</button>
-            <div style="width: 20px;"></div> <button class="btn-warning" id="btn-undo" disabled>↩️ Undo (실행취소)</button>
-            <button class="btn-warning" id="btn-redo" disabled>↪️ Redo (다시실행)</button>
+            <div style="width: 20px;"></div>
+            <button class="btn-warning" id="btn-undo" disabled>↩️ Undo</button>
+            <button class="btn-warning" id="btn-redo" disabled>↪️ Redo</button>
         </div>
     </div>
 </div>
@@ -194,12 +237,10 @@
     const ROOM_ID = 'lobby_01'; 
     const bossesRef = ref(db, `${ROOM_ID}/bosses`);
 
-    // 전역 상태 변수
     let allBosses = {}; 
-    let undoStack = []; // 실행 취소 스택
-    let redoStack = []; // 다시 실행 스택
+    let undoStack = [];
+    let redoStack = [];
 
-    // 젠 주기 옵션 생성
     const intervalSelect = document.getElementById('input-interval');
     for(let i=1; i<=24; i++) {
         const opt = document.createElement('option');
@@ -208,9 +249,8 @@
         intervalSelect.appendChild(opt);
     }
 
-    // 폼 토글
-    const formContainer = document.getElementById('form-container');
     const toggleBtn = document.getElementById('btn-toggle-form');
+    const formContainer = document.getElementById('form-container');
     toggleBtn.addEventListener('click', () => {
         if(formContainer.style.display === 'block') {
             formContainer.style.display = 'none';
@@ -221,21 +261,25 @@
         }
     });
 
-    // 시간 포맷
-    function formatTime(timestamp) {
+    // timestamp를 input value(YYYY-MM-DDTHH:mm)로 변환
+    function toLocalInputValue(timestamp) {
+        if (!timestamp) return "";
+        const d = new Date(timestamp);
+        const pad = n => n < 10 ? '0'+n : n;
+        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+
+    // 화면 표시용 시간 포맷 (MM/DD HH:mm)
+    function formatTimeDisplay(timestamp) {
         if(!timestamp) return '-';
         const d = new Date(timestamp);
         const mo = d.getMonth() + 1;
         const da = d.getDate();
         const ho = String(d.getHours()).padStart(2, '0');
         const mi = String(d.getMinutes()).padStart(2, '0');
-        const se = String(d.getSeconds()).padStart(2, '0');
-        return `${mo}월 ${da}일 ${ho}:${mi}:${se}`;
+        return `${mo}/${da} ${ho}:${mi}`;
     }
 
-    // ===============================================
-    // 데이터 수신 및 렌더링
-    // ===============================================
     onValue(bossesRef, (snapshot) => {
         const data = snapshot.val() || {};
         allBosses = data;
@@ -292,15 +336,30 @@
             tr.setAttribute('data-key', key);
             
             const intervalText = boss.interval ? `${boss.interval}h` : '-';
-            const killTimeStr = boss.lastKillTimestamp ? formatTime(boss.lastKillTimestamp) : '-';
-            const nextTimeStr = boss.nextSpawnTimestamp ? formatTime(boss.nextSpawnTimestamp) : '-';
+            const inputValue = toLocalInputValue(boss.lastKillTimestamp);
+            const nextTimeStr = boss.nextSpawnTimestamp ? formatTimeDisplay(boss.nextSpawnTimestamp) : '-';
+
+            // 토글 데이터 준비
+            const locInfo = boss.location || '위치 미설정';
+            const dropInfo = boss.drop || '정보 없음';
 
             tr.innerHTML = `
                 <td style="font-weight: bold; color: #ffadad;">${boss.name}</td>
-                <td style="text-align:center;">${boss.location || '-'}</td>
-                <td style="color: #ffd6a5;">${boss.drop || '-'}</td>
+                
+                <td style="text-align:center;">
+                    <button class="btn-icon-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">📍</button>
+                    <div class="info-text-box">${locInfo}</div>
+                </td>
+
+                <td style="text-align:center;">
+                    <button class="btn-icon-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">i</button>
+                    <div class="info-text-box">${dropInfo}</div>
+                </td>
+
                 <td style="text-align:center;">${intervalText}</td>
-                <td class="col-time">${killTimeStr}</td>
+                <td class="col-time">
+                    <input type="datetime-local" class="input-time-edit" data-key="${key}" data-interval="${boss.interval}" value="${inputValue}">
+                </td>
                 <td class="col-next">${nextTimeStr}</td>
                 <td class="col-action">
                     <button class="btn-success btn-kill" data-key="${key}" data-interval="${boss.interval}">컷</button>
@@ -312,26 +371,42 @@
         attachEventListeners();
     }
 
-    // ===============================================
-    // 기능 구현: Undo/Redo & Sort & Delete
-    // ===============================================
-
-    function updateUndoUI() {
-        document.getElementById('btn-undo').disabled = undoStack.length === 0;
-        document.getElementById('btn-redo').disabled = redoStack.length === 0;
-        
-        // 버튼 스타일 조정 (활성화 시 조금 더 밝게)
-        document.getElementById('btn-undo').style.opacity = undoStack.length === 0 ? 0.5 : 1;
-        document.getElementById('btn-redo').style.opacity = redoStack.length === 0 ? 0.5 : 1;
-    }
-
-    function pushToUndo(key, prevData) {
-        undoStack.push({ key, data: prevData });
-        redoStack = []; // 새로운 동작 발생 시 Redo 스택 초기화
-        updateUndoUI();
-    }
-
     function attachEventListeners() {
+        // [직접 시간 수정]
+        document.querySelectorAll('.input-time-edit').forEach(input => {
+            input.addEventListener('change', (e) => {
+                const key = e.target.getAttribute('data-key');
+                const interval = parseInt(e.target.getAttribute('data-interval'));
+                const newTimeStr = e.target.value;
+
+                if (!newTimeStr) return;
+                if (!interval) {
+                    alert("젠 주기가 없는 보스입니다.");
+                    return;
+                }
+
+                const newDate = new Date(newTimeStr);
+                if (isNaN(newDate.getTime())) {
+                    alert("유효하지 않은 시간입니다.");
+                    renderTable(allBosses); 
+                    return;
+                }
+
+                const currentData = allBosses[key];
+                undoStack.push({ key, data: { ...currentData } });
+                redoStack = []; 
+                updateUndoUI();
+
+                const newTimestamp = newDate.getTime();
+                const nextSpawn = newTimestamp + (interval * 3600000);
+
+                update(ref(db, `${ROOM_ID}/bosses/${key}`), {
+                    lastKillTimestamp: newTimestamp,
+                    nextSpawnTimestamp: nextSpawn
+                });
+            });
+        });
+
         // [컷] 버튼
         document.querySelectorAll('.btn-kill').forEach(btn => {
             btn.addEventListener('click', (e) => {
@@ -340,12 +415,16 @@
 
                 if (!interval) return alert("젠 주기가 설정되지 않았습니다.");
 
-                // Undo를 위해 변경 전 상태 저장
                 const currentData = allBosses[key];
-                pushToUndo(key, { 
-                    lastKillTimestamp: currentData.lastKillTimestamp || null,
-                    nextSpawnTimestamp: currentData.nextSpawnTimestamp || null
+                undoStack.push({ 
+                    key, 
+                    data: { 
+                        lastKillTimestamp: currentData.lastKillTimestamp || null,
+                        nextSpawnTimestamp: currentData.nextSpawnTimestamp || null
+                    }
                 });
+                redoStack = [];
+                updateUndoUI();
 
                 const now = Date.now();
                 const nextSpawn = now + (interval * 3600000);
@@ -357,7 +436,7 @@
             });
         });
 
-        // [삭제] 버튼 (팝업 추가)
+        // [삭제] 버튼
         document.querySelectorAll('.btn-del').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const key = e.target.getAttribute('data-key');
@@ -386,80 +465,56 @@
         });
     }
 
-    // --- 하단 버튼 이벤트 ---
+    function updateUndoUI() {
+        document.getElementById('btn-undo').disabled = undoStack.length === 0;
+        document.getElementById('btn-redo').disabled = redoStack.length === 0;
+        document.getElementById('btn-undo').style.opacity = undoStack.length === 0 ? 0.5 : 1;
+        document.getElementById('btn-redo').style.opacity = redoStack.length === 0 ? 0.5 : 1;
+    }
 
-    // 1. Undo (실행 취소)
     document.getElementById('btn-undo').addEventListener('click', () => {
         if(undoStack.length === 0) return;
-        
         const action = undoStack.pop();
         const currentData = allBosses[action.key];
         
-        // Redo 스택에 현재 상태 저장
-        redoStack.push({ 
-            key: action.key, 
-            data: { 
-                lastKillTimestamp: currentData.lastKillTimestamp || null,
-                nextSpawnTimestamp: currentData.nextSpawnTimestamp || null
-            } 
-        });
+        redoStack.push({ key: action.key, data: { ...currentData } });
 
-        // 과거 상태로 복구
         update(ref(db, `${ROOM_ID}/bosses/${action.key}`), {
             lastKillTimestamp: action.data.lastKillTimestamp,
             nextSpawnTimestamp: action.data.nextSpawnTimestamp
         });
-        
         updateUndoUI();
     });
 
-    // 2. Redo (다시 실행)
     document.getElementById('btn-redo').addEventListener('click', () => {
         if(redoStack.length === 0) return;
-
         const action = redoStack.pop();
         const currentData = allBosses[action.key];
 
-        // Undo 스택에 현재 상태 다시 저장
-        undoStack.push({ 
-            key: action.key, 
-            data: { 
-                lastKillTimestamp: currentData.lastKillTimestamp || null,
-                nextSpawnTimestamp: currentData.nextSpawnTimestamp || null
-            } 
-        });
+        undoStack.push({ key: action.key, data: { ...currentData } });
 
-        // Redo 상태 적용
         update(ref(db, `${ROOM_ID}/bosses/${action.key}`), {
             lastKillTimestamp: action.data.lastKillTimestamp,
             nextSpawnTimestamp: action.data.nextSpawnTimestamp
         });
-
         updateUndoUI();
     });
 
-    // 3. 시간순 정렬
     document.getElementById('btn-sort').addEventListener('click', () => {
         if(!allBosses) return;
-        
-        // 다음 젠 시간이 있는 것들은 시간순, 없으면(null) 맨 뒤로
         const entries = Object.entries(allBosses);
         entries.sort((a, b) => {
             const timeA = a[1].nextSpawnTimestamp || 9999999999999;
             const timeB = b[1].nextSpawnTimestamp || 9999999999999;
             return timeA - timeB;
         });
-
-        // 정렬된 순서대로 order 값 재부여 (DB 업데이트)
         const updates = {};
         entries.forEach((entry, index) => {
              updates[`${ROOM_ID}/bosses/${entry[0]}/order`] = index;
         });
-
         update(ref(db), updates);
     });
 
-    // 드래그 헬퍼
     function getDragAfterElement(container, y) {
         const draggableElements = [...container.querySelectorAll('.draggable-row:not(.dragging)')];
         return draggableElements.reduce((closest, child) => {
@@ -479,7 +534,6 @@
         update(ref(db), updates);
     }
 
-    // 등록 버튼
     document.getElementById('btn-add').addEventListener('click', () => {
         const name = document.getElementById('input-name').value;
         const location = document.getElementById('input-location').value;

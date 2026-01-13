@@ -201,7 +201,7 @@
         }
         #map-viewport {
             width: 100%;
-            height: 500px;
+            /* height: 500px;  <-- Fixed height removed/overridden */
             background-color: var(--bg-tertiary);
             overflow: hidden; 
             margin-top: 15px;
@@ -209,6 +209,8 @@
             border: 1px solid #3f4147;
             position: relative;
             cursor: grab;
+            /* Will be set by JS based on image ratio */
+            aspect-ratio: 16 / 9; 
         }
         #map-viewport:active { cursor: grabbing; }
         
@@ -266,20 +268,17 @@
             background-color: var(--disabled-bg) !important;
             color: var(--disabled-text) !important;
             cursor: not-allowed !important;
-            /* Filter removed for better visibility, handled by color */
             filter: none !important;
             opacity: 1 !important;
             pointer-events: none;
         }
 
-        /* Special style for disabled location button (No Data) */
         .btn-location-disabled {
             color: #b5bac1 !important;
             background-color: #3f4147 !important;
             cursor: default !important;
         }
 
-        /* Active Map Button (Has Coordinates) */
         .btn-active-map {
             background-color: var(--accent-blue) !important;
             color: white !important;
@@ -429,35 +428,29 @@
         <h2 style="border:none; justify-content:center; color:#949BA4; font-size:1rem; margin-bottom:15px;">NEXT BOSS</h2>
         
         <div id="timer-panels">
-            <!-- Left: Prev -->
             <div class="side-boss-panel" id="panel-prev">
                 <div class="side-boss-name">-</div>
                 <div class="side-timer-row">
                     <div class="side-boss-time">--:--:--</div>
-                    <!-- Quick Cut Button -->
                     <button class="btn-success btn-kill btn-kill-quick hidden">컷</button>
                 </div>
                 <div class="side-boss-loc">-</div>
             </div>
 
-            <!-- Center: Main -->
             <div class="main-boss-panel">
                 <div id="timer-boss-name">대기 중...</div>
                 <div class="main-timer-row">
                     <div id="timer-display">--:--:--</div>
-                    <!-- Main Cut Button -->
                     <button class="btn-success btn-kill btn-kill-main hidden" id="btn-main-kill">컷</button>
                 </div>
                 <div id="timer-boss-location"></div>
                 <div id="timer-boss-drop"></div>
             </div>
 
-            <!-- Right: Next -->
             <div class="side-boss-panel" id="panel-next">
                 <div class="side-boss-name">-</div>
                 <div class="side-timer-row">
                     <div class="side-boss-time">--:--:--</div>
-                    <!-- Quick Cut Button -->
                     <button class="btn-success btn-kill btn-kill-quick hidden">컷</button>
                 </div>
                 <div class="side-boss-loc">-</div>
@@ -680,6 +673,13 @@
                 img.onload = () => this.centerMap();
                 return;
             }
+            // Reset to fit viewport or specific ratio
+            if (img.naturalWidth && img.naturalHeight) {
+                // Remove fixed height, let aspect-ratio handle it
+                viewport.style.height = 'auto';
+                viewport.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+            }
+
             state.map.scale = 1;
             state.map.pointX = (viewport.clientWidth - img.naturalWidth) / 2;
             state.map.pointY = (viewport.clientHeight - img.naturalHeight) / 2;
@@ -713,7 +713,6 @@
             this.elements.img.classList.add('smooth-zoom');
             
             const rect = this.elements.viewport.getBoundingClientRect();
-            // Center of viewport relative to image
             const centerX = rect.width / 2;
             const centerY = rect.height / 2;
             
@@ -813,7 +812,6 @@
         },
 
         init() {
-            // Populate interval select
             const select = this.dom.formInputs.interval;
             for (let i = 1; i <= 24; i++) {
                 const opt = document.createElement('option');
@@ -822,14 +820,11 @@
                 select.appendChild(opt);
             }
             
-            // Event delegation for table
             this.dom.tableBody.addEventListener('click', (e) => this.handleTableClick(e));
             this.dom.tableBody.addEventListener('change', (e) => this.handleTableInput(e));
             
-            // Event delegation for panel buttons (new logic for quick kill buttons)
             document.getElementById('timer-panels').addEventListener('click', (e) => this.handlePanelClick(e));
 
-            // Other UI bindings
             this.dom.btnToggleForm.addEventListener('click', () => this.toggleForm());
         },
 
@@ -844,15 +839,12 @@
                 else el.classList.remove('hidden');
             });
             
-            // Explicitly sync button state
             this.updateUndoUI();
         },
 
         renderTable(bosses) {
             const sortedBosses = Object.entries(bosses).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
             const isAdmin = state.role === 'admin';
-            
-            // Use DocumentFragment for performance
             const fragment = document.createDocumentFragment();
 
             sortedBosses.forEach(([key, boss]) => {
@@ -867,7 +859,6 @@
                 const nextTimeStr = spawnInfo.time ? 
                     `${Utils.formatTimeDisplay(spawnInfo.time)} <span style="font-size:0.8em; color:#ffd6a5;">${spawnInfo.label}</span>` : '-';
                 
-                // Button generation logic
                 const hasMapData = boss.mapX && boss.mapY;
                 const locBtnClass = hasMapData ? 'btn-fly-map btn-active-map' : 'btn-location-disabled';
                 const locBtnAttrs = hasMapData ? `data-x="${boss.mapX}" data-y="${boss.mapY}"` : 'disabled';
@@ -913,10 +904,8 @@
             this.updateCooldowns();
         },
 
-        // Efficiently update button styles without re-rendering table
         updateCooldowns() {
             const now = Date.now();
-            // Update table buttons AND panel buttons
             const killBtns = document.querySelectorAll('.btn-kill');
             killBtns.forEach(btn => {
                 const lastKill = parseInt(btn.getAttribute('data-last-kill'));
@@ -929,7 +918,6 @@
                 } else {
                     if (btn.classList.contains('btn-disabled')) {
                         btn.classList.remove('btn-disabled');
-                        btn.removeAttribute('disabled');
                         btn.innerText = '컷';
                     }
                 }
@@ -940,17 +928,15 @@
             if (!state.roomId) return;
             const now = Date.now();
             
-            // 1. Prepare data
             const list = Object.values(state.bosses).map(b => ({
                 ...b, ...Utils.getSpawnInfo(b),
                 effectiveTime: Utils.getSpawnInfo(b).time || 9999999999999,
-                key: Object.keys(state.bosses).find(key => state.bosses[key] === b) // Find key for actions
+                key: Object.keys(state.bosses).find(key => state.bosses[key] === b)
             })).sort((a, b) => a.effectiveTime - b.effectiveTime);
 
             const [main, next] = list;
             const prev = list.length > 0 ? list[list.length - 1] : null;
 
-            // 2. Render Main
             const mainBtn = this.dom.panels.main.btn;
             if (main && main.effectiveTime < 9999999999999) {
                 const diff = main.effectiveTime - now;
@@ -959,13 +945,11 @@
                 this.renderLocationButton(this.dom.panels.main.loc, main, false);
                 this.dom.panels.main.drop.innerText = main.drop ? `ℹ️ ${main.drop}` : '';
 
-                // Map Auto-Move Logic
                 if (state.lastNearestBoss !== main.name) {
                     state.lastNearestBoss = main.name;
                     if (main.mapX && main.mapY) MapController.flyTo(parseFloat(main.mapX), parseFloat(main.mapY));
                 }
 
-                // Time formatting
                 const h = Math.floor(diff / 3600000);
                 const m = Math.floor((diff % 3600000) / 60000);
                 const s = Math.floor((diff % 60000) / 1000);
@@ -973,7 +957,6 @@
                 
                 this.dom.panels.main.time.classList.toggle('timer-warning', diff < CONFIG.UI.WARNING_MS);
 
-                // Update Main Cut Button
                 if (state.role === 'admin') {
                     mainBtn.classList.remove('hidden');
                     mainBtn.setAttribute('data-key', main.key);
@@ -988,7 +971,6 @@
                 mainBtn.classList.add('hidden');
             }
 
-            // 3. Render Side Panels
             this.renderSidePanel(this.dom.panels.prev, prev, now);
             this.renderSidePanel(this.dom.panels.next, next, now);
         },
@@ -1013,7 +995,6 @@
                 
                 this.renderLocationButton(el.querySelector('.side-boss-loc'), boss, true);
                 
-                // Update Side Cut Button
                 if (state.role === 'admin') {
                     btn.classList.remove('hidden');
                     btn.setAttribute('data-key', boss.key);
@@ -1031,7 +1012,6 @@
         },
 
         renderLocationButton(container, boss, isSide) {
-            // optimization: check if needs update
             const existingBtn = container.querySelector('button');
             if (existingBtn && existingBtn.dataset.boss === boss.name && existingBtn.dataset.mx === boss.mapX) return;
 
@@ -1058,7 +1038,7 @@
                 btn.onclick = (e) => { e.stopPropagation(); MapController.flyTo(parseFloat(boss.mapX), parseFloat(boss.mapY)); };
                 btn.title = "지도 보기";
                 btn.style.cursor = 'pointer';
-                btn.classList.add('btn-active-map'); // Add active style
+                btn.classList.add('btn-active-map');
             } else {
                 btn.disabled = true;
                 btn.style.cursor = 'default';
@@ -1069,7 +1049,6 @@
 
         handleTableClick(e) {
             const btn = e.target;
-            // Handle fly map button
             if (btn.classList.contains('btn-fly-map')) {
                 const textBox = btn.nextElementSibling;
                 if(textBox) textBox.style.display = textBox.style.display === 'block' ? 'none' : 'block';
@@ -1077,7 +1056,6 @@
                 return;
             }
 
-            // Handle actions (kill/modify/delete)
             const key = btn.dataset.key;
             if (!key) return;
 
@@ -1091,7 +1069,6 @@
             }
         },
 
-        // Handler for panel cut buttons
         handlePanelClick(e) {
             const btn = e.target;
             if (btn.classList.contains('btn-kill')) {
@@ -1126,9 +1103,8 @@
         },
 
         setEditMode(key) {
-            // Toggle Logic
             if (state.editingKey === key) {
-                this.toggleForm(); // Close
+                this.toggleForm();
                 return;
             }
 
@@ -1139,7 +1115,6 @@
             this.dom.form.classList.remove('hidden');
             this.dom.btnToggleForm.innerText = '[-] 닫기';
             
-            // Fill Inputs
             this.dom.formInputs.name.value = data.name;
             this.dom.formInputs.color.value = data.color || '#ffadad';
             this.dom.formInputs.loc.value = data.location || '';
@@ -1148,7 +1123,6 @@
             this.dom.formInputs.mapX.value = data.mapX || '';
             this.dom.formInputs.mapY.value = data.mapY || '';
 
-            // Update Buttons
             this.dom.btnAdd.innerText = "수정";
             this.dom.btnAdd.className = "btn-edit";
             this.dom.btnDelete.classList.remove('hidden');
@@ -1170,7 +1144,6 @@
             if (state.role !== 'admin') return;
             this.dom.undoBtn.disabled = state.undoStack.length === 0;
             this.dom.redoBtn.disabled = state.redoStack.length === 0;
-            // Opacity handling removed, CSS handles it based on disabled attribute
         }
     };
 
@@ -1182,7 +1155,6 @@
             this.bindEvents();
             this.checkUrlParams();
             
-            // Loop for timer
             setInterval(() => {
                 UIManager.updateTimerDisplay();
                 UIManager.updateCooldowns();
@@ -1196,13 +1168,11 @@
         },
 
         bindEvents() {
-            // Login & Room Entry
             document.getElementById('btn-enter-room').addEventListener('click', () => this.handleLogin());
             document.getElementById('room-input').addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') this.handleLogin();
             });
 
-            // Global Actions
             document.getElementById('btn-share-url').addEventListener('click', () => {
                 navigator.clipboard.writeText(window.location.href)
                     .then(() => alert("주소가 복사되었습니다!"));
@@ -1216,7 +1186,6 @@
             document.getElementById('btn-undo').addEventListener('click', () => this.handleUndo());
             document.getElementById('btn-redo').addEventListener('click', () => this.handleRedo());
             
-            // Form Actions
             UIManager.dom.btnAdd.addEventListener('click', () => this.handleFormSubmit());
             UIManager.dom.btnDelete.addEventListener('click', () => {
                 if (state.editingKey) this.handleDelete(state.editingKey);
@@ -1230,11 +1199,9 @@
             state.roomId = room;
             state.role = document.querySelector('input[name="role"]:checked').value;
             
-            // Reset stacks
             state.undoStack = [];
             state.redoStack = [];
 
-            // Update URL
             const newUrl = `${window.location.pathname}?room=${encodeURIComponent(room)}`;
             window.history.pushState({path: newUrl}, '', newUrl);
 
@@ -1253,7 +1220,6 @@
             const name = inputs.name.value.trim();
             const interval = inputs.interval.value;
             
-            // Validation
             if (!name) return alert('보스명을 입력해주세요.');
             if (name.length > CONFIG.LIMITS.NAME) return alert(`보스명은 ${CONFIG.LIMITS.NAME}자 이내여야 합니다.`);
             if (!interval) return alert('젠 주기를 선택해주세요.');
@@ -1271,13 +1237,10 @@
             };
 
             if (state.editingKey) {
-                // Edit Logic
                 const oldData = state.bosses[state.editingKey];
                 
-                // If rename, delete old
                 if (name !== state.editingKey) BossService.removeBoss(state.editingKey);
                 
-                // Recalculate if interval changed
                 let { lastKillTimestamp, nextSpawnTimestamp } = oldData;
                 if (lastKillTimestamp && parseInt(interval) !== parseInt(oldData.interval)) {
                     nextSpawnTimestamp = lastKillTimestamp + (parseInt(interval) * 3600000);
@@ -1291,13 +1254,12 @@
                 });
                 alert('수정 완료');
             } else {
-                // Add Logic
                 BossService.updateBoss(name, {
                     ...payload,
                     order: Date.now()
                 });
             }
-            UIManager.toggleForm(); // Close & Reset
+            UIManager.toggleForm(); 
         },
 
         handleKill(key, interval) {

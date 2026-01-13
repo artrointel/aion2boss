@@ -17,6 +17,8 @@
             --accent-green: #248046;
             --text-highlight: #00a8fc;
             --text-gold: #ffd6a5;
+            --disabled-bg: #404249;
+            --disabled-text: #949ba4;
         }
 
         body {
@@ -123,7 +125,7 @@
             display: flex;
             width: 100%;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-start;
             gap: 10px;
         }
 
@@ -138,18 +140,40 @@
             min-width: 0;
             opacity: 0;
             transition: opacity 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         .side-boss-name { font-size: 1.1em; color: var(--text-primary); font-weight: bold; margin-bottom: 5px; }
-        .side-boss-time { font-size: 1.4em; color: #f2f3f5; font-weight: bold; margin-bottom: 5px; font-variant-numeric: tabular-nums; }
+        
+        .side-timer-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            margin-bottom: 5px;
+            width: 100%;
+        }
+        .side-boss-time { font-size: 1.4em; color: #f2f3f5; font-weight: bold; font-variant-numeric: tabular-nums; }
         .side-boss-loc { color: var(--text-gold); font-size: 0.9em; }
 
         .main-boss-panel {
             flex: 1.5;
             text-align: center;
             padding: 0 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         #timer-boss-name { font-size: 1.4rem; color: var(--text-highlight); margin-bottom: 5px; font-weight: bold; }
+        
+        .main-timer-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
         #timer-display { font-size: 3.5rem; font-weight: bold; font-variant-numeric: tabular-nums; color: #f2f3f5; margin: 0; line-height: 1; }
         
         #timer-boss-location { margin-top: 15px; }
@@ -227,11 +251,42 @@
         .btn-edit:hover { background-color: #2d7d46; }
         .btn-exit { background-color: var(--bg-secondary); border: 1px solid var(--accent-red); color: var(--accent-red); } 
         .btn-exit:hover { background-color: var(--accent-red); color: white; }
-        .btn-disabled {
-            background-color: #4e5058 !important;
-            color: var(--text-secondary) !important;
+        
+        .btn-kill-quick {
+            padding: 4px 8px;
+            font-size: 0.8em;
+        }
+        .btn-kill-main {
+            padding: 10px 20px;
+            font-size: 1.1em;
+        }
+
+        /* Disabled state */
+        button:disabled, .btn-disabled {
+            background-color: var(--disabled-bg) !important;
+            color: var(--disabled-text) !important;
             cursor: not-allowed !important;
+            /* Filter removed for better visibility, handled by color */
+            filter: none !important;
+            opacity: 1 !important;
             pointer-events: none;
+        }
+
+        /* Special style for disabled location button (No Data) */
+        .btn-location-disabled {
+            color: #b5bac1 !important;
+            background-color: #3f4147 !important;
+            cursor: default !important;
+        }
+
+        /* Active Map Button (Has Coordinates) */
+        .btn-active-map {
+            background-color: var(--accent-blue) !important;
+            color: white !important;
+        }
+        .btn-active-map:hover {
+            background-color: var(--accent-blue-hover) !important;
+            transform: scale(1.05);
         }
 
         .btn-icon-toggle {
@@ -374,22 +429,37 @@
         <h2 style="border:none; justify-content:center; color:#949BA4; font-size:1rem; margin-bottom:15px;">NEXT BOSS</h2>
         
         <div id="timer-panels">
+            <!-- Left: Prev -->
             <div class="side-boss-panel" id="panel-prev">
                 <div class="side-boss-name">-</div>
-                <div class="side-boss-time">--:--:--</div>
+                <div class="side-timer-row">
+                    <div class="side-boss-time">--:--:--</div>
+                    <!-- Quick Cut Button -->
+                    <button class="btn-success btn-kill btn-kill-quick hidden">컷</button>
+                </div>
                 <div class="side-boss-loc">-</div>
             </div>
 
+            <!-- Center: Main -->
             <div class="main-boss-panel">
                 <div id="timer-boss-name">대기 중...</div>
-                <div id="timer-display">--:--:--</div>
+                <div class="main-timer-row">
+                    <div id="timer-display">--:--:--</div>
+                    <!-- Main Cut Button -->
+                    <button class="btn-success btn-kill btn-kill-main hidden" id="btn-main-kill">컷</button>
+                </div>
                 <div id="timer-boss-location"></div>
                 <div id="timer-boss-drop"></div>
             </div>
 
+            <!-- Right: Next -->
             <div class="side-boss-panel" id="panel-next">
                 <div class="side-boss-name">-</div>
-                <div class="side-boss-time">--:--:--</div>
+                <div class="side-timer-row">
+                    <div class="side-boss-time">--:--:--</div>
+                    <!-- Quick Cut Button -->
+                    <button class="btn-success btn-kill btn-kill-quick hidden">컷</button>
+                </div>
                 <div class="side-boss-loc">-</div>
             </div>
         </div>
@@ -632,7 +702,7 @@
             state.map.pointX = targetX;
             state.map.pointY = targetY;
             
-            this.applyConstraints(); // Apply bounds before rendering
+            this.applyConstraints(); 
             this.renderTransform();
 
             setTimeout(() => img.classList.remove('fly-animation'), CONFIG.MAP.ANIMATION_DURATION);
@@ -736,7 +806,8 @@
                     name: document.getElementById('timer-boss-name'),
                     time: document.getElementById('timer-display'),
                     loc: document.getElementById('timer-boss-location'),
-                    drop: document.getElementById('timer-boss-drop')
+                    drop: document.getElementById('timer-boss-drop'),
+                    btn: document.getElementById('btn-main-kill')
                 }
             }
         },
@@ -755,6 +826,9 @@
             this.dom.tableBody.addEventListener('click', (e) => this.handleTableClick(e));
             this.dom.tableBody.addEventListener('change', (e) => this.handleTableInput(e));
             
+            // Event delegation for panel buttons (new logic for quick kill buttons)
+            document.getElementById('timer-panels').addEventListener('click', (e) => this.handlePanelClick(e));
+
             // Other UI bindings
             this.dom.btnToggleForm.addEventListener('click', () => this.toggleForm());
         },
@@ -769,6 +843,9 @@
                 if (state.role === 'guest') el.classList.add('hidden');
                 else el.classList.remove('hidden');
             });
+            
+            // Explicitly sync button state
+            this.updateUndoUI();
         },
 
         renderTable(bosses) {
@@ -791,9 +868,11 @@
                     `${Utils.formatTimeDisplay(spawnInfo.time)} <span style="font-size:0.8em; color:#ffd6a5;">${spawnInfo.label}</span>` : '-';
                 
                 // Button generation logic
-                const locBtn = (boss.mapX && boss.mapY) 
-                    ? `<button class="btn-icon-toggle btn-fly-map" data-x="${boss.mapX}" data-y="${boss.mapY}">📍</button>`
-                    : `<button class="btn-icon-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">📍</button>`;
+                const hasMapData = boss.mapX && boss.mapY;
+                const locBtnClass = hasMapData ? 'btn-fly-map btn-active-map' : 'btn-location-disabled';
+                const locBtnAttrs = hasMapData ? `data-x="${boss.mapX}" data-y="${boss.mapY}"` : 'disabled';
+                
+                const locBtn = `<button class="btn-icon-toggle ${locBtnClass}" ${locBtnAttrs}>📍</button>`;
 
                 let timeCell, actionCell;
                 
@@ -837,7 +916,8 @@
         // Efficiently update button styles without re-rendering table
         updateCooldowns() {
             const now = Date.now();
-            const killBtns = this.dom.tableBody.querySelectorAll('.btn-kill');
+            // Update table buttons AND panel buttons
+            const killBtns = document.querySelectorAll('.btn-kill');
             killBtns.forEach(btn => {
                 const lastKill = parseInt(btn.getAttribute('data-last-kill'));
                 if (!lastKill) return;
@@ -849,6 +929,7 @@
                 } else {
                     if (btn.classList.contains('btn-disabled')) {
                         btn.classList.remove('btn-disabled');
+                        btn.removeAttribute('disabled');
                         btn.innerText = '컷';
                     }
                 }
@@ -862,13 +943,15 @@
             // 1. Prepare data
             const list = Object.values(state.bosses).map(b => ({
                 ...b, ...Utils.getSpawnInfo(b),
-                effectiveTime: Utils.getSpawnInfo(b).time || 9999999999999
+                effectiveTime: Utils.getSpawnInfo(b).time || 9999999999999,
+                key: Object.keys(state.bosses).find(key => state.bosses[key] === b) // Find key for actions
             })).sort((a, b) => a.effectiveTime - b.effectiveTime);
 
             const [main, next] = list;
             const prev = list.length > 0 ? list[list.length - 1] : null;
 
             // 2. Render Main
+            const mainBtn = this.dom.panels.main.btn;
             if (main && main.effectiveTime < 9999999999999) {
                 const diff = main.effectiveTime - now;
                 this.dom.panels.main.name.innerText = `[${main.name}] 젠까지${main.label}`;
@@ -889,8 +972,20 @@
                 this.dom.panels.main.time.innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
                 
                 this.dom.panels.main.time.classList.toggle('timer-warning', diff < CONFIG.UI.WARNING_MS);
+
+                // Update Main Cut Button
+                if (state.role === 'admin') {
+                    mainBtn.classList.remove('hidden');
+                    mainBtn.setAttribute('data-key', main.key);
+                    mainBtn.setAttribute('data-interval', main.interval);
+                    mainBtn.setAttribute('data-last-kill', main.lastKillTimestamp || 0);
+                } else {
+                    mainBtn.classList.add('hidden');
+                }
+
             } else {
                 this.resetMainTimer();
+                mainBtn.classList.add('hidden');
             }
 
             // 3. Render Side Panels
@@ -909,6 +1004,7 @@
         },
 
         renderSidePanel(el, boss, now) {
+            const btn = el.querySelector('.btn-kill-quick');
             if (boss && boss.effectiveTime < 9999999999999 && boss.name !== state.lastNearestBoss) {
                 const diff = boss.effectiveTime - now;
                 el.querySelector('.side-boss-name').innerText = boss.name;
@@ -916,9 +1012,21 @@
                     `${String(Math.floor(diff/3600000)).padStart(2,'0')}:${String(Math.floor((diff%3600000)/60000)).padStart(2,'0')}:${String(Math.floor((diff%60000)/1000)).padStart(2,'0')}`;
                 
                 this.renderLocationButton(el.querySelector('.side-boss-loc'), boss, true);
+                
+                // Update Side Cut Button
+                if (state.role === 'admin') {
+                    btn.classList.remove('hidden');
+                    btn.setAttribute('data-key', boss.key);
+                    btn.setAttribute('data-interval', boss.interval);
+                    btn.setAttribute('data-last-kill', boss.lastKillTimestamp || 0);
+                } else {
+                    btn.classList.add('hidden');
+                }
+
                 el.style.opacity = 1;
             } else {
                 el.style.opacity = 0;
+                btn.classList.add('hidden');
             }
         },
 
@@ -948,12 +1056,13 @@
 
             if (boss.mapX && boss.mapY) {
                 btn.onclick = (e) => { e.stopPropagation(); MapController.flyTo(parseFloat(boss.mapX), parseFloat(boss.mapY)); };
+                btn.title = "지도 보기";
                 btn.style.cursor = 'pointer';
+                btn.classList.add('btn-active-map'); // Add active style
             } else {
                 btn.disabled = true;
                 btn.style.cursor = 'default';
-                btn.style.background = 'transparent';
-                btn.style.padding = '0';
+                btn.classList.add('btn-location-disabled');
             }
             container.appendChild(btn);
         },
@@ -979,6 +1088,17 @@
                 this.setEditMode(key);
             } else if (btn.classList.contains('btn-del')) {
                 App.handleDelete(key);
+            }
+        },
+
+        // Handler for panel cut buttons
+        handlePanelClick(e) {
+            const btn = e.target;
+            if (btn.classList.contains('btn-kill')) {
+                if (btn.classList.contains('btn-disabled')) return;
+                const key = btn.getAttribute('data-key');
+                const interval = parseInt(btn.getAttribute('data-interval'));
+                if (key && interval) App.handleKill(key, interval);
             }
         },
 
@@ -1050,8 +1170,7 @@
             if (state.role !== 'admin') return;
             this.dom.undoBtn.disabled = state.undoStack.length === 0;
             this.dom.redoBtn.disabled = state.redoStack.length === 0;
-            this.dom.undoBtn.style.opacity = state.undoStack.length === 0 ? 0.5 : 1;
-            this.dom.redoBtn.style.opacity = state.redoStack.length === 0 ? 0.5 : 1;
+            // Opacity handling removed, CSS handles it based on disabled attribute
         }
     };
 
@@ -1111,6 +1230,10 @@
             state.roomId = room;
             state.role = document.querySelector('input[name="role"]:checked').value;
             
+            // Reset stacks
+            state.undoStack = [];
+            state.redoStack = [];
+
             // Update URL
             const newUrl = `${window.location.pathname}?room=${encodeURIComponent(room)}`;
             window.history.pushState({path: newUrl}, '', newUrl);

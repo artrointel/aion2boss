@@ -27,7 +27,7 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
-        /* 로그인(입장) 화면 스타일 */
+        /* Login Screen Styles */
         #login-screen {
             display: flex;
             flex-direction: column;
@@ -58,7 +58,7 @@
         }
         #room-input:focus { outline: 2px solid #00a8fc; }
 
-        /* 역할 선택 라디오 버튼 */
+        /* Role Selector */
         .role-selector {
             display: flex;
             justify-content: center;
@@ -83,7 +83,7 @@
         input[type="radio"]:checked + span { color: #00a8fc; font-weight: bold; }
         .role-label:has(input:checked) { border-color: #00a8fc; background-color: #2b2d31; }
         
-        /* 메인 앱 (초기에는 숨김) */
+        /* Main App */
         #main-app { display: none; }
 
         h2 { margin-top: 0; color: #f2f3f5; border-bottom: 2px solid #3f4147; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
@@ -97,14 +97,70 @@
             font-weight: normal;
         }
 
-        /* 메인 타이머 */
-        #timer-box { text-align: center; padding: 30px 20px; }
-        #timer-boss-name { font-size: 1.2rem; color: #00a8fc; margin-bottom: 5px; font-weight: bold; }
+        /* 3-Panel Timer Layout */
+        #timer-box { 
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column; /* Default stack, map is below */
+            align-items: center;
+        }
+
+        #timer-panels {
+            display: flex;
+            width: 100%;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Side Panels (Left/Right) */
+        .side-boss-panel {
+            flex: 1;
+            text-align: center;
+            background-color: rgba(30, 31, 34, 0.5);
+            padding: 15px 10px;
+            border-radius: 8px;
+            font-size: 0.7em; /* 30% smaller base */
+            color: #949ba4;
+            min-width: 0; /* Flexbox text overflow fix */
+        }
+        .side-boss-name { font-size: 1.1em; color: #dbdee1; font-weight: bold; margin-bottom: 5px; }
+        .side-boss-time { font-size: 1.4em; color: #f2f3f5; font-weight: bold; margin-bottom: 5px; font-variant-numeric: tabular-nums; }
+        .side-boss-loc { 
+            color: #ffd6a5; 
+            font-size: 0.9em;
+            /* Container for button */
+        }
+
+        /* Main Panel (Center) */
+        .main-boss-panel {
+            flex: 1.5; /* Larger share */
+            text-align: center;
+            padding: 0 10px;
+        }
+
+        #timer-boss-name { font-size: 1.4rem; color: #00a8fc; margin-bottom: 5px; font-weight: bold; }
         #timer-display { font-size: 3.5rem; font-weight: bold; font-variant-numeric: tabular-nums; color: #f2f3f5; margin: 0; line-height: 1; }
+        
+        #timer-boss-location {
+            margin-top: 15px;
+            /* Container for the button */
+        }
+        #timer-boss-drop {
+            margin-top: 5px;
+            font-size: 0.95rem;
+            color: #b5bac1;
+            white-space: pre-wrap;
+            max-width: 80%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
         .timer-warning { color: #f23f42 !important; animation: blink 1s infinite; }
         
-        /* 지도 관련 스타일 */
+        /* Map Styles */
         #map-wrapper {
+            width: 100%;
             margin-top: 20px;
             border-top: 1px solid #3f4147;
             padding-top: 15px;
@@ -132,16 +188,13 @@
             left: 0;
             transform-origin: 0 0;
             max-width: none;
-            /* 기본적으로 transition 없음 (드래그 반응성 위해) */
             will-change: transform;
         }
         
-        /* 줌 할때만 부드럽게 애니메이션 적용하는 클래스 */
-        .smooth-zoom {
-            transition: transform 0.2s ease-out;
-        }
+        .smooth-zoom { transition: transform 0.2s ease-out; }
+        .fly-animation { transition: transform 0.5s ease-in-out; }
 
-        /* 버튼 공통 스타일 */
+        /* Buttons */
         button {
             border: none;
             padding: 8px 14px;
@@ -164,8 +217,16 @@
         .btn-secondary:hover { background-color: #404249; }
         .btn-warning { background-color: #f0b232; color: #2b2d31; }
         .btn-warning:hover { background-color: #dcb348; }
+        .btn-edit { background-color: #3ba55c; color: white; }
+        .btn-edit:hover { background-color: #2d7d46; }
         .btn-exit { background-color: #2b2d31; border: 1px solid #da373c; color: #da373c; } 
         .btn-exit:hover { background-color: #da373c; color: white; }
+        .btn-disabled {
+            background-color: #4e5058 !important;
+            color: #949ba4 !important;
+            cursor: not-allowed !important;
+            pointer-events: none;
+        }
 
         .btn-icon-toggle {
             background-color: #4e5058;
@@ -208,16 +269,9 @@
             box-sizing: border-box;
             text-align: center;
         }
-        .input-time-edit::-webkit-calendar-picker-indicator {
-            filter: invert(1);
-            cursor: pointer;
-        }
+        .input-time-edit::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 
-        .read-only-time {
-            color: #dbdee1;
-            font-size: 0.9em;
-            padding: 5px;
-        }
+        .read-only-time { color: #dbdee1; font-size: 0.9em; padding: 5px; }
 
         .control-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
@@ -231,7 +285,7 @@
         }
         .input-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;}
         
-        input[type="text"], select {
+        input[type="text"], select, input[type="number"] {
             background-color: #383a40;
             border: 1px solid #202225;
             color: white;
@@ -262,7 +316,7 @@
         .col-cycle { width: 80px; text-align: center !important; }
         .col-time { width: 230px; text-align: center !important; }
         .col-next { width: 160px; text-align: center !important; font-size: 0.9em; color: #f2f3f5; font-weight: bold; white-space: nowrap; }
-        .col-action { width: 140px; text-align: center !important; white-space: nowrap; }
+        .col-action { width: 160px; text-align: center !important; white-space: nowrap; }
 
         .draggable-row { cursor: move; }
         .draggable-row:hover { background-color: #32353b; }
@@ -311,9 +365,34 @@
             <button id="btn-share-url" class="btn-secondary" style="padding: 2px 8px; font-size: 0.7em;">🔗 주소복사</button>
             <span style="margin-left: 10px; color: #5c5e66;">마족 보스 관리기(aion2boss) by 뿌띠</span>
         </div>
-        <h2 style="border:none; justify-content:center; color:#949BA4; font-size:1rem; margin-bottom:0;">NEXT BOSS</h2>
-        <div id="timer-boss-name">대기 중...</div>
-        <div id="timer-display">--:--:--</div>
+        
+        <h2 style="border:none; justify-content:center; color:#949BA4; font-size:1rem; margin-bottom:15px;">NEXT BOSS</h2>
+        
+        <!-- 3-Panel Layout -->
+        <div id="timer-panels">
+            <!-- Left: Previous Boss -->
+            <div class="side-boss-panel" id="panel-prev">
+                <div class="side-boss-name">-</div>
+                <div class="side-boss-time">--:--:--</div>
+                <div class="side-boss-loc">-</div>
+            </div>
+
+            <!-- Center: Main Boss -->
+            <div class="main-boss-panel">
+                <div id="timer-boss-name">대기 중...</div>
+                <div id="timer-display">--:--:--</div>
+                <!-- Location Button Container -->
+                <div id="timer-boss-location"></div>
+                <div id="timer-boss-drop"></div>
+            </div>
+
+            <!-- Right: Next Next Boss -->
+            <div class="side-boss-panel" id="panel-next">
+                <div class="side-boss-name">-</div>
+                <div class="side-boss-time">--:--:--</div>
+                <div class="side-boss-loc">-</div>
+            </div>
+        </div>
 
         <div id="map-wrapper">
             <button id="btn-toggle-map" class="btn-secondary">🗺️ 지도 열기</button>
@@ -337,11 +416,17 @@
                 <input type="text" id="input-location" placeholder="위치 정보 (최대 100자)" maxlength="100" style="flex: 1;">
             </div>
             <div class="input-group">
+                <input type="number" id="input-map-x" placeholder="지도 X (0.0~1.0)" step="0.01" min="0" max="1" style="flex: 1;">
+                <input type="number" id="input-map-y" placeholder="지도 Y (0.0~1.0)" step="0.01" min="0" max="1" style="flex: 1;">
+            </div>
+            <div class="input-group">
                 <select id="input-interval" style="width: 100px;">
                     <option value="" disabled selected>젠 주기</option>
                 </select>
                 <input type="text" id="input-drop" placeholder="주요 정보 (최대 400자)" maxlength="400" style="flex: 2;">
+                <!-- Buttons -->
                 <button class="btn-primary" id="btn-add">등록</button>
+                <button class="btn-danger" id="btn-form-delete" style="display:none;">삭제</button>
             </div>
         </div>
         
@@ -359,7 +444,8 @@
                     </tr>
                 </thead>
                 <tbody id="table-body">
-                    </tbody>
+                    <!-- JS Rendering -->
+                </tbody>
             </table>
         </div>
         <p class="admin-element" style="text-align: center; color: #5c5e66; font-size: 0.8em; margin-top: 10px;">💡 행을 드래그하여 순서를 변경할 수 있습니다.</p>
@@ -400,15 +486,15 @@
     let allBosses = {}; 
     let undoStack = [];
     let redoStack = [];
-
-    // --- 1. 방 입장 & 역할 설정 로직 ---
     
+    let editingKey = null;
+    let lastNearestBossName = null; 
+
+    // --- 1. Room Logic ---
     window.addEventListener('DOMContentLoaded', () => {
         const urlParams = new URLSearchParams(window.location.search);
         const roomParam = urlParams.get('room');
-        if (roomParam) {
-            document.getElementById('room-input').value = roomParam;
-        }
+        if (roomParam) document.getElementById('room-input').value = roomParam;
     });
 
     document.getElementById('btn-enter-room').addEventListener('click', () => {
@@ -416,8 +502,7 @@
         if(inputVal) {
             const selectedRole = document.querySelector('input[name="role"]:checked').value;
             joinRoom(inputVal, selectedRole);
-        }
-        else alert("방 이름을 입력해주세요.");
+        } else alert("방 이름을 입력해주세요.");
     });
 
     document.getElementById('room-input').addEventListener('keypress', (e) => {
@@ -456,15 +541,11 @@
 
     document.getElementById('btn-share-url').addEventListener('click', () => {
         const url = window.location.origin + window.location.pathname + `?room=${encodeURIComponent(currentRoomId)}`;
-        navigator.clipboard.writeText(url).then(() => {
-            alert("방 주소가 복사되었습니다!\n파티원에게 공유하세요.");
-        });
+        navigator.clipboard.writeText(url).then(() => alert("방 주소가 복사되었습니다!\n파티원에게 공유하세요."));
     });
 
     document.getElementById('btn-leave-room').addEventListener('click', () => {
-        if(confirm("정말 방에서 나가시겠습니까?")) {
-            window.location.href = window.location.pathname;
-        }
+        if(confirm("정말 방에서 나가시겠습니까?")) window.location.href = window.location.pathname;
     });
 
     function initFirebaseListeners() {
@@ -476,13 +557,12 @@
         });
     }
 
-    // --- 2. 지도 기능 (개선된 Zoom & Pan) ---
+    // --- 2. Map Features ---
     const mapBtn = document.getElementById('btn-toggle-map');
     const mapViewport = document.getElementById('map-viewport');
     const mapImg = document.getElementById('boss-map-img');
     const mapHelp = document.getElementById('map-help');
 
-    // 상태 변수
     let scale = 1;
     let pointX = 0;
     let pointY = 0;
@@ -500,7 +580,6 @@
             mapHelp.style.display = 'block';
             mapBtn.innerText = '🗺️ 지도 닫기';
             
-            // 처음 열 때 이미지 로드 대기 후 중앙 정렬
             if (!isMapInitialized) {
                 if (mapImg.complete) {
                     centerMap();
@@ -515,44 +594,82 @@
         }
     });
 
+    function flyTo(normalizedX, normalizedY) {
+        if (mapViewport.style.display !== 'block') {
+            mapViewport.style.display = 'block';
+            mapHelp.style.display = 'block';
+            mapBtn.innerText = '🗺️ 지도 닫기';
+        }
+
+        document.getElementById('timer-box').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        const vpW = mapViewport.clientWidth;
+        const vpH = mapViewport.clientHeight;
+        const imgW = mapImg.naturalWidth;
+        const imgH = mapImg.naturalHeight;
+
+        const targetScale = 1.5; // Scale 1.5x
+        const targetImgX = normalizedX * imgW;
+        const targetImgY = normalizedY * imgH;
+
+        let targetPointX = (vpW / 2) - (targetImgX * targetScale);
+        let targetPointY = (vpH / 2) - (targetImgY * targetScale);
+
+        const currentW = imgW * targetScale;
+        const currentH = imgH * targetScale;
+
+        if (currentW <= vpW) targetPointX = (vpW - currentW) / 2;
+        else {
+            const minX = vpW - currentW;
+            targetPointX = Math.min(0, Math.max(minX, targetPointX));
+        }
+
+        if (currentH <= vpH) targetPointY = (vpH - currentH) / 2;
+        else {
+            const minY = vpH - currentH;
+            targetPointY = Math.min(0, Math.max(minY, targetPointY));
+        }
+
+        mapImg.classList.add('fly-animation');
+        mapImg.style.transform = `translate(${targetPointX}px, ${targetPointY}px) scale(${targetScale})`;
+
+        scale = targetScale;
+        pointX = targetPointX;
+        pointY = targetPointY;
+
+        setTimeout(() => {
+            mapImg.classList.remove('fly-animation');
+        }, 500);
+    }
+
     function centerMap() {
         const vpW = mapViewport.clientWidth;
         const vpH = mapViewport.clientHeight;
         const imgW = mapImg.naturalWidth;
         const imgH = mapImg.naturalHeight;
-
         scale = 1;
-        // 뷰포트 중앙에 이미지 중앙이 오도록 계산
         pointX = (vpW - imgW) / 2;
         pointY = (vpH - imgH) / 2;
-        
         updateTransform();
     }
 
     function updateTransform() {
-        // 이미지를 중앙에 고정하거나 범위 제한
         const vpW = mapViewport.clientWidth;
         const vpH = mapViewport.clientHeight;
         const imgW = mapImg.naturalWidth;
         const imgH = mapImg.naturalHeight;
-        
         const currentW = imgW * scale;
         const currentH = imgH * scale;
 
-        // X축 제한
-        if (currentW <= vpW) {
-            pointX = (vpW - currentW) / 2; // 작으면 중앙 정렬
-        } else {
-            // 크면 빈 공간 안 보이게 제한
+        if (currentW <= vpW) pointX = (vpW - currentW) / 2; 
+        else {
             const minX = vpW - currentW;
             const maxX = 0;
             pointX = Math.min(maxX, Math.max(minX, pointX));
         }
 
-        // Y축 제한
-        if (currentH <= vpH) {
-            pointY = (vpH - currentH) / 2;
-        } else {
+        if (currentH <= vpH) pointY = (vpH - currentH) / 2;
+        else {
             const minY = vpH - currentH;
             const maxY = 0;
             pointY = Math.min(maxY, Math.max(minY, pointY));
@@ -561,41 +678,33 @@
         mapImg.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
     }
 
-    // 휠 줌 (부드러운 애니메이션 + 포인터 중심 확대)
     mapViewport.addEventListener('wheel', (e) => {
         e.preventDefault();
-        
-        // 애니메이션 클래스 추가
         mapImg.classList.add('smooth-zoom');
-
-        // 현재 마우스 포인터의 이미지 내 상대 좌표 계산
-        const xs = (e.offsetX - pointX) / scale;
-        const ys = (e.offsetY - pointY) / scale;
+        const centerX = mapViewport.clientWidth / 2;
+        const centerY = mapViewport.clientHeight / 2;
+        const xs = (centerX - pointX) / scale;
+        const ys = (centerY - pointY) / scale;
         const delta = -e.deltaY;
 
-        // 배율 조정
-        if (delta > 0) scale *= 1.2; // 1.2배씩 확대
+        if (delta > 0) scale *= 1.2; 
         else scale /= 1.2;
-        scale = Math.min(Math.max(0.2, scale), 5); // 최소 0.2배 ~ 최대 5배
+        scale = Math.min(Math.max(0.2, scale), 5); 
 
-        // 마우스 포인터가 원래 위치를 유지하도록 pointX, pointY 보정
-        pointX = e.offsetX - xs * scale;
-        pointY = e.offsetY - ys * scale;
-
+        pointX = centerX - xs * scale;
+        pointY = centerY - ys * scale;
         updateTransform();
     });
 
-    // 드래그 시작
     mapViewport.addEventListener('mousedown', (e) => {
         isDragging = true;
-        // 드래그 시에는 애니메이션 제거 (즉각 반응)
         mapImg.classList.remove('smooth-zoom');
+        mapImg.classList.remove('fly-animation'); 
         startX = e.clientX - pointX;
         startY = e.clientY - pointY;
         mapViewport.style.cursor = 'grabbing';
     });
 
-    // 드래그 중
     window.addEventListener('mousemove', (e) => {
         if (!isDragging) return;
         e.preventDefault();
@@ -604,14 +713,13 @@
         updateTransform();
     });
 
-    // 드래그 종료
     window.addEventListener('mouseup', () => {
         isDragging = false;
         mapViewport.style.cursor = 'grab';
     });
 
 
-    // --- 3. 유틸리티 ---
+    // --- 3. Utilities & Logic ---
 
     const intervalSelect = document.getElementById('input-interval');
     for(let i=1; i<=24; i++) {
@@ -623,17 +731,35 @@
 
     const toggleBtn = document.getElementById('btn-toggle-form');
     const formContainer = document.getElementById('form-container');
+    const btnFormDelete = document.getElementById('btn-form-delete');
+    
+    function setAddMode() {
+        editingKey = null;
+        document.getElementById('btn-add').innerText = "등록";
+        document.getElementById('btn-add').classList.remove('btn-edit');
+        document.getElementById('btn-add').classList.add('btn-primary');
+        btnFormDelete.style.display = 'none';
+        
+        document.getElementById('input-name').value = '';
+        document.getElementById('input-color').value = '#ffadad';
+        document.getElementById('input-location').value = '';
+        document.getElementById('input-drop').value = '';
+        document.getElementById('input-map-x').value = '';
+        document.getElementById('input-map-y').value = '';
+    }
+
     toggleBtn.addEventListener('click', () => {
         if(formContainer.style.display === 'block') {
             formContainer.style.display = 'none';
             toggleBtn.innerText = '[+] 보스 추가하기';
+            setAddMode(); 
         } else {
             formContainer.style.display = 'block';
             toggleBtn.innerText = '[-] 닫기';
+            setAddMode(); 
         }
     });
 
-    // YYYY-MM-DDTHH:mm:ss
     function toLocalInputValue(timestamp) {
         if (!timestamp) return "";
         const d = new Date(timestamp);
@@ -641,7 +767,6 @@
         return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     }
 
-    // MM/DD HH:mm:ss
     function formatTimeDisplay(timestamp) {
         if(!timestamp) return '-';
         const d = new Date(timestamp);
@@ -653,46 +778,215 @@
         return `${mo}/${da} ${ho}:${mi}:${se}`;
     }
 
-    setInterval(() => updateSmartTimer(), 1000);
+    function getSpawnInfo(boss) {
+        if (!boss.nextSpawnTimestamp || !boss.interval) return { time: null, label: '', count: 0 };
+        
+        const now = Date.now();
+        let nextTime = boss.nextSpawnTimestamp;
+        let count = 1;
+        const intervalMs = boss.interval * 3600000;
+
+        if (nextTime <= now) {
+            const diff = now - nextTime;
+            const cyclesToAdd = Math.floor(diff / intervalMs) + 1;
+            nextTime += cyclesToAdd * intervalMs;
+            count += cyclesToAdd;
+        }
+
+        const label = count > 1 ? ` (${count}차)` : '';
+        return { time: nextTime, label: label, count: count };
+    }
+
+    // Call updateButtonStates() inside the interval
+    setInterval(() => {
+        updateSmartTimer();
+        updateButtonStates();
+    }, 1000);
+
+    function updateButtonStates() {
+        const now = Date.now();
+        document.querySelectorAll('.btn-kill').forEach(btn => {
+            const lastKill = parseInt(btn.getAttribute('data-last-kill'));
+            if (!lastKill) return;
+
+            const diff = now - lastKill;
+            if (diff < 60000) { 
+                btn.classList.add('btn-disabled');
+                btn.setAttribute('disabled', 'true'); 
+                const secondsAgo = Math.floor(diff / 1000);
+                btn.innerText = `컷 (${secondsAgo}초 전)`;
+            } else {
+                if (btn.classList.contains('btn-disabled')) {
+                    btn.classList.remove('btn-disabled');
+                    btn.removeAttribute('disabled');
+                    btn.innerText = '컷';
+                }
+            }
+        });
+    }
+
+    // Helper to render location button for side panels (and main panel)
+    function renderLocationBtn(container, boss, isSidePanel) {
+        const currentBtn = container.querySelector('button');
+        const newMapX = boss.mapX || '';
+        const newMapY = boss.mapY || '';
+        
+        // Optimize: Don't re-render if same boss and same location data
+        if (currentBtn && 
+            currentBtn.getAttribute('data-boss-name') === boss.name &&
+            currentBtn.getAttribute('data-map-x') == newMapX &&
+            currentBtn.getAttribute('data-map-y') == newMapY &&
+            currentBtn.textContent.includes(boss.location)) {
+            return;
+        }
+
+        container.innerHTML = '';
+        if (boss.location) {
+            const btn = document.createElement('button');
+            btn.className = 'btn-secondary';
+            btn.innerHTML = `📍 ${boss.location}`;
+            btn.setAttribute('data-boss-name', boss.name);
+            btn.setAttribute('data-map-x', newMapX);
+            btn.setAttribute('data-map-y', newMapY);
+            btn.style.color = '#ffd6a5';
+            
+            if (isSidePanel) {
+                btn.style.fontSize = '0.9em';
+                btn.style.padding = '2px 6px';
+                btn.style.marginTop = '2px';
+                btn.style.whiteSpace = 'nowrap';
+                btn.style.overflow = 'hidden';
+                btn.style.textOverflow = 'ellipsis';
+                btn.style.maxWidth = '100%';
+            } else {
+                btn.style.fontSize = '1.1rem';
+                btn.style.marginTop = '10px';
+            }
+
+            if (boss.mapX && boss.mapY) {
+                btn.onclick = (e) => {
+                    e.stopPropagation(); 
+                    flyTo(parseFloat(boss.mapX), parseFloat(boss.mapY));
+                };
+                btn.title = "지도 보기";
+                btn.style.cursor = 'pointer';
+            } else {
+                btn.disabled = true;
+                btn.style.cursor = 'default';
+                btn.style.backgroundColor = 'transparent';
+                btn.style.padding = '0';
+            }
+            container.appendChild(btn);
+        } else {
+            container.innerText = isSidePanel ? '-' : '';
+        }
+    }
 
     function updateSmartTimer() {
         if (!currentRoomId) return;
 
         const now = Date.now();
-        let nearestBoss = null;
-        let minDiff = Infinity;
-
-        Object.values(allBosses).forEach(boss => {
-            if (boss.nextSpawnTimestamp) {
-                const diff = boss.nextSpawnTimestamp - now;
-                if (diff > 0 && diff < minDiff) {
-                    minDiff = diff;
-                    nearestBoss = boss;
-                }
-            }
+        
+        const bossList = Object.values(allBosses).map(boss => {
+            const info = getSpawnInfo(boss);
+            return { 
+                ...boss, 
+                effectiveTime: info.time || 9999999999999, 
+                effectiveLabel: info.label 
+            };
         });
 
+        bossList.sort((a, b) => a.effectiveTime - b.effectiveTime);
+
+        let mainBoss = null;
+        let nextBoss = null;
+        let prevBoss = null;
+
+        if (bossList.length > 0) mainBoss = bossList[0];
+        if (bossList.length > 1) nextBoss = bossList[1];
+        if (bossList.length > 0) prevBoss = bossList[bossList.length - 1]; 
+
+        // 4. Update UI - Center (Main)
         const nameEl = document.getElementById('timer-boss-name');
         const timeEl = document.getElementById('timer-display');
+        const locEl = document.getElementById('timer-boss-location');
+        const dropEl = document.getElementById('timer-boss-drop');
 
-        if (nearestBoss) {
-            nameEl.innerText = `[${nearestBoss.name}] 젠까지`;
+        if (mainBoss && mainBoss.effectiveTime < 9999999999999) {
+            const diff = mainBoss.effectiveTime - now;
+            nameEl.innerText = `[${mainBoss.name}] 젠까지${mainBoss.effectiveLabel}`;
             nameEl.style.color = '#00a8fc';
-            const hours = Math.floor(minDiff / 3600000);
-            const mins = Math.floor((minDiff % 3600000) / 60000);
-            const secs = Math.floor((minDiff % 60000) / 1000);
+            
+            renderLocationBtn(locEl, mainBoss, false);
+
+            dropEl.innerText = mainBoss.drop ? `ℹ️ ${mainBoss.drop}` : '';
+
+            if (lastNearestBossName !== mainBoss.name) {
+                lastNearestBossName = mainBoss.name;
+                if (mainBoss.mapX && mainBoss.mapY) {
+                    flyTo(parseFloat(mainBoss.mapX), parseFloat(mainBoss.mapY));
+                }
+            }
+
+            const hours = Math.floor(diff / 3600000);
+            const mins = Math.floor((diff % 3600000) / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
             timeEl.innerText = `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
-            if (minDiff < 300000) timeEl.classList.add('timer-warning');
+            
+            if (diff < 300000) timeEl.classList.add('timer-warning');
             else timeEl.classList.remove('timer-warning');
         } else {
-            nameEl.innerText = "현재 예정된 보스가 없습니다";
+            nameEl.innerText = "대기 중...";
             nameEl.style.color = '#949BA4';
             timeEl.innerText = "--:--:--";
             timeEl.classList.remove('timer-warning');
+            locEl.innerText = '';
+            dropEl.innerText = '';
+            lastNearestBossName = null;
+        }
+
+        // 5. Update UI - Left (Prev)
+        const prevPanel = document.getElementById('panel-prev');
+        if (prevBoss && prevBoss !== mainBoss) {
+            prevPanel.querySelector('.side-boss-name').innerText = prevBoss.name;
+            
+            const pDiff = prevBoss.effectiveTime - now;
+            const pHours = Math.floor(pDiff / 3600000);
+            const pMins = Math.floor((pDiff % 3600000) / 60000);
+            const pSecs = Math.floor((pDiff % 60000) / 1000);
+            
+            prevPanel.querySelector('.side-boss-time').innerText = `${String(pHours).padStart(2,'0')}:${String(pMins).padStart(2,'0')}:${String(pSecs).padStart(2,'0')}`;
+            
+            const locContainer = prevPanel.querySelector('.side-boss-loc');
+            renderLocationBtn(locContainer, prevBoss, true);
+
+            prevPanel.style.opacity = 1;
+        } else {
+            prevPanel.style.opacity = 0; 
+        }
+
+        // 6. Update UI - Right (Next Next)
+        const nextPanel = document.getElementById('panel-next');
+        if (nextBoss) {
+            nextPanel.querySelector('.side-boss-name').innerText = nextBoss.name;
+            
+            const nDiff = nextBoss.effectiveTime - now;
+            const nHours = Math.floor(nDiff / 3600000);
+            const nMins = Math.floor((nDiff % 3600000) / 60000);
+            const nSecs = Math.floor((nDiff % 60000) / 1000);
+
+            nextPanel.querySelector('.side-boss-time').innerText = `${String(nHours).padStart(2,'0')}:${String(nMins).padStart(2,'0')}:${String(nSecs).padStart(2,'0')}`;
+            
+            const locContainer = nextPanel.querySelector('.side-boss-loc');
+            renderLocationBtn(locContainer, nextBoss, true);
+
+            nextPanel.style.opacity = 1;
+        } else {
+            nextPanel.style.opacity = 0;
         }
     }
 
-    // --- 렌더링 ---
+    // --- Rendering ---
     function renderTable(data) {
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = '';
@@ -714,7 +1008,10 @@
             tr.setAttribute('data-key', key);
             
             const intervalText = boss.interval ? `${boss.interval}h` : '-';
-            const nextTimeStr = boss.nextSpawnTimestamp ? formatTimeDisplay(boss.nextSpawnTimestamp) : '-';
+            
+            const spawnInfo = getSpawnInfo(boss);
+            const nextTimeStr = spawnInfo.time ? 
+                (formatTimeDisplay(spawnInfo.time) + `<span style="font-size:0.8em; color:#ffd6a5;">${spawnInfo.label}</span>`) : '-';
 
             const locInfo = boss.location || '위치 미설정';
             const dropInfo = boss.drop || '정보 없음';
@@ -731,20 +1028,26 @@
 
             let actionCellContent;
             if (isAdmin) {
+                const lastKill = boss.lastKillTimestamp || 0;
                 actionCellContent = `
                     <div class="action-btn-group">
-                        <button class="btn-success btn-kill" data-key="${key}" data-interval="${boss.interval}">컷</button>
-                        <button class="btn-danger btn-del" data-key="${key}">삭제</button>
+                        <button class="btn-success btn-kill" data-key="${key}" data-interval="${boss.interval}" data-last-kill="${lastKill}">컷</button>
+                        <button class="btn-edit btn-modify" data-key="${key}">수정</button>
                     </div>
                 `;
             } else {
                 actionCellContent = `<span style="font-size:0.8em; color:#5c5e66;">보기 전용</span>`;
             }
 
+            const hasCoords = (boss.mapX !== undefined && boss.mapY !== undefined && boss.mapX !== "" && boss.mapY !== "");
+            const locationBtnHtml = hasCoords 
+                ? `<button class="btn-icon-toggle btn-fly-map" data-x="${boss.mapX}" data-y="${boss.mapY}">📍</button>`
+                : `<button class="btn-icon-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">📍</button>`;
+
             tr.innerHTML = `
                 <td style="font-weight: bold; color: ${nameColor};">${boss.name}</td>
                 <td style="text-align:center;">
-                    <button class="btn-icon-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">📍</button>
+                    ${locationBtnHtml}
                     <div class="info-text-box">${locInfo}</div>
                 </td>
                 <td style="text-align:center;">
@@ -759,9 +1062,19 @@
             tbody.appendChild(tr);
         });
         
-        if (isAdmin) {
-            attachAdminEventListeners();
-        }
+        attachAdminEventListeners(); 
+        
+        updateButtonStates();
+
+        document.querySelectorAll('.btn-fly-map').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const x = parseFloat(e.target.getAttribute('data-x'));
+                const y = parseFloat(e.target.getAttribute('data-y'));
+                const textBox = e.target.nextElementSibling;
+                if(textBox) textBox.style.display = textBox.style.display === 'block' ? 'none' : 'block';
+                flyTo(x, y);
+            });
+        });
     }
 
     function attachAdminEventListeners() {
@@ -801,6 +1114,8 @@
                 const key = e.target.getAttribute('data-key');
                 const interval = parseInt(e.target.getAttribute('data-interval'));
 
+                if (btn.hasAttribute('disabled')) return; 
+
                 if (!interval) return alert("젠 주기가 설정되지 않았습니다.");
 
                 const currentData = allBosses[key];
@@ -818,32 +1133,52 @@
             });
         });
 
-        document.querySelectorAll('.btn-del').forEach(btn => {
+        document.querySelectorAll('.btn-modify').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const key = e.target.getAttribute('data-key');
-                if(confirm(`정말로 [${key}] 보스를 삭제하시겠습니까?`)) {
-                    remove(ref(db, `${currentRoomId}/bosses/${key}`));
-                }
-            });
-        });
+                const data = allBosses[key];
+                if (!data) return;
 
-        const draggables = document.querySelectorAll('.draggable-row');
-        const container = document.getElementById('table-body');
-        draggables.forEach(draggable => {
-            draggable.addEventListener('dragstart', () => draggable.classList.add('dragging'));
-            draggable.addEventListener('dragend', () => {
-                draggable.classList.remove('dragging');
-                saveNewOrder();
+                if (editingKey === key) {
+                    setAddMode();
+                    formContainer.style.display = 'none';
+                    toggleBtn.innerText = '[+] 보스 추가하기';
+                    return;
+                }
+
+                editingKey = key;
+                
+                formContainer.style.display = 'block';
+                toggleBtn.innerText = '[-] 닫기';
+
+                document.getElementById('input-name').value = data.name;
+                document.getElementById('input-color').value = data.color || '#ffadad';
+                document.getElementById('input-location').value = data.location || '';
+                document.getElementById('input-drop').value = data.drop || '';
+                document.getElementById('input-interval').value = data.interval || '';
+                document.getElementById('input-map-x').value = data.mapX || '';
+                document.getElementById('input-map-y').value = data.mapY || '';
+
+                const addBtn = document.getElementById('btn-add');
+                addBtn.innerText = "수정";
+                addBtn.classList.remove('btn-primary');
+                addBtn.classList.add('btn-edit');
+                
+                btnFormDelete.style.display = 'inline-block';
+                
+                formContainer.scrollIntoView({ behavior: 'smooth' });
             });
-        });
-        container.addEventListener('dragover', e => {
-            e.preventDefault();
-            const afterElement = getDragAfterElement(container, e.clientY);
-            const draggable = document.querySelector('.dragging');
-            if (afterElement == null) container.appendChild(draggable);
-            else container.insertBefore(draggable, afterElement);
         });
     }
+
+    btnFormDelete.addEventListener('click', () => {
+        if (editingKey && confirm(`정말로 [${editingKey}] 보스를 삭제하시겠습니까?`)) {
+            remove(ref(db, `${currentRoomId}/bosses/${editingKey}`));
+            setAddMode(); 
+            formContainer.style.display = 'none';
+            toggleBtn.innerText = '[+] 보스 추가하기';
+        }
+    });
 
     function updateUndoUI() {
         if (currentUserRole !== 'admin') return;
@@ -881,8 +1216,11 @@
         if(!allBosses) return;
         const entries = Object.entries(allBosses);
         entries.sort((a, b) => {
-            const timeA = a[1].nextSpawnTimestamp || 9999999999999;
-            const timeB = b[1].nextSpawnTimestamp || 9999999999999;
+            const infoA = getSpawnInfo(a[1]);
+            const infoB = getSpawnInfo(b[1]);
+            
+            const timeA = infoA.time || 9999999999999;
+            const timeB = infoB.time || 9999999999999;
             return timeA - timeB;
         });
         const updates = {};
@@ -917,30 +1255,68 @@
         const location = document.getElementById('input-location').value.trim();
         const drop = document.getElementById('input-drop').value.trim();
         const interval = document.getElementById('input-interval').value;
+        const mapX = document.getElementById('input-map-x').value;
+        const mapY = document.getElementById('input-map-y').value;
         
-        // --- 유효성 검사 (Validation) ---
+        // --- Validation ---
         if (!name) return alert('보스명을 입력해주세요.');
         if (name.length > 20) return alert('보스명은 20자 이내로 입력해주세요.');
-        
         if (location.length > 100) return alert('위치 정보는 100자 이내로 입력해주세요.');
         if (drop.length > 400) return alert('정보 내용은 400자 이내로 입력해주세요.');
-
         if (!interval) return alert('젠 주기를 반드시 선택해주세요.');
 
-        update(ref(db, `${currentRoomId}/bosses/${name}`), {
-            name: name,
-            color: color, 
-            location: location,
-            drop: drop,
-            interval: interval,
-            order: Date.now()
-        });
-        
-        // 입력창 초기화
-        document.getElementById('input-name').value = '';
-        document.getElementById('input-color').value = '#ffadad';
-        document.getElementById('input-location').value = '';
-        document.getElementById('input-drop').value = '';
+        // Logic for Add/Edit
+        if (editingKey) {
+            // EDIT MODE
+            const oldData = allBosses[editingKey];
+            
+            if (name !== editingKey) {
+                remove(ref(db, `${currentRoomId}/bosses/${editingKey}`));
+            }
+            
+            let lastKill = oldData.lastKillTimestamp;
+            let nextSpawn = oldData.nextSpawnTimestamp;
+
+            if (lastKill && parseInt(interval) !== parseInt(oldData.interval)) {
+                nextSpawn = lastKill + (parseInt(interval) * 3600000);
+            }
+
+            update(ref(db, `${currentRoomId}/bosses/${name}`), {
+                name: name,
+                color: color, 
+                location: location,
+                drop: drop,
+                interval: interval,
+                mapX: mapX,
+                mapY: mapY,
+                lastKillTimestamp: lastKill,
+                nextSpawnTimestamp: nextSpawn,
+                order: oldData.order 
+            });
+
+            alert('수정이 완료되었습니다.');
+            setAddMode(); 
+
+        } else {
+            // ADD MODE
+            update(ref(db, `${currentRoomId}/bosses/${name}`), {
+                name: name,
+                color: color, 
+                location: location,
+                drop: drop,
+                interval: interval,
+                mapX: mapX,
+                mapY: mapY,
+                order: Date.now()
+            });
+            
+            document.getElementById('input-name').value = '';
+            document.getElementById('input-color').value = '#ffadad';
+            document.getElementById('input-location').value = '';
+            document.getElementById('input-drop').value = '';
+            document.getElementById('input-map-x').value = '';
+            document.getElementById('input-map-y').value = '';
+        }
     });
 
 </script>

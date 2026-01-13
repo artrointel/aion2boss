@@ -5,9 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>마족 보스 관리기</title>
     <style>
+        :root {
+            --bg-primary: #313338;
+            --bg-secondary: #2b2d31;
+            --bg-tertiary: #1e1f22;
+            --text-primary: #dbdee1;
+            --text-secondary: #949ba4;
+            --accent-blue: #5865F2;
+            --accent-blue-hover: #4752c4;
+            --accent-red: #da373c;
+            --accent-green: #248046;
+            --text-highlight: #00a8fc;
+            --text-gold: #ffd6a5;
+        }
+
         body {
-            background-color: #313338;
-            color: #dbdee1;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
             font-family: 'gg sans', 'Noto Sans KR', sans-serif;
             margin: 0;
             padding: 20px;
@@ -20,14 +34,14 @@
         
         .card {
             position: relative;
-            background-color: #2b2d31;
+            background-color: var(--bg-secondary);
             border-radius: 8px;
             padding: 20px;
             margin-bottom: 20px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
         
-        /* Login Screen Styles */
+        /* Login Screen */
         #login-screen {
             display: flex;
             flex-direction: column;
@@ -37,7 +51,7 @@
             text-align: center;
         }
         #login-box {
-            background-color: #2b2d31;
+            background-color: var(--bg-secondary);
             padding: 40px;
             border-radius: 12px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.2);
@@ -48,15 +62,15 @@
             width: 100%;
             padding: 15px;
             margin: 20px 0;
-            background-color: #1e1f22;
-            border: 1px solid #1e1f22;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--bg-tertiary);
             color: white;
             border-radius: 4px;
             font-size: 1.1em;
             text-align: center;
             box-sizing: border-box; 
         }
-        #room-input:focus { outline: 2px solid #00a8fc; }
+        #room-input:focus { outline: 2px solid var(--text-highlight); }
 
         /* Role Selector */
         .role-selector {
@@ -72,7 +86,7 @@
             gap: 8px;
             font-size: 1.1em;
             padding: 10px 20px;
-            background-color: #1e1f22;
+            background-color: var(--bg-tertiary);
             border-radius: 20px;
             border: 2px solid transparent;
             transition: 0.2s;
@@ -80,11 +94,11 @@
         .role-label:hover { background-color: #3f4147; }
         
         input[type="radio"] { display: none; }
-        input[type="radio"]:checked + span { color: #00a8fc; font-weight: bold; }
-        .role-label:has(input:checked) { border-color: #00a8fc; background-color: #2b2d31; }
+        input[type="radio"]:checked + span { color: var(--text-highlight); font-weight: bold; }
+        .role-label:has(input:checked) { border-color: var(--text-highlight); background-color: var(--bg-secondary); }
         
-        /* Main App */
-        #main-app { display: none; }
+        /* App Visibility */
+        .hidden { display: none !important; }
 
         h2 { margin-top: 0; color: #f2f3f5; border-bottom: 2px solid #3f4147; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
         
@@ -97,11 +111,11 @@
             font-weight: normal;
         }
 
-        /* 3-Panel Timer Layout */
+        /* Timer Layout */
         #timer-box { 
             padding: 30px 20px;
             display: flex;
-            flex-direction: column; /* Default stack, map is below */
+            flex-direction: column;
             align-items: center;
         }
 
@@ -113,39 +127,32 @@
             gap: 10px;
         }
 
-        /* Side Panels (Left/Right) */
         .side-boss-panel {
             flex: 1;
             text-align: center;
             background-color: rgba(30, 31, 34, 0.5);
             padding: 15px 10px;
             border-radius: 8px;
-            font-size: 0.7em; /* 30% smaller base */
-            color: #949ba4;
-            min-width: 0; /* Flexbox text overflow fix */
+            font-size: 0.7em;
+            color: var(--text-secondary);
+            min-width: 0;
+            opacity: 0;
+            transition: opacity 0.3s;
         }
-        .side-boss-name { font-size: 1.1em; color: #dbdee1; font-weight: bold; margin-bottom: 5px; }
+        .side-boss-name { font-size: 1.1em; color: var(--text-primary); font-weight: bold; margin-bottom: 5px; }
         .side-boss-time { font-size: 1.4em; color: #f2f3f5; font-weight: bold; margin-bottom: 5px; font-variant-numeric: tabular-nums; }
-        .side-boss-loc { 
-            color: #ffd6a5; 
-            font-size: 0.9em;
-            /* Container for button */
-        }
+        .side-boss-loc { color: var(--text-gold); font-size: 0.9em; }
 
-        /* Main Panel (Center) */
         .main-boss-panel {
-            flex: 1.5; /* Larger share */
+            flex: 1.5;
             text-align: center;
             padding: 0 10px;
         }
 
-        #timer-boss-name { font-size: 1.4rem; color: #00a8fc; margin-bottom: 5px; font-weight: bold; }
+        #timer-boss-name { font-size: 1.4rem; color: var(--text-highlight); margin-bottom: 5px; font-weight: bold; }
         #timer-display { font-size: 3.5rem; font-weight: bold; font-variant-numeric: tabular-nums; color: #f2f3f5; margin: 0; line-height: 1; }
         
-        #timer-boss-location {
-            margin-top: 15px;
-            /* Container for the button */
-        }
+        #timer-boss-location { margin-top: 15px; }
         #timer-boss-drop {
             margin-top: 5px;
             font-size: 0.95rem;
@@ -156,7 +163,7 @@
             margin-right: auto;
         }
 
-        .timer-warning { color: #f23f42 !important; animation: blink 1s infinite; }
+        .timer-warning { color: var(--accent-red) !important; animation: blink 1s infinite; }
         
         /* Map Styles */
         #map-wrapper {
@@ -169,10 +176,9 @@
             align-items: center;
         }
         #map-viewport {
-            display: none; 
             width: 100%;
             height: 500px;
-            background-color: #1e1f22;
+            background-color: var(--bg-tertiary);
             overflow: hidden; 
             margin-top: 15px;
             border-radius: 8px;
@@ -207,11 +213,11 @@
             font-size: 0.9em;
         }
         .btn-large { width: 100%; font-size: 1.1em; padding: 12px; }
-        .btn-primary { background-color: #5865F2; }
-        .btn-primary:hover { background-color: #4752c4; }
-        .btn-success { background-color: #248046; } 
+        .btn-primary { background-color: var(--accent-blue); }
+        .btn-primary:hover { background-color: var(--accent-blue-hover); }
+        .btn-success { background-color: var(--accent-green); } 
         .btn-success:hover { background-color: #1a6334; }
-        .btn-danger { background-color: #da373c; }
+        .btn-danger { background-color: var(--accent-red); }
         .btn-danger:hover { background-color: #a1282c; }
         .btn-secondary { background-color: #4e5058; }
         .btn-secondary:hover { background-color: #404249; }
@@ -219,11 +225,11 @@
         .btn-warning:hover { background-color: #dcb348; }
         .btn-edit { background-color: #3ba55c; color: white; }
         .btn-edit:hover { background-color: #2d7d46; }
-        .btn-exit { background-color: #2b2d31; border: 1px solid #da373c; color: #da373c; } 
-        .btn-exit:hover { background-color: #da373c; color: white; }
+        .btn-exit { background-color: var(--bg-secondary); border: 1px solid var(--accent-red); color: var(--accent-red); } 
+        .btn-exit:hover { background-color: var(--accent-red); color: white; }
         .btn-disabled {
             background-color: #4e5058 !important;
-            color: #949ba4 !important;
+            color: var(--text-secondary) !important;
             cursor: not-allowed !important;
             pointer-events: none;
         }
@@ -240,13 +246,14 @@
             text-align: center;
             display: inline-block;
         }
-        .btn-icon-toggle:hover { background-color: #00a8fc; transform: scale(1.1); }
+        .btn-icon-toggle:hover { background-color: var(--text-highlight); transform: scale(1.1); }
 
+        /* Tooltips & Inputs */
         .info-text-box {
             display: none;
             margin-top: 5px;
             font-size: 0.8em;
-            color: #ffd6a5;
+            color: var(--text-gold);
             background-color: #202225;
             padding: 5px;
             border-radius: 4px;
@@ -258,9 +265,9 @@
         }
 
         .input-time-edit {
-            background-color: #1e1f22;
+            background-color: var(--bg-tertiary);
             border: 1px solid #3f4147;
-            color: #dbdee1;
+            color: var(--text-primary);
             padding: 5px;
             border-radius: 4px;
             font-size: 0.85em;
@@ -271,13 +278,12 @@
         }
         .input-time-edit::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
 
-        .read-only-time { color: #dbdee1; font-size: 0.9em; padding: 5px; }
+        .read-only-time { color: var(--text-primary); font-size: 0.9em; padding: 5px; }
 
         .control-group { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 
         #form-container {
-            display: none;
-            background-color: #1e1f22;
+            background-color: var(--bg-tertiary);
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 15px;
@@ -303,7 +309,7 @@
             cursor: pointer;
         }
 
-        input:focus { outline: 2px solid #00a8fc; }
+        input:focus { outline: 2px solid var(--text-highlight); }
 
         .table-wrapper { overflow-x: auto; min-height: 300px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 900px; }
@@ -323,12 +329,11 @@
         .draggable-row.dragging { opacity: 0.5; background-color: #404249; }
 
         #current-room-display {
-            color: #00a8fc;
+            color: var(--text-highlight);
             font-size: 0.9rem;
             margin-right: 10px;
         }
 
-        .admin-only { display: none !important; }
         .action-btn-group { display: flex; gap: 5px; justify-content: center; }
 
         @keyframes blink { 50% { opacity: 0.5; } }
@@ -358,7 +363,7 @@
     </div>
 </div>
 
-<div id="main-app" class="container">
+<div id="main-app" class="container hidden">
     <div class="card" id="timer-box">
         <div class="credits">
             <span id="current-room-display"></span>
@@ -368,25 +373,20 @@
         
         <h2 style="border:none; justify-content:center; color:#949BA4; font-size:1rem; margin-bottom:15px;">NEXT BOSS</h2>
         
-        <!-- 3-Panel Layout -->
         <div id="timer-panels">
-            <!-- Left: Previous Boss -->
             <div class="side-boss-panel" id="panel-prev">
                 <div class="side-boss-name">-</div>
                 <div class="side-boss-time">--:--:--</div>
                 <div class="side-boss-loc">-</div>
             </div>
 
-            <!-- Center: Main Boss -->
             <div class="main-boss-panel">
                 <div id="timer-boss-name">대기 중...</div>
                 <div id="timer-display">--:--:--</div>
-                <!-- Location Button Container -->
                 <div id="timer-boss-location"></div>
                 <div id="timer-boss-drop"></div>
             </div>
 
-            <!-- Right: Next Next Boss -->
             <div class="side-boss-panel" id="panel-next">
                 <div class="side-boss-name">-</div>
                 <div class="side-boss-time">--:--:--</div>
@@ -406,10 +406,10 @@
     <div class="card">
         <h2>
             <span>☠️ 보스 현황</span>
-            <button class="btn-secondary admin-element" id="btn-toggle-form" style="font-size: 0.8em;">[+] 보스 추가하기</button>
+            <button class="btn-secondary admin-element hidden" id="btn-toggle-form" style="font-size: 0.8em;">[+] 보스 추가하기</button>
         </h2>
 
-        <div id="form-container">
+        <div id="form-container" class="hidden">
             <div class="input-group">
                 <input type="color" id="input-color" value="#ffadad" title="이름 색상 선택">
                 <input type="text" id="input-name" placeholder="보스명 (필수, 최대 20자)" maxlength="20" style="flex: 2;">
@@ -424,9 +424,8 @@
                     <option value="" disabled selected>젠 주기</option>
                 </select>
                 <input type="text" id="input-drop" placeholder="주요 정보 (최대 400자)" maxlength="400" style="flex: 2;">
-                <!-- Buttons -->
                 <button class="btn-primary" id="btn-add">등록</button>
-                <button class="btn-danger" id="btn-form-delete" style="display:none;">삭제</button>
+                <button class="btn-danger hidden" id="btn-form-delete">삭제</button>
             </div>
         </div>
         
@@ -443,15 +442,13 @@
                         <th class="col-action">관리</th>
                     </tr>
                 </thead>
-                <tbody id="table-body">
-                    <!-- JS Rendering -->
-                </tbody>
+                <tbody id="table-body"></tbody>
             </table>
         </div>
-        <p class="admin-element" style="text-align: center; color: #5c5e66; font-size: 0.8em; margin-top: 10px;">💡 행을 드래그하여 순서를 변경할 수 있습니다.</p>
+        <p class="admin-element hidden" style="text-align: center; color: #5c5e66; font-size: 0.8em; margin-top: 10px;">💡 행을 드래그하여 순서를 변경할 수 있습니다.</p>
     </div>
 
-    <div class="card admin-element" style="padding: 15px;">
+    <div class="card admin-element hidden" style="padding: 15px;">
         <div class="control-group">
             <button class="btn-primary" id="btn-sort">⏳ 다음 젠 시간순 정렬</button>
             <div style="width: 20px;"></div>
@@ -467,857 +464,830 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, set, update, remove, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyB8HvxU7VhR9mWiSvyFu3XXXbmLfoKz9M0",
-        authDomain: "aion2boss.firebaseapp.com",
-        databaseURL: "https://aion2boss-default-rtdb.firebaseio.com",
-        projectId: "aion2boss",
-        storageBucket: "aion2boss.firebasestorage.app",
-        messagingSenderId: "985334026286",
-        appId: "1:985334026286:web:4959921d864700b5cf0fbf"
+    // 1. Config & Constants
+    const CONFIG = {
+        FIREBASE: {
+            apiKey: "AIzaSyB8HvxU7VhR9mWiSvyFu3XXXbmLfoKz9M0",
+            authDomain: "aion2boss.firebaseapp.com",
+            databaseURL: "https://aion2boss-default-rtdb.firebaseio.com",
+            projectId: "aion2boss",
+            storageBucket: "aion2boss.firebasestorage.app",
+            messagingSenderId: "985334026286",
+            appId: "1:985334026286:web:4959921d864700b5cf0fbf"
+        },
+        MAP: {
+            FLY_SCALE: 1.5,
+            ANIMATION_DURATION: 500,
+            MIN_SCALE: 0.2,
+            MAX_SCALE: 5
+        },
+        UI: {
+            COOLDOWN_MS: 60000,
+            WARNING_MS: 300000
+        },
+        LIMITS: {
+            NAME: 20,
+            LOC: 100,
+            INFO: 400
+        }
     };
 
-    const app = initializeApp(firebaseConfig);
+    // 2. Application State
+    const state = {
+        roomId: null,
+        role: 'guest',
+        bosses: {},
+        undoStack: [],
+        redoStack: [],
+        editingKey: null,
+        lastNearestBoss: null,
+        map: {
+            scale: 1,
+            pointX: 0,
+            pointY: 0,
+            isDragging: false,
+            startX: 0,
+            startY: 0,
+            isInitialized: false
+        }
+    };
+
+    // 3. Service Layer (Firebase)
+    const app = initializeApp(CONFIG.FIREBASE);
     const db = getDatabase(app);
-    
-    let currentRoomId = null;
-    let currentUserRole = 'guest'; 
-    let bossesRef = null;
-    let allBosses = {}; 
-    let undoStack = [];
-    let redoStack = [];
-    
-    let editingKey = null;
-    let lastNearestBossName = null; 
 
-    // --- 1. Room Logic ---
-    window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const roomParam = urlParams.get('room');
-        if (roomParam) document.getElementById('room-input').value = roomParam;
-    });
-
-    document.getElementById('btn-enter-room').addEventListener('click', () => {
-        const inputVal = document.getElementById('room-input').value.trim();
-        if(inputVal) {
-            const selectedRole = document.querySelector('input[name="role"]:checked').value;
-            joinRoom(inputVal, selectedRole);
-        } else alert("방 이름을 입력해주세요.");
-    });
-
-    document.getElementById('room-input').addEventListener('keypress', (e) => {
-        if(e.key === 'Enter') {
-            const inputVal = document.getElementById('room-input').value.trim();
-            if(inputVal) {
-                const selectedRole = document.querySelector('input[name="role"]:checked').value;
-                joinRoom(inputVal, selectedRole);
-            }
+    const BossService = {
+        listenToRoom(roomId, callback) {
+            const roomRef = ref(db, `${roomId}/bosses`);
+            onValue(roomRef, (snapshot) => {
+                state.bosses = snapshot.val() || {};
+                callback(state.bosses);
+            });
+        },
+        updateBoss(key, data) {
+            return update(ref(db, `${state.roomId}/bosses/${key}`), data);
+        },
+        removeBoss(key) {
+            return remove(ref(db, `${state.roomId}/bosses/${key}`));
+        },
+        saveOrder(updates) {
+            return update(ref(db), updates);
         }
-    });
+    };
 
-    function joinRoom(roomName, role) {
-        currentRoomId = roomName;
-        currentUserRole = role; 
+    // 4. Utility Functions
+    const Utils = {
+        padZero: (num) => String(num).padStart(2, '0'),
         
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('main-app').style.display = 'block';
-        document.getElementById('current-room-display').innerText = `ROOM: ${currentRoomId} (${role === 'admin' ? '관리자' : '손님'})`;
-        
-        const newUrl = `${window.location.pathname}?room=${encodeURIComponent(currentRoomId)}`;
-        window.history.pushState({path: newUrl}, '', newUrl);
+        formatTimeDisplay: (timestamp) => {
+            if (!timestamp) return '-';
+            const d = new Date(timestamp);
+            return `${d.getMonth() + 1}/${d.getDate()} ${Utils.padZero(d.getHours())}:${Utils.padZero(d.getMinutes())}`;
+        },
 
-        applyRolePermissions();
-        initFirebaseListeners();
-    }
+        toInputValue: (timestamp) => {
+            if (!timestamp) return "";
+            const d = new Date(timestamp);
+            return `${d.getFullYear()}-${Utils.padZero(d.getMonth() + 1)}-${Utils.padZero(d.getDate())}T${Utils.padZero(d.getHours())}:${Utils.padZero(d.getMinutes())}:${Utils.padZero(d.getSeconds())}`;
+        },
 
-    function applyRolePermissions() {
-        const adminElements = document.querySelectorAll('.admin-element');
-        if (currentUserRole === 'guest') {
-            adminElements.forEach(el => el.style.display = 'none');
-        } else {
-            adminElements.forEach(el => el.style.display = ''); 
-        }
-    }
-
-    document.getElementById('btn-share-url').addEventListener('click', () => {
-        const url = window.location.origin + window.location.pathname + `?room=${encodeURIComponent(currentRoomId)}`;
-        navigator.clipboard.writeText(url).then(() => alert("방 주소가 복사되었습니다!\n파티원에게 공유하세요."));
-    });
-
-    document.getElementById('btn-leave-room').addEventListener('click', () => {
-        if(confirm("정말 방에서 나가시겠습니까?")) window.location.href = window.location.pathname;
-    });
-
-    function initFirebaseListeners() {
-        bossesRef = ref(db, `${currentRoomId}/bosses`);
-        onValue(bossesRef, (snapshot) => {
-            const data = snapshot.val() || {};
-            allBosses = data;
-            renderTable(data);
-        });
-    }
-
-    // --- 2. Map Features ---
-    const mapBtn = document.getElementById('btn-toggle-map');
-    const mapViewport = document.getElementById('map-viewport');
-    const mapImg = document.getElementById('boss-map-img');
-    const mapHelp = document.getElementById('map-help');
-
-    let scale = 1;
-    let pointX = 0;
-    let pointY = 0;
-    let isDragging = false;
-    let startX = 0, startY = 0;
-    let isMapInitialized = false;
-
-    mapBtn.addEventListener('click', () => {
-        if (mapViewport.style.display === 'block') {
-            mapViewport.style.display = 'none';
-            mapHelp.style.display = 'none';
-            mapBtn.innerText = '🗺️ 지도 열기';
-        } else {
-            mapViewport.style.display = 'block';
-            mapHelp.style.display = 'block';
-            mapBtn.innerText = '🗺️ 지도 닫기';
+        getSpawnInfo: (boss) => {
+            if (!boss.nextSpawnTimestamp || !boss.interval) return { time: null, label: '', count: 0 };
             
-            if (!isMapInitialized) {
-                if (mapImg.complete) {
-                    centerMap();
-                    isMapInitialized = true;
-                } else {
-                    mapImg.onload = () => {
-                        centerMap();
-                        isMapInitialized = true;
-                    };
-                }
+            const now = Date.now();
+            let nextTime = boss.nextSpawnTimestamp;
+            let count = 1;
+            const intervalMs = boss.interval * 3600000;
+
+            if (nextTime <= now) {
+                const diff = now - nextTime;
+                const cyclesToAdd = Math.floor(diff / intervalMs) + 1;
+                nextTime += cyclesToAdd * intervalMs;
+                count += cyclesToAdd;
             }
+
+            const label = count > 1 ? ` (${count}차)` : '';
+            return { time: nextTime, label: label, count: count };
         }
-    });
+    };
 
-    function flyTo(normalizedX, normalizedY) {
-        if (mapViewport.style.display !== 'block') {
-            mapViewport.style.display = 'block';
-            mapHelp.style.display = 'block';
-            mapBtn.innerText = '🗺️ 지도 닫기';
-        }
+    // 5. Map Controller
+    const MapController = {
+        elements: {
+            wrapper: document.getElementById('map-wrapper'),
+            viewport: document.getElementById('map-viewport'),
+            img: document.getElementById('boss-map-img'),
+            btn: document.getElementById('btn-toggle-map'),
+            help: document.getElementById('map-help'),
+            scrollTarget: document.getElementById('timer-box')
+        },
 
-        document.getElementById('timer-box').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        init() {
+            this.elements.btn.addEventListener('click', () => this.toggle());
+            this.elements.viewport.addEventListener('wheel', (e) => this.handleZoom(e));
+            this.elements.viewport.addEventListener('mousedown', (e) => this.startDrag(e));
+            window.addEventListener('mousemove', (e) => this.drag(e));
+            window.addEventListener('mouseup', () => this.endDrag());
+        },
 
-        const vpW = mapViewport.clientWidth;
-        const vpH = mapViewport.clientHeight;
-        const imgW = mapImg.naturalWidth;
-        const imgH = mapImg.naturalHeight;
-
-        const targetScale = 1.5; // Scale 1.5x
-        const targetImgX = normalizedX * imgW;
-        const targetImgY = normalizedY * imgH;
-
-        let targetPointX = (vpW / 2) - (targetImgX * targetScale);
-        let targetPointY = (vpH / 2) - (targetImgY * targetScale);
-
-        const currentW = imgW * targetScale;
-        const currentH = imgH * targetScale;
-
-        if (currentW <= vpW) targetPointX = (vpW - currentW) / 2;
-        else {
-            const minX = vpW - currentW;
-            targetPointX = Math.min(0, Math.max(minX, targetPointX));
-        }
-
-        if (currentH <= vpH) targetPointY = (vpH - currentH) / 2;
-        else {
-            const minY = vpH - currentH;
-            targetPointY = Math.min(0, Math.max(minY, targetPointY));
-        }
-
-        mapImg.classList.add('fly-animation');
-        mapImg.style.transform = `translate(${targetPointX}px, ${targetPointY}px) scale(${targetScale})`;
-
-        scale = targetScale;
-        pointX = targetPointX;
-        pointY = targetPointY;
-
-        setTimeout(() => {
-            mapImg.classList.remove('fly-animation');
-        }, 500);
-    }
-
-    function centerMap() {
-        const vpW = mapViewport.clientWidth;
-        const vpH = mapViewport.clientHeight;
-        const imgW = mapImg.naturalWidth;
-        const imgH = mapImg.naturalHeight;
-        scale = 1;
-        pointX = (vpW - imgW) / 2;
-        pointY = (vpH - imgH) / 2;
-        updateTransform();
-    }
-
-    function updateTransform() {
-        const vpW = mapViewport.clientWidth;
-        const vpH = mapViewport.clientHeight;
-        const imgW = mapImg.naturalWidth;
-        const imgH = mapImg.naturalHeight;
-        const currentW = imgW * scale;
-        const currentH = imgH * scale;
-
-        if (currentW <= vpW) pointX = (vpW - currentW) / 2; 
-        else {
-            const minX = vpW - currentW;
-            const maxX = 0;
-            pointX = Math.min(maxX, Math.max(minX, pointX));
-        }
-
-        if (currentH <= vpH) pointY = (vpH - currentH) / 2;
-        else {
-            const minY = vpH - currentH;
-            const maxY = 0;
-            pointY = Math.min(maxY, Math.max(minY, pointY));
-        }
-
-        mapImg.style.transform = `translate(${pointX}px, ${pointY}px) scale(${scale})`;
-    }
-
-    mapViewport.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        mapImg.classList.add('smooth-zoom');
-        const centerX = mapViewport.clientWidth / 2;
-        const centerY = mapViewport.clientHeight / 2;
-        const xs = (centerX - pointX) / scale;
-        const ys = (centerY - pointY) / scale;
-        const delta = -e.deltaY;
-
-        if (delta > 0) scale *= 1.2; 
-        else scale /= 1.2;
-        scale = Math.min(Math.max(0.2, scale), 5); 
-
-        pointX = centerX - xs * scale;
-        pointY = centerY - ys * scale;
-        updateTransform();
-    });
-
-    mapViewport.addEventListener('mousedown', (e) => {
-        isDragging = true;
-        mapImg.classList.remove('smooth-zoom');
-        mapImg.classList.remove('fly-animation'); 
-        startX = e.clientX - pointX;
-        startY = e.clientY - pointY;
-        mapViewport.style.cursor = 'grabbing';
-    });
-
-    window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        e.preventDefault();
-        pointX = e.clientX - startX;
-        pointY = e.clientY - startY;
-        updateTransform();
-    });
-
-    window.addEventListener('mouseup', () => {
-        isDragging = false;
-        mapViewport.style.cursor = 'grab';
-    });
-
-
-    // --- 3. Utilities & Logic ---
-
-    const intervalSelect = document.getElementById('input-interval');
-    for(let i=1; i<=24; i++) {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.innerText = `${i}시간`;
-        intervalSelect.appendChild(opt);
-    }
-
-    const toggleBtn = document.getElementById('btn-toggle-form');
-    const formContainer = document.getElementById('form-container');
-    const btnFormDelete = document.getElementById('btn-form-delete');
-    
-    function setAddMode() {
-        editingKey = null;
-        document.getElementById('btn-add').innerText = "등록";
-        document.getElementById('btn-add').classList.remove('btn-edit');
-        document.getElementById('btn-add').classList.add('btn-primary');
-        btnFormDelete.style.display = 'none';
-        
-        document.getElementById('input-name').value = '';
-        document.getElementById('input-color').value = '#ffadad';
-        document.getElementById('input-location').value = '';
-        document.getElementById('input-drop').value = '';
-        document.getElementById('input-map-x').value = '';
-        document.getElementById('input-map-y').value = '';
-    }
-
-    toggleBtn.addEventListener('click', () => {
-        if(formContainer.style.display === 'block') {
-            formContainer.style.display = 'none';
-            toggleBtn.innerText = '[+] 보스 추가하기';
-            setAddMode(); 
-        } else {
-            formContainer.style.display = 'block';
-            toggleBtn.innerText = '[-] 닫기';
-            setAddMode(); 
-        }
-    });
-
-    function toLocalInputValue(timestamp) {
-        if (!timestamp) return "";
-        const d = new Date(timestamp);
-        const pad = n => n < 10 ? '0'+n : n;
-        return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    }
-
-    function formatTimeDisplay(timestamp) {
-        if(!timestamp) return '-';
-        const d = new Date(timestamp);
-        const mo = d.getMonth() + 1;
-        const da = d.getDate();
-        const ho = String(d.getHours()).padStart(2, '0');
-        const mi = String(d.getMinutes()).padStart(2, '0');
-        const se = String(d.getSeconds()).padStart(2, '0');
-        return `${mo}/${da} ${ho}:${mi}:${se}`;
-    }
-
-    function getSpawnInfo(boss) {
-        if (!boss.nextSpawnTimestamp || !boss.interval) return { time: null, label: '', count: 0 };
-        
-        const now = Date.now();
-        let nextTime = boss.nextSpawnTimestamp;
-        let count = 1;
-        const intervalMs = boss.interval * 3600000;
-
-        if (nextTime <= now) {
-            const diff = now - nextTime;
-            const cyclesToAdd = Math.floor(diff / intervalMs) + 1;
-            nextTime += cyclesToAdd * intervalMs;
-            count += cyclesToAdd;
-        }
-
-        const label = count > 1 ? ` (${count}차)` : '';
-        return { time: nextTime, label: label, count: count };
-    }
-
-    // Call updateButtonStates() inside the interval
-    setInterval(() => {
-        updateSmartTimer();
-        updateButtonStates();
-    }, 1000);
-
-    function updateButtonStates() {
-        const now = Date.now();
-        document.querySelectorAll('.btn-kill').forEach(btn => {
-            const lastKill = parseInt(btn.getAttribute('data-last-kill'));
-            if (!lastKill) return;
-
-            const diff = now - lastKill;
-            if (diff < 60000) { 
-                btn.classList.add('btn-disabled');
-                btn.setAttribute('disabled', 'true'); 
-                const secondsAgo = Math.floor(diff / 1000);
-                btn.innerText = `컷 (${secondsAgo}초 전)`;
+        toggle(forceOpen = false) {
+            const isOpen = this.elements.viewport.style.display === 'block';
+            if (forceOpen || !isOpen) {
+                this.elements.viewport.style.display = 'block';
+                this.elements.help.style.display = 'block';
+                this.elements.btn.innerText = '🗺️ 지도 닫기';
+                if (!state.map.isInitialized) this.centerMap();
             } else {
-                if (btn.classList.contains('btn-disabled')) {
-                    btn.classList.remove('btn-disabled');
-                    btn.removeAttribute('disabled');
-                    btn.innerText = '컷';
+                this.elements.viewport.style.display = 'none';
+                this.elements.help.style.display = 'none';
+                this.elements.btn.innerText = '🗺️ 지도 열기';
+            }
+        },
+
+        centerMap() {
+            const { viewport, img } = this.elements;
+            if (!img.complete) {
+                img.onload = () => this.centerMap();
+                return;
+            }
+            state.map.scale = 1;
+            state.map.pointX = (viewport.clientWidth - img.naturalWidth) / 2;
+            state.map.pointY = (viewport.clientHeight - img.naturalHeight) / 2;
+            state.map.isInitialized = true;
+            this.updateTransform();
+        },
+
+        flyTo(normX, normY) {
+            this.toggle(true);
+            this.elements.scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            const { viewport, img } = this.elements;
+            const targetScale = CONFIG.MAP.FLY_SCALE;
+            
+            const targetX = (viewport.clientWidth / 2) - (normX * img.naturalWidth * targetScale);
+            const targetY = (viewport.clientHeight / 2) - (normY * img.naturalHeight * targetScale);
+
+            img.classList.add('fly-animation');
+            state.map.scale = targetScale;
+            state.map.pointX = targetX;
+            state.map.pointY = targetY;
+            
+            this.applyConstraints(); // Apply bounds before rendering
+            this.renderTransform();
+
+            setTimeout(() => img.classList.remove('fly-animation'), CONFIG.MAP.ANIMATION_DURATION);
+        },
+
+        handleZoom(e) {
+            e.preventDefault();
+            this.elements.img.classList.add('smooth-zoom');
+            
+            const rect = this.elements.viewport.getBoundingClientRect();
+            // Center of viewport relative to image
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            
+            const xs = (centerX - state.map.pointX) / state.map.scale;
+            const ys = (centerY - state.map.pointY) / state.map.scale;
+            
+            const delta = -e.deltaY;
+            if (delta > 0) state.map.scale *= 1.2;
+            else state.map.scale /= 1.2;
+            
+            state.map.scale = Math.min(Math.max(CONFIG.MAP.MIN_SCALE, state.map.scale), CONFIG.MAP.MAX_SCALE);
+            
+            state.map.pointX = centerX - xs * state.map.scale;
+            state.map.pointY = centerY - ys * state.map.scale;
+
+            this.updateTransform();
+        },
+
+        startDrag(e) {
+            state.map.isDragging = true;
+            this.elements.img.classList.remove('smooth-zoom', 'fly-animation');
+            state.map.startX = e.clientX - state.map.pointX;
+            state.map.startY = e.clientY - state.map.pointY;
+            this.elements.viewport.style.cursor = 'grabbing';
+        },
+
+        drag(e) {
+            if (!state.map.isDragging) return;
+            e.preventDefault();
+            state.map.pointX = e.clientX - state.map.startX;
+            state.map.pointY = e.clientY - state.map.startY;
+            this.updateTransform();
+        },
+
+        endDrag() {
+            state.map.isDragging = false;
+            this.elements.viewport.style.cursor = 'grab';
+        },
+
+        updateTransform() {
+            this.applyConstraints();
+            this.renderTransform();
+        },
+
+        applyConstraints() {
+            const { viewport, img } = this.elements;
+            const currW = img.naturalWidth * state.map.scale;
+            const currH = img.naturalHeight * state.map.scale;
+            const vpW = viewport.clientWidth;
+            const vpH = viewport.clientHeight;
+
+            if (currW <= vpW) state.map.pointX = (vpW - currW) / 2;
+            else state.map.pointX = Math.min(0, Math.max(vpW - currW, state.map.pointX));
+
+            if (currH <= vpH) state.map.pointY = (vpH - currH) / 2;
+            else state.map.pointY = Math.min(0, Math.max(vpH - currH, state.map.pointY));
+        },
+
+        renderTransform() {
+            this.elements.img.style.transform = `translate(${state.map.pointX}px, ${state.map.pointY}px) scale(${state.map.scale})`;
+        }
+    };
+
+    // 6. UI Controller
+    const UIManager = {
+        dom: {
+            login: document.getElementById('login-screen'),
+            app: document.getElementById('main-app'),
+            roomDisplay: document.getElementById('current-room-display'),
+            tableBody: document.getElementById('table-body'),
+            form: document.getElementById('form-container'),
+            formInputs: {
+                name: document.getElementById('input-name'),
+                color: document.getElementById('input-color'),
+                loc: document.getElementById('input-location'),
+                drop: document.getElementById('input-drop'),
+                interval: document.getElementById('input-interval'),
+                mapX: document.getElementById('input-map-x'),
+                mapY: document.getElementById('input-map-y')
+            },
+            btnAdd: document.getElementById('btn-add'),
+            btnDelete: document.getElementById('btn-form-delete'),
+            btnToggleForm: document.getElementById('btn-toggle-form'),
+            undoBtn: document.getElementById('btn-undo'),
+            redoBtn: document.getElementById('btn-redo'),
+            panels: {
+                prev: document.getElementById('panel-prev'),
+                next: document.getElementById('panel-next'),
+                main: {
+                    name: document.getElementById('timer-boss-name'),
+                    time: document.getElementById('timer-display'),
+                    loc: document.getElementById('timer-boss-location'),
+                    drop: document.getElementById('timer-boss-drop')
                 }
             }
-        });
-    }
+        },
 
-    // Helper to render location button for side panels (and main panel)
-    function renderLocationBtn(container, boss, isSidePanel) {
-        const currentBtn = container.querySelector('button');
-        const newMapX = boss.mapX || '';
-        const newMapY = boss.mapY || '';
-        
-        // Optimize: Don't re-render if same boss and same location data
-        if (currentBtn && 
-            currentBtn.getAttribute('data-boss-name') === boss.name &&
-            currentBtn.getAttribute('data-map-x') == newMapX &&
-            currentBtn.getAttribute('data-map-y') == newMapY &&
-            currentBtn.textContent.includes(boss.location)) {
-            return;
-        }
+        init() {
+            // Populate interval select
+            const select = this.dom.formInputs.interval;
+            for (let i = 1; i <= 24; i++) {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.innerText = `${i}시간`;
+                select.appendChild(opt);
+            }
+            
+            // Event delegation for table
+            this.dom.tableBody.addEventListener('click', (e) => this.handleTableClick(e));
+            this.dom.tableBody.addEventListener('change', (e) => this.handleTableInput(e));
+            
+            // Other UI bindings
+            this.dom.btnToggleForm.addEventListener('click', () => this.toggleForm());
+        },
 
-        container.innerHTML = '';
-        if (boss.location) {
+        switchScreen() {
+            this.dom.login.classList.add('hidden');
+            this.dom.app.classList.remove('hidden');
+            this.dom.roomDisplay.innerText = `ROOM: ${state.roomId} (${state.role === 'admin' ? '관리자' : '손님'})`;
+            
+            const adminElements = document.querySelectorAll('.admin-element');
+            adminElements.forEach(el => {
+                if (state.role === 'guest') el.classList.add('hidden');
+                else el.classList.remove('hidden');
+            });
+        },
+
+        renderTable(bosses) {
+            const sortedBosses = Object.entries(bosses).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
+            const isAdmin = state.role === 'admin';
+            
+            // Use DocumentFragment for performance
+            const fragment = document.createDocumentFragment();
+
+            sortedBosses.forEach(([key, boss]) => {
+                const tr = document.createElement('tr');
+                if (isAdmin) {
+                    tr.className = 'draggable-row';
+                    tr.setAttribute('draggable', 'true');
+                }
+                tr.setAttribute('data-key', key);
+
+                const spawnInfo = Utils.getSpawnInfo(boss);
+                const nextTimeStr = spawnInfo.time ? 
+                    `${Utils.formatTimeDisplay(spawnInfo.time)} <span style="font-size:0.8em; color:#ffd6a5;">${spawnInfo.label}</span>` : '-';
+                
+                // Button generation logic
+                const locBtn = (boss.mapX && boss.mapY) 
+                    ? `<button class="btn-icon-toggle btn-fly-map" data-x="${boss.mapX}" data-y="${boss.mapY}">📍</button>`
+                    : `<button class="btn-icon-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">📍</button>`;
+
+                let timeCell, actionCell;
+                
+                if (isAdmin) {
+                    timeCell = `<input type="datetime-local" class="input-time-edit" step="1" data-key="${key}" data-interval="${boss.interval}" value="${Utils.toInputValue(boss.lastKillTimestamp)}">`;
+                    actionCell = `
+                        <div class="action-btn-group">
+                            <button class="btn-success btn-kill" data-key="${key}" data-interval="${boss.interval}" data-last-kill="${boss.lastKillTimestamp || 0}">컷</button>
+                            <button class="btn-edit btn-modify" data-key="${key}">수정</button>
+                        </div>`;
+                } else {
+                    timeCell = `<div class="read-only-time">${boss.lastKillTimestamp ? Utils.formatTimeDisplay(boss.lastKillTimestamp) : '-'}</div>`;
+                    actionCell = `<span style="font-size:0.8em; color:#5c5e66;">보기 전용</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td style="font-weight: bold; color: ${boss.color || '#ffadad'};">${boss.name}</td>
+                    <td style="text-align:center;">
+                        ${locBtn}
+                        <div class="info-text-box">${boss.location || '위치 미설정'}</div>
+                    </td>
+                    <td style="text-align:center;">
+                        <button class="btn-icon-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">i</button>
+                        <div class="info-text-box">${boss.drop || '정보 없음'}</div>
+                    </td>
+                    <td style="text-align:center;">${boss.interval ? boss.interval + 'h' : '-'}</td>
+                    <td class="col-time">${timeCell}</td>
+                    <td class="col-next">${nextTimeStr}</td>
+                    <td class="col-action">${actionCell}</td>
+                `;
+                fragment.appendChild(tr);
+            });
+
+            this.dom.tableBody.innerHTML = '';
+            this.dom.tableBody.appendChild(fragment);
+            
+            if (isAdmin) App.initDragAndDrop();
+            this.updateCooldowns();
+        },
+
+        // Efficiently update button styles without re-rendering table
+        updateCooldowns() {
+            const now = Date.now();
+            const killBtns = this.dom.tableBody.querySelectorAll('.btn-kill');
+            killBtns.forEach(btn => {
+                const lastKill = parseInt(btn.getAttribute('data-last-kill'));
+                if (!lastKill) return;
+                const diff = now - lastKill;
+                
+                if (diff < CONFIG.UI.COOLDOWN_MS) {
+                    btn.classList.add('btn-disabled');
+                    btn.innerText = `컷 (${Math.floor(diff / 1000)}초 전)`;
+                } else {
+                    if (btn.classList.contains('btn-disabled')) {
+                        btn.classList.remove('btn-disabled');
+                        btn.innerText = '컷';
+                    }
+                }
+            });
+        },
+
+        updateTimerDisplay() {
+            if (!state.roomId) return;
+            const now = Date.now();
+            
+            // 1. Prepare data
+            const list = Object.values(state.bosses).map(b => ({
+                ...b, ...Utils.getSpawnInfo(b),
+                effectiveTime: Utils.getSpawnInfo(b).time || 9999999999999
+            })).sort((a, b) => a.effectiveTime - b.effectiveTime);
+
+            const [main, next] = list;
+            const prev = list.length > 0 ? list[list.length - 1] : null;
+
+            // 2. Render Main
+            if (main && main.effectiveTime < 9999999999999) {
+                const diff = main.effectiveTime - now;
+                this.dom.panels.main.name.innerText = `[${main.name}] 젠까지${main.label}`;
+                this.dom.panels.main.name.style.color = '#00a8fc';
+                this.renderLocationButton(this.dom.panels.main.loc, main, false);
+                this.dom.panels.main.drop.innerText = main.drop ? `ℹ️ ${main.drop}` : '';
+
+                // Map Auto-Move Logic
+                if (state.lastNearestBoss !== main.name) {
+                    state.lastNearestBoss = main.name;
+                    if (main.mapX && main.mapY) MapController.flyTo(parseFloat(main.mapX), parseFloat(main.mapY));
+                }
+
+                // Time formatting
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                const s = Math.floor((diff % 60000) / 1000);
+                this.dom.panels.main.time.innerText = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                
+                this.dom.panels.main.time.classList.toggle('timer-warning', diff < CONFIG.UI.WARNING_MS);
+            } else {
+                this.resetMainTimer();
+            }
+
+            // 3. Render Side Panels
+            this.renderSidePanel(this.dom.panels.prev, prev, now);
+            this.renderSidePanel(this.dom.panels.next, next, now);
+        },
+
+        resetMainTimer() {
+            this.dom.panels.main.name.innerText = "대기 중...";
+            this.dom.panels.main.name.style.color = '#949BA4';
+            this.dom.panels.main.time.innerText = "--:--:--";
+            this.dom.panels.main.time.classList.remove('timer-warning');
+            this.dom.panels.main.loc.innerText = '';
+            this.dom.panels.main.drop.innerText = '';
+            state.lastNearestBoss = null;
+        },
+
+        renderSidePanel(el, boss, now) {
+            if (boss && boss.effectiveTime < 9999999999999 && boss.name !== state.lastNearestBoss) {
+                const diff = boss.effectiveTime - now;
+                el.querySelector('.side-boss-name').innerText = boss.name;
+                el.querySelector('.side-boss-time').innerText = 
+                    `${String(Math.floor(diff/3600000)).padStart(2,'0')}:${String(Math.floor((diff%3600000)/60000)).padStart(2,'0')}:${String(Math.floor((diff%60000)/1000)).padStart(2,'0')}`;
+                
+                this.renderLocationButton(el.querySelector('.side-boss-loc'), boss, true);
+                el.style.opacity = 1;
+            } else {
+                el.style.opacity = 0;
+            }
+        },
+
+        renderLocationButton(container, boss, isSide) {
+            // optimization: check if needs update
+            const existingBtn = container.querySelector('button');
+            if (existingBtn && existingBtn.dataset.boss === boss.name && existingBtn.dataset.mx === boss.mapX) return;
+
+            container.innerHTML = '';
+            if (!boss.location) {
+                container.innerText = isSide ? '-' : '';
+                return;
+            }
+
             const btn = document.createElement('button');
             btn.className = 'btn-secondary';
             btn.innerHTML = `📍 ${boss.location}`;
-            btn.setAttribute('data-boss-name', boss.name);
-            btn.setAttribute('data-map-x', newMapX);
-            btn.setAttribute('data-map-y', newMapY);
             btn.style.color = '#ffd6a5';
-            
-            if (isSidePanel) {
-                btn.style.fontSize = '0.9em';
-                btn.style.padding = '2px 6px';
-                btn.style.marginTop = '2px';
-                btn.style.whiteSpace = 'nowrap';
-                btn.style.overflow = 'hidden';
-                btn.style.textOverflow = 'ellipsis';
-                btn.style.maxWidth = '100%';
+            btn.dataset.boss = boss.name;
+            btn.dataset.mx = boss.mapX;
+
+            if (isSide) {
+                Object.assign(btn.style, { fontSize: '0.9em', padding: '2px 6px', marginTop: '2px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' });
             } else {
-                btn.style.fontSize = '1.1rem';
-                btn.style.marginTop = '10px';
+                Object.assign(btn.style, { fontSize: '1.1rem', marginTop: '10px' });
             }
 
             if (boss.mapX && boss.mapY) {
-                btn.onclick = (e) => {
-                    e.stopPropagation(); 
-                    flyTo(parseFloat(boss.mapX), parseFloat(boss.mapY));
-                };
-                btn.title = "지도 보기";
+                btn.onclick = (e) => { e.stopPropagation(); MapController.flyTo(parseFloat(boss.mapX), parseFloat(boss.mapY)); };
                 btn.style.cursor = 'pointer';
             } else {
                 btn.disabled = true;
                 btn.style.cursor = 'default';
-                btn.style.backgroundColor = 'transparent';
+                btn.style.background = 'transparent';
                 btn.style.padding = '0';
             }
             container.appendChild(btn);
-        } else {
-            container.innerText = isSidePanel ? '-' : '';
-        }
-    }
+        },
 
-    function updateSmartTimer() {
-        if (!currentRoomId) return;
-
-        const now = Date.now();
-        
-        const bossList = Object.values(allBosses).map(boss => {
-            const info = getSpawnInfo(boss);
-            return { 
-                ...boss, 
-                effectiveTime: info.time || 9999999999999, 
-                effectiveLabel: info.label 
-            };
-        });
-
-        bossList.sort((a, b) => a.effectiveTime - b.effectiveTime);
-
-        let mainBoss = null;
-        let nextBoss = null;
-        let prevBoss = null;
-
-        if (bossList.length > 0) mainBoss = bossList[0];
-        if (bossList.length > 1) nextBoss = bossList[1];
-        if (bossList.length > 0) prevBoss = bossList[bossList.length - 1]; 
-
-        // 4. Update UI - Center (Main)
-        const nameEl = document.getElementById('timer-boss-name');
-        const timeEl = document.getElementById('timer-display');
-        const locEl = document.getElementById('timer-boss-location');
-        const dropEl = document.getElementById('timer-boss-drop');
-
-        if (mainBoss && mainBoss.effectiveTime < 9999999999999) {
-            const diff = mainBoss.effectiveTime - now;
-            nameEl.innerText = `[${mainBoss.name}] 젠까지${mainBoss.effectiveLabel}`;
-            nameEl.style.color = '#00a8fc';
-            
-            renderLocationBtn(locEl, mainBoss, false);
-
-            dropEl.innerText = mainBoss.drop ? `ℹ️ ${mainBoss.drop}` : '';
-
-            if (lastNearestBossName !== mainBoss.name) {
-                lastNearestBossName = mainBoss.name;
-                if (mainBoss.mapX && mainBoss.mapY) {
-                    flyTo(parseFloat(mainBoss.mapX), parseFloat(mainBoss.mapY));
-                }
-            }
-
-            const hours = Math.floor(diff / 3600000);
-            const mins = Math.floor((diff % 3600000) / 60000);
-            const secs = Math.floor((diff % 60000) / 1000);
-            timeEl.innerText = `${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
-            
-            if (diff < 300000) timeEl.classList.add('timer-warning');
-            else timeEl.classList.remove('timer-warning');
-        } else {
-            nameEl.innerText = "대기 중...";
-            nameEl.style.color = '#949BA4';
-            timeEl.innerText = "--:--:--";
-            timeEl.classList.remove('timer-warning');
-            locEl.innerText = '';
-            dropEl.innerText = '';
-            lastNearestBossName = null;
-        }
-
-        // 5. Update UI - Left (Prev)
-        const prevPanel = document.getElementById('panel-prev');
-        if (prevBoss && prevBoss !== mainBoss) {
-            prevPanel.querySelector('.side-boss-name').innerText = prevBoss.name;
-            
-            const pDiff = prevBoss.effectiveTime - now;
-            const pHours = Math.floor(pDiff / 3600000);
-            const pMins = Math.floor((pDiff % 3600000) / 60000);
-            const pSecs = Math.floor((pDiff % 60000) / 1000);
-            
-            prevPanel.querySelector('.side-boss-time').innerText = `${String(pHours).padStart(2,'0')}:${String(pMins).padStart(2,'0')}:${String(pSecs).padStart(2,'0')}`;
-            
-            const locContainer = prevPanel.querySelector('.side-boss-loc');
-            renderLocationBtn(locContainer, prevBoss, true);
-
-            prevPanel.style.opacity = 1;
-        } else {
-            prevPanel.style.opacity = 0; 
-        }
-
-        // 6. Update UI - Right (Next Next)
-        const nextPanel = document.getElementById('panel-next');
-        if (nextBoss) {
-            nextPanel.querySelector('.side-boss-name').innerText = nextBoss.name;
-            
-            const nDiff = nextBoss.effectiveTime - now;
-            const nHours = Math.floor(nDiff / 3600000);
-            const nMins = Math.floor((nDiff % 3600000) / 60000);
-            const nSecs = Math.floor((nDiff % 60000) / 1000);
-
-            nextPanel.querySelector('.side-boss-time').innerText = `${String(nHours).padStart(2,'0')}:${String(nMins).padStart(2,'0')}:${String(nSecs).padStart(2,'0')}`;
-            
-            const locContainer = nextPanel.querySelector('.side-boss-loc');
-            renderLocationBtn(locContainer, nextBoss, true);
-
-            nextPanel.style.opacity = 1;
-        } else {
-            nextPanel.style.opacity = 0;
-        }
-    }
-
-    // --- Rendering ---
-    function renderTable(data) {
-        const tbody = document.getElementById('table-body');
-        tbody.innerHTML = '';
-        
-        const isAdmin = currentUserRole === 'admin'; 
-
-        const sortedBosses = Object.entries(data).sort((a, b) => (a[1].order || 0) - (b[1].order || 0));
-
-        sortedBosses.forEach(([key, boss]) => {
-            const tr = document.createElement('tr');
-            
-            if (isAdmin) {
-                tr.className = 'draggable-row';
-                tr.setAttribute('draggable', 'true');
-            } else {
-                tr.className = '';
-            }
-            
-            tr.setAttribute('data-key', key);
-            
-            const intervalText = boss.interval ? `${boss.interval}h` : '-';
-            
-            const spawnInfo = getSpawnInfo(boss);
-            const nextTimeStr = spawnInfo.time ? 
-                (formatTimeDisplay(spawnInfo.time) + `<span style="font-size:0.8em; color:#ffd6a5;">${spawnInfo.label}</span>`) : '-';
-
-            const locInfo = boss.location || '위치 미설정';
-            const dropInfo = boss.drop || '정보 없음';
-            const nameColor = boss.color || '#ffadad';
-
-            let timeCellContent;
-            if (isAdmin) {
-                const inputValue = toLocalInputValue(boss.lastKillTimestamp);
-                timeCellContent = `<input type="datetime-local" class="input-time-edit" step="1" data-key="${key}" data-interval="${boss.interval}" value="${inputValue}">`;
-            } else {
-                const timeText = boss.lastKillTimestamp ? formatTimeDisplay(boss.lastKillTimestamp) : '-';
-                timeCellContent = `<div class="read-only-time">${timeText}</div>`;
-            }
-
-            let actionCellContent;
-            if (isAdmin) {
-                const lastKill = boss.lastKillTimestamp || 0;
-                actionCellContent = `
-                    <div class="action-btn-group">
-                        <button class="btn-success btn-kill" data-key="${key}" data-interval="${boss.interval}" data-last-kill="${lastKill}">컷</button>
-                        <button class="btn-edit btn-modify" data-key="${key}">수정</button>
-                    </div>
-                `;
-            } else {
-                actionCellContent = `<span style="font-size:0.8em; color:#5c5e66;">보기 전용</span>`;
-            }
-
-            const hasCoords = (boss.mapX !== undefined && boss.mapY !== undefined && boss.mapX !== "" && boss.mapY !== "");
-            const locationBtnHtml = hasCoords 
-                ? `<button class="btn-icon-toggle btn-fly-map" data-x="${boss.mapX}" data-y="${boss.mapY}">📍</button>`
-                : `<button class="btn-icon-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">📍</button>`;
-
-            tr.innerHTML = `
-                <td style="font-weight: bold; color: ${nameColor};">${boss.name}</td>
-                <td style="text-align:center;">
-                    ${locationBtnHtml}
-                    <div class="info-text-box">${locInfo}</div>
-                </td>
-                <td style="text-align:center;">
-                    <button class="btn-icon-toggle" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display === 'block' ? 'none' : 'block'">i</button>
-                    <div class="info-text-box">${dropInfo}</div>
-                </td>
-                <td style="text-align:center;">${intervalText}</td>
-                <td class="col-time">${timeCellContent}</td>
-                <td class="col-next">${nextTimeStr}</td>
-                <td class="col-action">${actionCellContent}</td>
-            `;
-            tbody.appendChild(tr);
-        });
-        
-        attachAdminEventListeners(); 
-        
-        updateButtonStates();
-
-        document.querySelectorAll('.btn-fly-map').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const x = parseFloat(e.target.getAttribute('data-x'));
-                const y = parseFloat(e.target.getAttribute('data-y'));
-                const textBox = e.target.nextElementSibling;
+        handleTableClick(e) {
+            const btn = e.target;
+            // Handle fly map button
+            if (btn.classList.contains('btn-fly-map')) {
+                const textBox = btn.nextElementSibling;
                 if(textBox) textBox.style.display = textBox.style.display === 'block' ? 'none' : 'block';
-                flyTo(x, y);
-            });
-        });
-    }
-
-    function attachAdminEventListeners() {
-        document.querySelectorAll('.input-time-edit').forEach(input => {
-            input.addEventListener('change', (e) => {
-                const key = e.target.getAttribute('data-key');
-                const interval = parseInt(e.target.getAttribute('data-interval'));
-                const newTimeStr = e.target.value;
-
-                if (!newTimeStr) return;
-                if (!interval) return alert("젠 주기가 없는 보스입니다.");
-
-                const newDate = new Date(newTimeStr);
-                if (isNaN(newDate.getTime())) {
-                    alert("유효하지 않은 시간입니다.");
-                    renderTable(allBosses); 
-                    return;
-                }
-
-                const currentData = allBosses[key];
-                undoStack.push({ key, data: { ...currentData } });
-                redoStack = []; 
-                updateUndoUI();
-
-                const newTimestamp = newDate.getTime();
-                const nextSpawn = newTimestamp + (interval * 3600000);
-
-                update(ref(db, `${currentRoomId}/bosses/${key}`), {
-                    lastKillTimestamp: newTimestamp,
-                    nextSpawnTimestamp: nextSpawn
-                });
-            });
-        });
-
-        document.querySelectorAll('.btn-kill').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const key = e.target.getAttribute('data-key');
-                const interval = parseInt(e.target.getAttribute('data-interval'));
-
-                if (btn.hasAttribute('disabled')) return; 
-
-                if (!interval) return alert("젠 주기가 설정되지 않았습니다.");
-
-                const currentData = allBosses[key];
-                undoStack.push({ key, data: { ...currentData } });
-                redoStack = [];
-                updateUndoUI();
-
-                const now = Date.now();
-                const nextSpawn = now + (interval * 3600000);
-
-                update(ref(db, `${currentRoomId}/bosses/${key}`), {
-                    lastKillTimestamp: now,
-                    nextSpawnTimestamp: nextSpawn
-                });
-            });
-        });
-
-        document.querySelectorAll('.btn-modify').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const key = e.target.getAttribute('data-key');
-                const data = allBosses[key];
-                if (!data) return;
-
-                if (editingKey === key) {
-                    setAddMode();
-                    formContainer.style.display = 'none';
-                    toggleBtn.innerText = '[+] 보스 추가하기';
-                    return;
-                }
-
-                editingKey = key;
-                
-                formContainer.style.display = 'block';
-                toggleBtn.innerText = '[-] 닫기';
-
-                document.getElementById('input-name').value = data.name;
-                document.getElementById('input-color').value = data.color || '#ffadad';
-                document.getElementById('input-location').value = data.location || '';
-                document.getElementById('input-drop').value = data.drop || '';
-                document.getElementById('input-interval').value = data.interval || '';
-                document.getElementById('input-map-x').value = data.mapX || '';
-                document.getElementById('input-map-y').value = data.mapY || '';
-
-                const addBtn = document.getElementById('btn-add');
-                addBtn.innerText = "수정";
-                addBtn.classList.remove('btn-primary');
-                addBtn.classList.add('btn-edit');
-                
-                btnFormDelete.style.display = 'inline-block';
-                
-                formContainer.scrollIntoView({ behavior: 'smooth' });
-            });
-        });
-    }
-
-    btnFormDelete.addEventListener('click', () => {
-        if (editingKey && confirm(`정말로 [${editingKey}] 보스를 삭제하시겠습니까?`)) {
-            remove(ref(db, `${currentRoomId}/bosses/${editingKey}`));
-            setAddMode(); 
-            formContainer.style.display = 'none';
-            toggleBtn.innerText = '[+] 보스 추가하기';
-        }
-    });
-
-    function updateUndoUI() {
-        if (currentUserRole !== 'admin') return;
-        document.getElementById('btn-undo').disabled = undoStack.length === 0;
-        document.getElementById('btn-redo').disabled = redoStack.length === 0;
-        document.getElementById('btn-undo').style.opacity = undoStack.length === 0 ? 0.5 : 1;
-        document.getElementById('btn-redo').style.opacity = redoStack.length === 0 ? 0.5 : 1;
-    }
-
-    document.getElementById('btn-undo').addEventListener('click', () => {
-        if(undoStack.length === 0) return;
-        const action = undoStack.pop();
-        const currentData = allBosses[action.key];
-        redoStack.push({ key: action.key, data: { ...currentData } });
-        update(ref(db, `${currentRoomId}/bosses/${action.key}`), {
-            lastKillTimestamp: action.data.lastKillTimestamp,
-            nextSpawnTimestamp: action.data.nextSpawnTimestamp
-        });
-        updateUndoUI();
-    });
-
-    document.getElementById('btn-redo').addEventListener('click', () => {
-        if(redoStack.length === 0) return;
-        const action = redoStack.pop();
-        const currentData = allBosses[action.key];
-        undoStack.push({ key: action.key, data: { ...currentData } });
-        update(ref(db, `${currentRoomId}/bosses/${action.key}`), {
-            lastKillTimestamp: action.data.lastKillTimestamp,
-            nextSpawnTimestamp: action.data.nextSpawnTimestamp
-        });
-        updateUndoUI();
-    });
-
-    document.getElementById('btn-sort').addEventListener('click', () => {
-        if(!allBosses) return;
-        const entries = Object.entries(allBosses);
-        entries.sort((a, b) => {
-            const infoA = getSpawnInfo(a[1]);
-            const infoB = getSpawnInfo(b[1]);
-            
-            const timeA = infoA.time || 9999999999999;
-            const timeB = infoB.time || 9999999999999;
-            return timeA - timeB;
-        });
-        const updates = {};
-        entries.forEach((entry, index) => {
-             updates[`${currentRoomId}/bosses/${entry[0]}/order`] = index;
-        });
-        update(ref(db), updates);
-    });
-
-    function getDragAfterElement(container, y) {
-        const draggableElements = [...container.querySelectorAll('.draggable-row:not(.dragging)')];
-        return draggableElements.reduce((closest, child) => {
-            const box = child.getBoundingClientRect();
-            const offset = y - box.top - box.height / 2;
-            if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
-            else return closest;
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
-    }
-
-    function saveNewOrder() {
-        const updates = {};
-        document.querySelectorAll('#table-body tr').forEach((row, index) => {
-            const key = row.getAttribute('data-key');
-            updates[`${currentRoomId}/bosses/${key}/order`] = index;
-        });
-        update(ref(db), updates);
-    }
-
-    document.getElementById('btn-add').addEventListener('click', () => {
-        const name = document.getElementById('input-name').value.trim();
-        const color = document.getElementById('input-color').value; 
-        const location = document.getElementById('input-location').value.trim();
-        const drop = document.getElementById('input-drop').value.trim();
-        const interval = document.getElementById('input-interval').value;
-        const mapX = document.getElementById('input-map-x').value;
-        const mapY = document.getElementById('input-map-y').value;
-        
-        // --- Validation ---
-        if (!name) return alert('보스명을 입력해주세요.');
-        if (name.length > 20) return alert('보스명은 20자 이내로 입력해주세요.');
-        if (location.length > 100) return alert('위치 정보는 100자 이내로 입력해주세요.');
-        if (drop.length > 400) return alert('정보 내용은 400자 이내로 입력해주세요.');
-        if (!interval) return alert('젠 주기를 반드시 선택해주세요.');
-
-        // Logic for Add/Edit
-        if (editingKey) {
-            // EDIT MODE
-            const oldData = allBosses[editingKey];
-            
-            if (name !== editingKey) {
-                remove(ref(db, `${currentRoomId}/bosses/${editingKey}`));
-            }
-            
-            let lastKill = oldData.lastKillTimestamp;
-            let nextSpawn = oldData.nextSpawnTimestamp;
-
-            if (lastKill && parseInt(interval) !== parseInt(oldData.interval)) {
-                nextSpawn = lastKill + (parseInt(interval) * 3600000);
+                MapController.flyTo(parseFloat(btn.dataset.x), parseFloat(btn.dataset.y));
+                return;
             }
 
-            update(ref(db, `${currentRoomId}/bosses/${name}`), {
-                name: name,
-                color: color, 
-                location: location,
-                drop: drop,
-                interval: interval,
-                mapX: mapX,
-                mapY: mapY,
-                lastKillTimestamp: lastKill,
-                nextSpawnTimestamp: nextSpawn,
-                order: oldData.order 
+            // Handle actions (kill/modify/delete)
+            const key = btn.dataset.key;
+            if (!key) return;
+
+            if (btn.classList.contains('btn-kill')) {
+                if (btn.classList.contains('btn-disabled')) return;
+                App.handleKill(key, parseInt(btn.dataset.interval));
+            } else if (btn.classList.contains('btn-modify')) {
+                this.setEditMode(key);
+            } else if (btn.classList.contains('btn-del')) {
+                App.handleDelete(key);
+            }
+        },
+
+        handleTableInput(e) {
+            if (e.target.classList.contains('input-time-edit')) {
+                const key = e.target.dataset.key;
+                const interval = parseInt(e.target.dataset.interval);
+                const date = new Date(e.target.value);
+                if (!isNaN(date.getTime())) App.handleTimeUpdate(key, interval, date.getTime());
+                else alert("유효하지 않은 시간입니다.");
+            }
+        },
+
+        toggleForm() {
+            const isHidden = this.dom.form.classList.contains('hidden');
+            if (isHidden) {
+                this.dom.form.classList.remove('hidden');
+                this.dom.btnToggleForm.innerText = '[-] 닫기';
+                this.resetForm();
+            } else {
+                this.dom.form.classList.add('hidden');
+                this.dom.btnToggleForm.innerText = '[+] 보스 추가하기';
+                this.resetForm();
+            }
+        },
+
+        setEditMode(key) {
+            // Toggle Logic
+            if (state.editingKey === key) {
+                this.toggleForm(); // Close
+                return;
+            }
+
+            const data = state.bosses[key];
+            if (!data) return;
+
+            state.editingKey = key;
+            this.dom.form.classList.remove('hidden');
+            this.dom.btnToggleForm.innerText = '[-] 닫기';
+            
+            // Fill Inputs
+            this.dom.formInputs.name.value = data.name;
+            this.dom.formInputs.color.value = data.color || '#ffadad';
+            this.dom.formInputs.loc.value = data.location || '';
+            this.dom.formInputs.drop.value = data.drop || '';
+            this.dom.formInputs.interval.value = data.interval || '';
+            this.dom.formInputs.mapX.value = data.mapX || '';
+            this.dom.formInputs.mapY.value = data.mapY || '';
+
+            // Update Buttons
+            this.dom.btnAdd.innerText = "수정";
+            this.dom.btnAdd.className = "btn-edit";
+            this.dom.btnDelete.classList.remove('hidden');
+            
+            this.dom.form.scrollIntoView({ behavior: 'smooth' });
+        },
+
+        resetForm() {
+            state.editingKey = null;
+            this.dom.btnAdd.innerText = "등록";
+            this.dom.btnAdd.className = "btn-primary";
+            this.dom.btnDelete.classList.add('hidden');
+            
+            Object.values(this.dom.formInputs).forEach(input => input.value = '');
+            this.dom.formInputs.color.value = '#ffadad';
+        },
+
+        updateUndoUI() {
+            if (state.role !== 'admin') return;
+            this.dom.undoBtn.disabled = state.undoStack.length === 0;
+            this.dom.redoBtn.disabled = state.redoStack.length === 0;
+            this.dom.undoBtn.style.opacity = state.undoStack.length === 0 ? 0.5 : 1;
+            this.dom.redoBtn.style.opacity = state.redoStack.length === 0 ? 0.5 : 1;
+        }
+    };
+
+    // 7. Main Application Logic
+    const App = {
+        init() {
+            MapController.init();
+            UIManager.init();
+            this.bindEvents();
+            this.checkUrlParams();
+            
+            // Loop for timer
+            setInterval(() => {
+                UIManager.updateTimerDisplay();
+                UIManager.updateCooldowns();
+            }, 1000);
+        },
+
+        checkUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const room = params.get('room');
+            if (room) document.getElementById('room-input').value = room;
+        },
+
+        bindEvents() {
+            // Login & Room Entry
+            document.getElementById('btn-enter-room').addEventListener('click', () => this.handleLogin());
+            document.getElementById('room-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') this.handleLogin();
             });
 
-            alert('수정이 완료되었습니다.');
-            setAddMode(); 
-
-        } else {
-            // ADD MODE
-            update(ref(db, `${currentRoomId}/bosses/${name}`), {
-                name: name,
-                color: color, 
-                location: location,
-                drop: drop,
-                interval: interval,
-                mapX: mapX,
-                mapY: mapY,
-                order: Date.now()
+            // Global Actions
+            document.getElementById('btn-share-url').addEventListener('click', () => {
+                navigator.clipboard.writeText(window.location.href)
+                    .then(() => alert("주소가 복사되었습니다!"));
             });
             
-            document.getElementById('input-name').value = '';
-            document.getElementById('input-color').value = '#ffadad';
-            document.getElementById('input-location').value = '';
-            document.getElementById('input-drop').value = '';
-            document.getElementById('input-map-x').value = '';
-            document.getElementById('input-map-y').value = '';
+            document.getElementById('btn-leave-room').addEventListener('click', () => {
+                if (confirm("정말 나가시겠습니까?")) window.location.href = window.location.pathname;
+            });
+
+            document.getElementById('btn-sort').addEventListener('click', () => this.handleSort());
+            document.getElementById('btn-undo').addEventListener('click', () => this.handleUndo());
+            document.getElementById('btn-redo').addEventListener('click', () => this.handleRedo());
+            
+            // Form Actions
+            UIManager.dom.btnAdd.addEventListener('click', () => this.handleFormSubmit());
+            UIManager.dom.btnDelete.addEventListener('click', () => {
+                if (state.editingKey) this.handleDelete(state.editingKey);
+            });
+        },
+
+        handleLogin() {
+            const room = document.getElementById('room-input').value.trim();
+            if (!room) return alert("방 이름을 입력해주세요.");
+            
+            state.roomId = room;
+            state.role = document.querySelector('input[name="role"]:checked').value;
+            
+            // Update URL
+            const newUrl = `${window.location.pathname}?room=${encodeURIComponent(room)}`;
+            window.history.pushState({path: newUrl}, '', newUrl);
+
+            UIManager.switchScreen();
+            BossService.listenToRoom(room, (bosses) => UIManager.renderTable(bosses));
+        },
+
+        pushHistory(key, data) {
+            state.undoStack.push({ key, data: { ...data } });
+            state.redoStack = [];
+            UIManager.updateUndoUI();
+        },
+
+        handleFormSubmit() {
+            const inputs = UIManager.dom.formInputs;
+            const name = inputs.name.value.trim();
+            const interval = inputs.interval.value;
+            
+            // Validation
+            if (!name) return alert('보스명을 입력해주세요.');
+            if (name.length > CONFIG.LIMITS.NAME) return alert(`보스명은 ${CONFIG.LIMITS.NAME}자 이내여야 합니다.`);
+            if (!interval) return alert('젠 주기를 선택해주세요.');
+            if (inputs.loc.value.length > CONFIG.LIMITS.LOC) return alert('위치 정보가 너무 깁니다.');
+            if (inputs.drop.value.length > CONFIG.LIMITS.INFO) return alert('정보 내용이 너무 깁니다.');
+
+            const payload = {
+                name: name,
+                color: inputs.color.value,
+                location: inputs.loc.value.trim(),
+                drop: inputs.drop.value.trim(),
+                interval: interval,
+                mapX: inputs.mapX.value,
+                mapY: inputs.mapY.value
+            };
+
+            if (state.editingKey) {
+                // Edit Logic
+                const oldData = state.bosses[state.editingKey];
+                
+                // If rename, delete old
+                if (name !== state.editingKey) BossService.removeBoss(state.editingKey);
+                
+                // Recalculate if interval changed
+                let { lastKillTimestamp, nextSpawnTimestamp } = oldData;
+                if (lastKillTimestamp && parseInt(interval) !== parseInt(oldData.interval)) {
+                    nextSpawnTimestamp = lastKillTimestamp + (parseInt(interval) * 3600000);
+                }
+
+                BossService.updateBoss(name, {
+                    ...payload,
+                    lastKillTimestamp,
+                    nextSpawnTimestamp,
+                    order: oldData.order
+                });
+                alert('수정 완료');
+            } else {
+                // Add Logic
+                BossService.updateBoss(name, {
+                    ...payload,
+                    order: Date.now()
+                });
+            }
+            UIManager.toggleForm(); // Close & Reset
+        },
+
+        handleKill(key, interval) {
+            if (!interval) return alert("젠 주기가 없습니다.");
+            
+            this.pushHistory(key, state.bosses[key]);
+            
+            const now = Date.now();
+            const next = now + (interval * 3600000);
+            
+            BossService.updateBoss(key, {
+                lastKillTimestamp: now,
+                nextSpawnTimestamp: next
+            });
+        },
+
+        handleTimeUpdate(key, interval, timestamp) {
+            this.pushHistory(key, state.bosses[key]);
+            const next = timestamp + (interval * 3600000);
+            BossService.updateBoss(key, {
+                lastKillTimestamp: timestamp,
+                nextSpawnTimestamp: next
+            });
+        },
+
+        handleDelete(key) {
+            if (confirm(`정말로 [${key}] 보스를 삭제하시겠습니까?`)) {
+                BossService.removeBoss(key);
+                if (state.editingKey) UIManager.toggleForm();
+            }
+        },
+
+        handleSort() {
+            const list = Object.entries(state.bosses);
+            list.sort((a, b) => {
+                const tA = Utils.getSpawnInfo(a[1]).time || 9999999999999;
+                const tB = Utils.getSpawnInfo(b[1]).time || 9999999999999;
+                return tA - tB;
+            });
+            
+            const updates = {};
+            list.forEach((entry, idx) => {
+                updates[`${state.roomId}/bosses/${entry[0]}/order`] = idx;
+            });
+            BossService.saveOrder(updates);
+        },
+
+        handleUndo() {
+            if (!state.undoStack.length) return;
+            const action = state.undoStack.pop();
+            state.redoStack.push({ key: action.key, data: { ...state.bosses[action.key] } });
+            
+            BossService.updateBoss(action.key, {
+                lastKillTimestamp: action.data.lastKillTimestamp,
+                nextSpawnTimestamp: action.data.nextSpawnTimestamp
+            });
+            UIManager.updateUndoUI();
+        },
+
+        handleRedo() {
+            if (!state.redoStack.length) return;
+            const action = state.redoStack.pop();
+            state.undoStack.push({ key: action.key, data: { ...state.bosses[action.key] } });
+            
+            BossService.updateBoss(action.key, {
+                lastKillTimestamp: action.data.lastKillTimestamp,
+                nextSpawnTimestamp: action.data.nextSpawnTimestamp
+            });
+            UIManager.updateUndoUI();
+        },
+
+        initDragAndDrop() {
+            const container = UIManager.dom.tableBody;
+            const draggables = container.querySelectorAll('.draggable-row');
+            
+            draggables.forEach(draggable => {
+                draggable.addEventListener('dragstart', () => draggable.classList.add('dragging'));
+                draggable.addEventListener('dragend', () => {
+                    draggable.classList.remove('dragging');
+                    this.saveNewOrder();
+                });
+            });
+
+            container.addEventListener('dragover', e => {
+                e.preventDefault();
+                const afterElement = this.getDragAfterElement(container, e.clientY);
+                const draggable = document.querySelector('.dragging');
+                if (afterElement == null) container.appendChild(draggable);
+                else container.insertBefore(draggable, afterElement);
+            });
+        },
+
+        getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.draggable-row:not(.dragging)')];
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) return { offset: offset, element: child };
+                else return closest;
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        },
+
+        saveNewOrder() {
+            const updates = {};
+            document.querySelectorAll('#table-body tr').forEach((row, index) => {
+                updates[`${state.roomId}/bosses/${row.dataset.key}/order`] = index;
+            });
+            BossService.saveOrder(updates);
         }
-    });
+    };
+
+    // Start App
+    App.init();
 
 </script>
 </body>

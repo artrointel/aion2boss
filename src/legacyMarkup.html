@@ -1,0 +1,133 @@
+﻿<div id="login-screen">
+    <div id="login-box">
+        <h1>⚔️ 보스 관리</h1>
+        <p style="color: #b5bac1;">방 이름을 입력하고 역할을 선택하세요.</p>
+        
+        <input type="text" id="room-input" placeholder="예: 1서버마족, A공대 등" />
+
+        <div class="role-selector">
+            <label class="role-label">
+                <input type="radio" name="role" value="admin" checked>
+                <span>👑 관리자</span>
+            </label>
+            <label class="role-label">
+                <input type="radio" name="role" value="guest">
+                <span>👀 손님</span>
+            </label>
+        </div>
+
+        <button id="btn-enter-room" class="btn-primary btn-large">입장하기</button>
+    </div>
+</div>
+
+<div id="main-app" class="container hidden">
+    <div class="card" id="timer-box">
+        <div class="credits">
+            <span id="current-room-display"></span>
+            <button id="btn-share-url" class="btn-secondary" style="padding: 2px 8px; font-size: 0.7em;">🔗 주소복사</button>
+            <span style="margin-left: 10px; color: #5c5e66;">마족 필드 보스 타이머(aion2boss) by 브리트라 뿌띠</span>
+        </div>
+        
+        <h2 style="border:none; justify-content:center; color:#949BA4; font-size:1rem; margin-bottom:15px;">NEXT BOSS</h2>
+        
+        <div id="timer-panels">
+            <!-- Left: Prev -->
+            <div class="side-boss-panel" id="panel-prev">
+                <div class="side-boss-name">-</div>
+                <div class="side-timer-row">
+                    <div class="side-boss-time">--:--:--</div>
+                    <!-- Quick Cut Button -->
+                    <button class="btn-success btn-kill btn-kill-quick hidden">컷</button>
+                </div>
+                <div class="side-boss-loc">-</div>
+            </div>
+
+            <!-- Center: Main -->
+            <div class="main-boss-panel">
+                <div id="timer-boss-name">대기 중...</div>
+                <div class="main-timer-row">
+                    <div id="timer-display">--:--:--</div>
+                    <!-- Main Cut Button -->
+                    <button class="btn-success btn-kill btn-kill-main hidden" id="btn-main-kill">컷</button>
+                </div>
+                <div id="timer-boss-location"></div>
+                <div id="timer-boss-drop"></div>
+            </div>
+
+            <!-- Right: Next -->
+            <div class="side-boss-panel" id="panel-next">
+                <div class="side-boss-name">-</div>
+                <div class="side-timer-row">
+                    <div class="side-boss-time">--:--:--</div>
+                    <!-- Quick Cut Button -->
+                    <button class="btn-success btn-kill btn-kill-quick hidden">컷</button>
+                </div>
+                <div class="side-boss-loc">-</div>
+            </div>
+        </div>
+
+        <div id="map-wrapper">
+            <button id="btn-toggle-map" class="btn-secondary">🗺️ 지도 열기</button>
+            <div id="map-viewport">
+                <img id="boss-map-img" src="aion2boss.png" alt="보스 지도" draggable="false">
+            </div>
+            <p id="map-help" style="display:none; color: #5c5e66; font-size: 0.8em; margin-top: 5px;">🖱️ 휠: 확대/축소 | 드래그: 이동</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>
+            <span>☠️ 보스 현황</span>
+            <button class="btn-secondary admin-element hidden" id="btn-toggle-form" style="font-size: 0.8em;">[+] 보스 추가하기</button>
+        </h2>
+
+        <div id="form-container" class="hidden">
+            <div class="input-group">
+                <input type="color" id="input-color" value="#ffadad" title="이름 색상 선택">
+                <input type="text" id="input-name" placeholder="보스명 (필수, 최대 20자)" maxlength="20" style="flex: 2;">
+                <input type="text" id="input-location" placeholder="위치 정보 (최대 100자)" maxlength="100" style="flex: 1;">
+            </div>
+            <div class="input-group">
+                <input type="number" id="input-map-x" placeholder="지도 X (0.0~1.0)" step="0.01" min="0" max="1" style="flex: 1;">
+                <input type="number" id="input-map-y" placeholder="지도 Y (0.0~1.0)" step="0.01" min="0" max="1" style="flex: 1;">
+            </div>
+            <div class="input-group">
+                <select id="input-interval" style="width: 100px;">
+                    <option value="" disabled selected>젠 주기</option>
+                </select>
+                <input type="text" id="input-drop" placeholder="주요 정보 (최대 400자)" maxlength="400" style="flex: 2;">
+                <button class="btn-primary" id="btn-add">등록</button>
+                <button class="btn-danger hidden" id="btn-form-delete">삭제</button>
+            </div>
+        </div>
+        
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th class="col-name">보스명</th>
+                        <th class="col-loc">위치</th>
+                        <th class="col-info">정보</th>
+                        <th class="col-cycle">주기</th>
+                        <th class="col-time">최근 컷 시간</th>
+                        <th class="col-next">다음 젠 시간</th>
+                        <th class="col-action">관리</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body"></tbody>
+            </table>
+        </div>
+        <p class="admin-element hidden" style="text-align: center; color: #5c5e66; font-size: 0.8em; margin-top: 10px;">💡 행을 드래그하여 순서를 변경할 수 있습니다.</p>
+    </div>
+
+    <div class="card admin-element hidden" style="padding: 15px;">
+        <div class="control-group">
+            <button class="btn-primary" id="btn-sort">⏳ 다음 젠 시간순 정렬</button>
+            <div style="width: 20px;"></div>
+            <button class="btn-warning" id="btn-undo" disabled>↩️ 실행 취소</button>
+            <button class="btn-warning" id="btn-redo" disabled>↪️ 다시 실행</button>
+            <div style="width: 20px;"></div>
+            <button class="btn-exit" id="btn-leave-room">🚪 방 나가기</button>
+        </div>
+    </div>
+</div>

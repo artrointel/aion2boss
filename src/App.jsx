@@ -42,6 +42,14 @@ const emptyForm = {
 }
 
 const pad2 = (num) => String(num).padStart(2, '0')
+const TTS_STORAGE_KEY = 'aion2boss_tts_enabled'
+const TTS_NOTICE_DISMISS_KEY = 'aion2boss_tts_notice_dismissed'
+const ALERT_MARKS = [
+  { ms: 62000, text: '1분 남았습니다.' },
+  { ms: 32000, text: '30초 남았습니다.' },
+  { ms: 12000, text: '10초 남았습니다.' },
+  { ms: 7000, text: '5초 남았습니다.' }
+]
 
 function formatDateTime(timestamp) {
   if (!timestamp) return '-'
@@ -109,6 +117,13 @@ export default function App() {
   const [now, setNow] = useState(Date.now())
   const [dragKey, setDragKey] = useState(null)
   const [isMapOpen, setIsMapOpen] = useState(false)
+  const [ttsEnabled, setTtsEnabled] = useState(() => {
+    return window.localStorage.getItem(TTS_STORAGE_KEY) === 'true'
+  })
+  const [ttsNoticeDialogOpen, setTtsNoticeDialogOpen] = useState(false)
+  const [ttsNoticeDontShow, setTtsNoticeDontShow] = useState(() => {
+    return window.localStorage.getItem(TTS_NOTICE_DISMISS_KEY) === 'true'
+  })
   const [mapAspectRatio, setMapAspectRatio] = useState('16 / 9')
   const [timeDialog, setTimeDialog] = useState({
     open: false,
@@ -135,12 +150,27 @@ export default function App() {
     dragStartX: 0,
     dragStartY: 0
   })
+  const ttsStateRef = useRef({
+    cycleId: '',
+    prevRemainingMs: null
+  })
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const room = params.get('room')
     if (room) setRoomInput(room)
   }, [])
+
+  useEffect(() => {
+    window.localStorage.setItem(TTS_STORAGE_KEY, ttsEnabled ? 'true' : 'false')
+    if (!ttsEnabled && 'speechSynthesis' in window) {
+      window.speechSynthesis.cancel()
+    }
+  }, [ttsEnabled])
+
+  useEffect(() => {
+    window.localStorage.setItem(TTS_NOTICE_DISMISS_KEY, ttsNoticeDontShow ? 'true' : 'false')
+  }, [ttsNoticeDontShow])
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
@@ -179,6 +209,42 @@ export default function App() {
     }
   }, [mainBoss, nextBoss])
   const mapImageSrc = `${import.meta.env.BASE_URL}aion2boss.png`
+
+  useEffect(() => {
+    if (!ttsEnabled || !mainBoss || mainBoss.effectiveTime === Number.MAX_SAFE_INTEGER) {
+      ttsStateRef.current = { cycleId: '', prevRemainingMs: null }
+      return
+    }
+
+    const cycleId = `${mainBoss.key}:${mainBoss.effectiveTime}`
+    const remainingMs = mainBoss.effectiveTime - now
+
+    if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
+      ttsStateRef.current = { cycleId, prevRemainingMs: remainingMs }
+      return
+    }
+
+    const prevState = ttsStateRef.current
+    if (prevState.cycleId !== cycleId || prevState.prevRemainingMs == null) {
+      ttsStateRef.current = { cycleId, prevRemainingMs: remainingMs }
+      return
+    }
+
+    for (const mark of ALERT_MARKS) {
+      if (prevState.prevRemainingMs > mark.ms && remainingMs <= mark.ms) {
+        if ('speechSynthesis' in window) {
+          const utter = new SpeechSynthesisUtterance(mark.text)
+          utter.lang = 'ko-KR'
+          utter.rate = 1.2
+          utter.pitch = 1.25
+          utter.volume = 1
+          window.speechSynthesis.speak(utter)
+        }
+      }
+    }
+
+    ttsStateRef.current = { cycleId, prevRemainingMs: remainingMs }
+  }, [ttsEnabled, mainBoss, now])
 
   const applyMapTransform = useCallback(() => {
     const img = mapImgRef.current
@@ -460,6 +526,22 @@ export default function App() {
     })
   }
 
+  const handleToggleTts = () => {
+    if (ttsEnabled) {
+      setTtsEnabled(false)
+      return
+    }
+
+    setTtsEnabled(true)
+    if (!ttsNoticeDontShow) {
+      setTtsNoticeDialogOpen(true)
+    }
+  }
+
+  const closeTtsNoticeDialog = () => {
+    setTtsNoticeDialogOpen(false)
+  }
+
   const handleDelete = async (key) => {
     if (!window.confirm(`정말로 [${key}] 보스를 삭제하시겠습니까?`)) return
     await removeBoss(key)
@@ -698,6 +780,14 @@ export default function App() {
               <h3>보스 현황</h3>
               {role === 'admin' ? (
                 <div className='section-actions'>
+                  <button
+                    className={`btn ghost bell-btn ${ttsEnabled ? 'active' : ''}`}
+                    onClick={handleToggleTts}
+                    aria-label={ttsEnabled ? '음성 알림 끄기' : '음성 알림 켜기'}
+                    title={ttsEnabled ? '음성 알림 켜짐' : '음성 알림 꺼짐'}
+                  >
+                    🔔
+                  </button>
                   <button className='btn ghost' onClick={openCreateForm}>{showForm ? '폼 닫기' : '보스 추가'}</button>
                   <button className='btn ghost' onClick={toggleManagePanel}>{showManagePanel ? '수정 닫기' : '수정'}</button>
                 </div>
@@ -873,6 +963,21 @@ export default function App() {
             <pre>{infoDialog.content}</pre>
             <div className='dialog-actions'>
               <button className='btn primary' onClick={closeInfoDialog}>닫기</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {ttsNoticeDialogOpen ? (
+        <div className='dialog-backdrop' onClick={closeTtsNoticeDialog}>
+          <div className='dialog tts-notice-dialog' onClick={(e) => e.stopPropagation()}>
+            <h4>음성 알림 안내</h4>
+            <p>PC에서는 브라우저 특성상 음성이 간헐적으로 나오지 않을 수 있습니다. 모바일에서 접속을 추천드려요.</p>
+            <label className='dialog-check'>
+              <input type='checkbox' checked={ttsNoticeDontShow} onChange={(e) => setTtsNoticeDontShow(e.target.checked)} />
+              다시 알리지 않음
+            </label>
+            <div className='dialog-actions'>
+              <button className='btn primary' onClick={closeTtsNoticeDialog}>확인</button>
             </div>
           </div>
         </div>

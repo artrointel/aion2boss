@@ -246,6 +246,22 @@ body {
   gap: 8px;
 }
 
+.bell-btn {
+  min-width: 40px;
+  padding-left: 8px;
+  padding-right: 8px;
+  filter: grayscale(1);
+  opacity: 0.72;
+}
+
+.bell-btn.active {
+  border-color: #4cd6a0;
+  background: rgba(47, 179, 125, 0.24);
+  color: #d8ffe8;
+  filter: none;
+  opacity: 1;
+}
+
 .section-head h3 {
   margin: 0;
 }
@@ -508,6 +524,15 @@ tr.row-next-boss td {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+.dialog-check {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.9rem;
 }
 
 .info-dialog pre {

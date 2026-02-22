@@ -184,6 +184,17 @@ body {
   animation: pulse 1s infinite;
 }
 
+.sync-help-text {
+  margin: 0;
+  color: #ffd45a;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.sync-needed-time {
+  color: #ffd45a !important;
+}
+
 .boss-main-actions {
   display: flex;
   gap: 8px;
@@ -368,6 +379,13 @@ tr.row-next-boss td {
 .time-cell-btn {
   min-width: 88px;
   font-variant-numeric: tabular-nums;
+}
+
+.time-cell-btn.sync-needed {
+  background: rgba(255, 210, 84, 0.18);
+  border-color: rgba(255, 215, 99, 0.8);
+  color: #ffeaa8;
+  font-weight: 800;
 }
 
 .map-icon-btn {

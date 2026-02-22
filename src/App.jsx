@@ -50,6 +50,7 @@ const ALERT_MARKS = [
   { ms: 12000, text: '10초 남았습니다.' },
   { ms: 7000, text: '5초 남았습니다.' }
 ]
+const CYCLE_DRIFT_CORRECTION_MS = 10000
 
 function formatDateTime(timestamp) {
   if (!timestamp) return '-'
@@ -78,12 +79,20 @@ function getSpawnInfo(boss, now) {
   let nextTime = Number(boss.nextSpawnTimestamp)
 
   if (nextTime <= now) {
+    // First spawn uses the manually synced time.
+    // After that point, apply empirical +10s correction per spawn cycle.
+    const correctedIntervalMs = intervalMs + CYCLE_DRIFT_CORRECTION_MS
     const diff = now - nextTime
-    const cycles = Math.floor(diff / intervalMs) + 1
-    nextTime += cycles * intervalMs
+    const cycles = Math.floor(diff / correctedIntervalMs) + 1
+    nextTime += cycles * correctedIntervalMs
   }
 
   return { time: nextTime }
+}
+
+function isSyncNeeded(boss, now) {
+  if (!boss?.interval || !boss?.nextSpawnTimestamp) return false
+  return now >= Number(boss.nextSpawnTimestamp)
 }
 
 function getBossList(bosses, now) {
@@ -138,6 +147,10 @@ export default function App() {
     name: '',
     content: ''
   })
+  const [syncNoticeDialog, setSyncNoticeDialog] = useState({
+    open: false,
+    bosses: []
+  })
 
   const mapViewportRef = useRef(null)
   const mapImgRef = useRef(null)
@@ -154,6 +167,7 @@ export default function App() {
     cycleId: '',
     prevRemainingMs: null
   })
+  const syncNoticeShownRef = useRef(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -208,7 +222,24 @@ export default function App() {
       next: nextBoss?.key ?? ''
     }
   }, [mainBoss, nextBoss])
+  const syncNeededBosses = useMemo(() => {
+    return orderedBosses
+      .filter((boss) => isSyncNeeded(boss, now))
+      .map((boss) => ({ name: boss.name, color: boss.color || '#ffadad' }))
+  }, [orderedBosses, now])
   const mapImageSrc = `${import.meta.env.BASE_URL}aion2boss.png`
+
+  useEffect(() => {
+    if (!roomId || role !== 'admin') return
+    if (!syncNeededBosses.length) return
+    if (syncNoticeShownRef.current) return
+
+    syncNoticeShownRef.current = true
+    setSyncNoticeDialog({
+      open: true,
+      bosses: syncNeededBosses
+    })
+  }, [roomId, role, syncNeededBosses])
 
   useEffect(() => {
     if (!ttsEnabled || !mainBoss || mainBoss.effectiveTime === Number.MAX_SAFE_INTEGER) {
@@ -360,6 +391,8 @@ export default function App() {
     setEditingKey(null)
     setShowForm(false)
     setShowManagePanel(false)
+    setSyncNoticeDialog({ open: false, bosses: [] })
+    syncNoticeShownRef.current = false
 
     const newUrl = `${window.location.pathname}?room=${encodeURIComponent(room)}`
     window.history.pushState({ path: newUrl }, '', newUrl)
@@ -542,6 +575,10 @@ export default function App() {
     setTtsNoticeDialogOpen(false)
   }
 
+  const closeSyncNoticeDialog = () => {
+    setSyncNoticeDialog({ open: false, bosses: [] })
+  }
+
   const handleDelete = async (key) => {
     if (!window.confirm(`정말로 [${key}] 보스를 삭제하시겠습니까?`)) return
     await removeBoss(key)
@@ -622,6 +659,10 @@ export default function App() {
     const s = Math.floor((diff % 60000) / 1000)
     return `${pad2(h)}:${pad2(m)}:${pad2(s)}`
   }
+
+  const mainSyncNeeded = mainBoss ? isSyncNeeded(mainBoss, now) : false
+  const prevSyncNeeded = prevBoss ? isSyncNeeded(prevBoss, now) : false
+  const nextSyncNeeded = nextBoss ? isSyncNeeded(nextBoss, now) : false
 
   const handleMapWheel = (e) => {
     e.preventDefault()
@@ -725,6 +766,7 @@ export default function App() {
                 title='PREV'
                 boss={prevBoss}
                 countdown={renderCountdown(prevBoss)}
+                syncNeeded={prevSyncNeeded}
                 onFly={() => hasMapPoint(prevBoss) && flyTo(prevBoss.mapX, prevBoss.mapY)}
               />
 
@@ -732,7 +774,8 @@ export default function App() {
                 <h2 className='boss-main-name'>
                   {mainBoss?.name ? `[${mainBoss.name}] 젠까지` : '대기 중...'}
                 </h2>
-                <div className={`boss-main-time ${mainBoss && mainBoss.effectiveTime - now < CONFIG.UI.WARNING_MS ? 'warning' : ''}`}>
+                {mainSyncNeeded ? <p className='sync-help-text'>싱크를 맞춰주세요</p> : null}
+                <div className={`boss-main-time ${mainSyncNeeded ? 'sync-needed-time' : ''} ${mainBoss && mainBoss.effectiveTime - now < CONFIG.UI.WARNING_MS ? 'warning' : ''}`}>
                   {renderCountdown(mainBoss)}
                 </div>
                 <div className='boss-main-actions'>
@@ -753,6 +796,7 @@ export default function App() {
                 title='NEXT'
                 boss={nextBoss}
                 countdown={renderCountdown(nextBoss)}
+                syncNeeded={nextSyncNeeded}
                 onFly={() => hasMapPoint(nextBoss) && flyTo(nextBoss.mapX, nextBoss.mapY)}
               />
             </div>
@@ -838,6 +882,7 @@ export default function App() {
                     const spawn = getSpawnInfo(boss, now)
                     const nextText = spawn.time ? formatDateTime(spawn.time) : '-'
                     const mapReady = hasMapPoint(boss)
+                    const syncNeeded = isSyncNeeded(boss, now)
 
                     const rowClassName = [
                       dragKey === boss.key ? 'dragging' : '',
@@ -877,10 +922,12 @@ export default function App() {
                         </td>
                         <td>
                           <button
-                            className='btn tiny ghost time-cell-btn'
+                            className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''}`}
                             disabled={role !== 'admin'}
                             onClick={() => openRemainingDialog(boss)}
+                            title={syncNeeded ? '싱크 필요: 남은 시간을 눌러 수정하세요.' : undefined}
                           >
+                            {syncNeeded ? '! ' : ''}
                             {renderCountdown({
                               ...boss,
                               effectiveTime: spawn.time ?? Number.MAX_SAFE_INTEGER
@@ -982,11 +1029,31 @@ export default function App() {
           </div>
         </div>
       ) : null}
+      {syncNoticeDialog.open ? (
+        <div className='dialog-backdrop' onClick={closeSyncNoticeDialog}>
+          <div className='dialog' onClick={(e) => e.stopPropagation()}>
+            <h4>싱크 필요 안내</h4>
+            <p>
+              보스{' '}
+              {syncNoticeDialog.bosses.map((boss, idx) => (
+                <span key={`${boss.name}-${idx}`}>
+                  <span style={{ color: boss.color, fontWeight: 700 }}>{boss.name}</span>
+                  {idx < syncNoticeDialog.bosses.length - 1 ? ', ' : ''}
+                </span>
+              ))}
+              {' '}의 싱크가 필요합니다. 인게임 지도를 열어 탐험-&gt;네임드에서 남은 시간을 확인해서 수정해주세요.
+            </p>
+            <div className='dialog-actions'>
+              <button className='btn primary' onClick={closeSyncNoticeDialog}>확인</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
 
-function BossCard({ title, boss, countdown, onFly }) {
+function BossCard({ title, boss, countdown, syncNeeded, onFly }) {
   if (!boss || boss.effectiveTime === Number.MAX_SAFE_INTEGER) {
     return (
       <section className='boss-side'>
@@ -1001,7 +1068,8 @@ function BossCard({ title, boss, countdown, onFly }) {
     <section className='boss-side'>
       <span className='muted'>{title}</span>
       <strong>{boss.name}</strong>
-      <span>{countdown}</span>
+      {syncNeeded ? <span className='sync-help-text'>싱크를 맞춰주세요</span> : null}
+      <span className={syncNeeded ? 'sync-needed-time' : ''}>{countdown}</span>
       {boss.location ? <button className='btn tiny ghost' disabled={!hasMapPoint(boss)} onClick={onFly}>📍 {boss.location}</button> : null}
     </section>
   )

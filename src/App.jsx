@@ -134,6 +134,7 @@ export default function App() {
     return window.localStorage.getItem(TTS_NOTICE_DISMISS_KEY) === 'true'
   })
   const [mapAspectRatio, setMapAspectRatio] = useState('16 / 9')
+  const [roomDataLoaded, setRoomDataLoaded] = useState(false)
   const [timeDialog, setTimeDialog] = useState({
     open: false,
     key: '',
@@ -168,6 +169,7 @@ export default function App() {
     prevRemainingMs: null
   })
   const syncNoticeShownRef = useRef(false)
+  const syncNoticeCheckedOnEntryRef = useRef(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -197,6 +199,7 @@ export default function App() {
     const roomRef = ref(db, `${roomId}/bosses`)
     const unsubscribe = onValue(roomRef, (snapshot) => {
       setBosses(snapshot.val() || {})
+      setRoomDataLoaded(true)
     })
 
     return () => unsubscribe()
@@ -231,15 +234,18 @@ export default function App() {
 
   useEffect(() => {
     if (!roomId || role !== 'admin') return
-    if (!syncNeededBosses.length) return
-    if (syncNoticeShownRef.current) return
+    if (!roomDataLoaded) return
+    if (syncNoticeCheckedOnEntryRef.current) return
+
+    syncNoticeCheckedOnEntryRef.current = true
+    if (!syncNeededBosses.length || syncNoticeShownRef.current) return
 
     syncNoticeShownRef.current = true
     setSyncNoticeDialog({
       open: true,
       bosses: syncNeededBosses
     })
-  }, [roomId, role, syncNeededBosses])
+  }, [roomId, role, roomDataLoaded, syncNeededBosses])
 
   useEffect(() => {
     if (!ttsEnabled || !mainBoss || mainBoss.effectiveTime === Number.MAX_SAFE_INTEGER) {
@@ -391,8 +397,10 @@ export default function App() {
     setEditingKey(null)
     setShowForm(false)
     setShowManagePanel(false)
+    setRoomDataLoaded(false)
     setSyncNoticeDialog({ open: false, bosses: [] })
     syncNoticeShownRef.current = false
+    syncNoticeCheckedOnEntryRef.current = false
 
     const newUrl = `${window.location.pathname}?room=${encodeURIComponent(room)}`
     window.history.pushState({ path: newUrl }, '', newUrl)

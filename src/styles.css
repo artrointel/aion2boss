@@ -505,6 +505,10 @@ tr.row-next-boss td {
   padding: 16px;
 }
 
+.form-dialog {
+  width: min(980px, 100%);
+}
+
 .dialog h4 {
   margin: 0 0 6px;
 }

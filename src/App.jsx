@@ -579,6 +579,11 @@ export default function App() {
     setSyncNoticeDialog({ open: false, bosses: [] })
   }
 
+  const closeBossFormDialog = () => {
+    setShowForm(false)
+    resetForm()
+  }
+
   const handleDelete = async (key) => {
     if (!window.confirm(`정말로 [${key}] 보스를 삭제하시겠습니까?`)) return
     await removeBoss(key)
@@ -719,6 +724,35 @@ export default function App() {
     }
   }, [applyMapTransform, constrainMap])
 
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key !== 'Escape') return
+
+      if (showForm) {
+        closeBossFormDialog()
+        return
+      }
+      if (timeDialog.open) {
+        closeRemainingDialog()
+        return
+      }
+      if (infoDialog.open) {
+        closeInfoDialog()
+        return
+      }
+      if (ttsNoticeDialogOpen) {
+        closeTtsNoticeDialog()
+        return
+      }
+      if (syncNoticeDialog.open) {
+        closeSyncNoticeDialog()
+      }
+    }
+
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [showForm, timeDialog.open, infoDialog.open, ttsNoticeDialogOpen, syncNoticeDialog.open])
+
   return (
     <div className='page'>
       {!roomId ? (
@@ -837,34 +871,6 @@ export default function App() {
                 </div>
               ) : null}
             </div>
-
-            {role === 'admin' && showForm ? (
-              <div className='form-grid'>
-                <input type='color' value={form.color} onChange={(e) => setForm((p) => ({ ...p, color: e.target.value }))} />
-                <input className='input-text' placeholder='보스명' value={form.name} maxLength={20} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
-                <input className='input-text' placeholder='위치 정보' value={form.location} maxLength={100} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} />
-                <select className='input-text' value={form.interval} onChange={(e) => setForm((p) => ({ ...p, interval: e.target.value }))}>
-                  <option value=''>젠 주기</option>
-                  {Array.from({ length: 24 }, (_, idx) => idx + 1).map((n) => (
-                    <option key={n} value={n}>{n}시간</option>
-                  ))}
-                </select>
-                <input className='input-text' placeholder='지도 X (0.0~1.0)' type='number' min='0' max='1' step='0.01' value={form.mapX} onChange={(e) => setForm((p) => ({ ...p, mapX: e.target.value }))} />
-                <input className='input-text' placeholder='지도 Y (0.0~1.0)' type='number' min='0' max='1' step='0.01' value={form.mapY} onChange={(e) => setForm((p) => ({ ...p, mapY: e.target.value }))} />
-                <textarea
-                  className='input-text textarea span-2'
-                  placeholder='정보 내용 (여러 줄 입력 가능)'
-                  value={form.drop}
-                  maxLength={400}
-                  rows={4}
-                  onChange={(e) => setForm((p) => ({ ...p, drop: e.target.value }))}
-                />
-                <div className='row-actions'>
-                  <button className='btn primary' onClick={handleFormSubmit}>{editingKey ? '수정 저장' : '등록'}</button>
-                  {editingKey ? <button className='btn danger' onClick={() => handleDelete(editingKey)}>삭제</button> : null}
-                </div>
-              </div>
-            ) : null}
 
             <div className='table-wrap'>
               <table>
@@ -1025,6 +1031,39 @@ export default function App() {
             </label>
             <div className='dialog-actions'>
               <button className='btn primary' onClick={closeTtsNoticeDialog}>확인</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {role === 'admin' && showForm ? (
+        <div className='dialog-backdrop' onClick={closeBossFormDialog}>
+          <div className='dialog form-dialog' onClick={(e) => e.stopPropagation()}>
+            <h4>{editingKey ? '보스 수정' : '보스 추가'}</h4>
+            <div className='form-grid'>
+              <input type='color' value={form.color} onChange={(e) => setForm((p) => ({ ...p, color: e.target.value }))} />
+              <input className='input-text' placeholder='보스명' value={form.name} maxLength={20} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
+              <input className='input-text' placeholder='위치 정보' value={form.location} maxLength={100} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} />
+              <select className='input-text' value={form.interval} onChange={(e) => setForm((p) => ({ ...p, interval: e.target.value }))}>
+                <option value=''>젠 주기</option>
+                {Array.from({ length: 24 }, (_, idx) => idx + 1).map((n) => (
+                  <option key={n} value={n}>{n}시간</option>
+                ))}
+              </select>
+              <input className='input-text' placeholder='지도 X (0.0~1.0)' type='number' min='0' max='1' step='0.01' value={form.mapX} onChange={(e) => setForm((p) => ({ ...p, mapX: e.target.value }))} />
+              <input className='input-text' placeholder='지도 Y (0.0~1.0)' type='number' min='0' max='1' step='0.01' value={form.mapY} onChange={(e) => setForm((p) => ({ ...p, mapY: e.target.value }))} />
+              <textarea
+                className='input-text textarea span-2'
+                placeholder='정보 내용 (여러 줄 입력 가능)'
+                value={form.drop}
+                maxLength={400}
+                rows={4}
+                onChange={(e) => setForm((p) => ({ ...p, drop: e.target.value }))}
+              />
+              <div className='row-actions'>
+                <button className='btn ghost' onClick={closeBossFormDialog}>취소</button>
+                <button className='btn primary' onClick={handleFormSubmit}>{editingKey ? '수정 저장' : '등록'}</button>
+                {editingKey ? <button className='btn danger' onClick={() => handleDelete(editingKey)}>삭제</button> : null}
+              </div>
             </div>
           </div>
         </div>

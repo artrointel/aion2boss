@@ -45,10 +45,10 @@ const pad2 = (num) => String(num).padStart(2, '0')
 const TTS_STORAGE_KEY = 'aion2boss_tts_enabled'
 const TTS_NOTICE_DISMISS_KEY = 'aion2boss_tts_notice_dismissed'
 const ALERT_MARKS = [
-  { ms: 62000, text: '1분 남았습니다.' },
-  { ms: 32000, text: '30초 남았습니다.' },
-  { ms: 12000, text: '10초 남았습니다.' },
-  { ms: 7000, text: '5초 남았습니다.' }
+  { ms: 62000, seconds: 60 },
+  { ms: 32000, seconds: 30 },
+  { ms: 12000, seconds: 10 },
+  { ms: 7000, seconds: 5 }
 ]
 const CYCLE_DRIFT_CORRECTION_MS = 10000
 
@@ -166,7 +166,8 @@ export default function App() {
   })
   const ttsStateRef = useRef({
     cycleId: '',
-    prevRemainingMs: null
+    prevRemainingMs: null,
+    armed: false
   })
   const syncNoticeShownRef = useRef(false)
   const syncNoticeCheckedOnEntryRef = useRef(false)
@@ -249,7 +250,7 @@ export default function App() {
 
   useEffect(() => {
     if (!ttsEnabled || !mainBoss || mainBoss.effectiveTime === Number.MAX_SAFE_INTEGER) {
-      ttsStateRef.current = { cycleId: '', prevRemainingMs: null }
+      ttsStateRef.current = { cycleId: '', prevRemainingMs: null, armed: false }
       return
     }
 
@@ -263,14 +264,23 @@ export default function App() {
 
     const prevState = ttsStateRef.current
     if (prevState.cycleId !== cycleId || prevState.prevRemainingMs == null) {
-      ttsStateRef.current = { cycleId, prevRemainingMs: remainingMs }
+      const maxAlertMs = ALERT_MARKS[0].ms
+      // Only arm TTS when the newly-tracked current boss still has enough lead time.
+      // This prevents chained alerts from the immediately following boss (e.g. 14s case).
+      ttsStateRef.current = { cycleId, prevRemainingMs: remainingMs, armed: remainingMs > maxAlertMs }
+      return
+    }
+
+    if (!prevState.armed) {
+      ttsStateRef.current = { ...prevState, prevRemainingMs: remainingMs }
       return
     }
 
     for (const mark of ALERT_MARKS) {
       if (prevState.prevRemainingMs > mark.ms && remainingMs <= mark.ms) {
         if ('speechSynthesis' in window) {
-          const utter = new SpeechSynthesisUtterance(mark.text)
+          const bossName = mainBoss.name || '보스'
+          const utter = new SpeechSynthesisUtterance(`${bossName}, ${mark.seconds}초 남았습니다.`)
           utter.lang = 'ko-KR'
           utter.rate = 1.2
           utter.pitch = 1.25
@@ -280,7 +290,7 @@ export default function App() {
       }
     }
 
-    ttsStateRef.current = { cycleId, prevRemainingMs: remainingMs }
+    ttsStateRef.current = { ...prevState, prevRemainingMs: remainingMs }
   }, [ttsEnabled, mainBoss, now])
 
   const applyMapTransform = useCallback(() => {

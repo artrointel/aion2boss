@@ -34,6 +34,7 @@ const db = getDatabase(app)
 const emptyForm = {
   name: '',
   color: '#ffadad',
+  race: '마족',
   location: '',
   drop: '',
   interval: '',
@@ -121,6 +122,7 @@ export default function App() {
   const [showForm, setShowForm] = useState(false)
   const [showManagePanel, setShowManagePanel] = useState(false)
   const [form, setForm] = useState(emptyForm)
+  const [raceFilter, setRaceFilter] = useState('모두')
   const [undoStack, setUndoStack] = useState([])
   const [redoStack, setRedoStack] = useState([])
   const [now, setNow] = useState(Date.now())
@@ -207,15 +209,27 @@ export default function App() {
   }, [roomId])
 
   const bossList = useMemo(() => getBossList(bosses, now), [bosses, now])
+  const filteredBossList = useMemo(() => {
+    if (raceFilter === '모두') {
+      return bossList
+    }
+    return bossList.filter((boss) => (boss.race || '마족') === raceFilter)
+  }, [bossList, raceFilter])
   const orderedBosses = useMemo(() => {
     return Object.entries(bosses)
       .sort((a, b) => (a[1]?.order ?? 0) - (b[1]?.order ?? 0))
       .map(([key, value]) => ({ key, ...value }))
   }, [bosses])
+  const filteredOrderedBosses = useMemo(() => {
+    if (raceFilter === '모두') {
+      return orderedBosses
+    }
+    return orderedBosses.filter((boss) => (boss.race || '마족') === raceFilter)
+  }, [orderedBosses, raceFilter])
 
   const panelBosses = useMemo(() => {
-    return bossList.filter((boss) => Number.isFinite(boss.effectiveTime) && boss.effectiveTime < Number.MAX_SAFE_INTEGER)
-  }, [bossList])
+    return filteredBossList.filter((boss) => Number.isFinite(boss.effectiveTime) && boss.effectiveTime < Number.MAX_SAFE_INTEGER)
+  }, [filteredBossList])
 
   const mainBoss = panelBosses[0] ?? null
   const nextBoss = panelBosses.length > 1 ? panelBosses[1] : null
@@ -511,6 +525,7 @@ export default function App() {
     setForm({
       name: boss.name ?? '',
       color: boss.color ?? '#ffadad',
+      race: boss.race || '마족',
       location: boss.location ?? '',
       drop: boss.drop ?? '',
       interval: String(boss.interval ?? ''),
@@ -533,6 +548,7 @@ export default function App() {
     const payload = {
       name,
       color: form.color,
+      race: form.race || '마족',
       location: form.location.trim(),
       drop: form.drop.trim(),
       interval,
@@ -873,7 +889,14 @@ export default function App() {
 
           <section className='card status-card'>
             <div className='section-head'>
-              <h3>보스 현황</h3>
+              <div className='section-left'>
+                <h3>보스 현황</h3>
+                <select className='input-text filter-select' value={raceFilter} onChange={(e) => setRaceFilter(e.target.value)}>
+                  <option value='모두'>모두</option>
+                  <option value='천족'>천족</option>
+                  <option value='마족'>마족</option>
+                </select>
+              </div>
               {role === 'admin' ? (
                 <div className='section-actions'>
                   <button
@@ -902,7 +925,7 @@ export default function App() {
                   </tr>
                 </thead>
                 <tbody>
-                  {orderedBosses.map((boss) => {
+                  {filteredOrderedBosses.map((boss) => {
                     const spawn = getSpawnInfo(boss, now)
                     const nextText = spawn.time ? formatDateTime(spawn.time) : '-'
                     const mapReady = hasMapPoint(boss)
@@ -1060,6 +1083,10 @@ export default function App() {
             <div className='form-grid'>
               <input type='color' value={form.color} onChange={(e) => setForm((p) => ({ ...p, color: e.target.value }))} />
               <input className='input-text' placeholder='보스명' value={form.name} maxLength={20} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
+              <select className='input-text' value={form.race} onChange={(e) => setForm((p) => ({ ...p, race: e.target.value }))}>
+                <option value='천족'>천족</option>
+                <option value='마족'>마족</option>
+              </select>
               <input className='input-text' placeholder='위치 정보' value={form.location} maxLength={100} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} />
               <select className='input-text' value={form.interval} onChange={(e) => setForm((p) => ({ ...p, interval: e.target.value }))}>
                 <option value=''>젠 주기</option>

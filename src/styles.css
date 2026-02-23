@@ -252,6 +252,12 @@ body {
   gap: 10px;
 }
 
+.section-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .section-actions {
   display: inline-flex;
   gap: 8px;
@@ -275,6 +281,12 @@ body {
 
 .section-head h3 {
   margin: 0;
+}
+
+.filter-select {
+  width: 96px;
+  padding: 7px 9px;
+  font-size: 0.9rem;
 }
 
 .status-card {

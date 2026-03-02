@@ -216,6 +216,16 @@ body {
   width: 100%;
 }
 
+.adjacent-spawn-info {
+  width: 100%;
+  max-width: 940px;
+  text-align: center;
+  color: #ffd45a;
+  font-size: 0.9rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
 .map-viewport {
   width: 100%;
   max-width: 940px;
@@ -261,6 +271,21 @@ body {
 .section-actions {
   display: inline-flex;
   gap: 8px;
+}
+
+.column-controls {
+  margin-top: 8px;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.column-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .bell-btn {
@@ -321,6 +346,8 @@ body {
 .table-wrap {
   margin-top: 14px;
   overflow: auto;
+  display: flex;
+  justify-content: center;
 }
 
 table {
@@ -344,6 +371,35 @@ th {
   color: #9eb6d8;
   font-size: 0.82rem;
   text-transform: uppercase;
+}
+
+.th-cell {
+  position: relative;
+  display: block;
+  padding-right: 8px;
+}
+
+.col-resizer {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  width: 10px;
+  height: calc(100% + 16px);
+  cursor: col-resize;
+}
+
+.col-resizer::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  top: 10%;
+  width: 2px;
+  height: 80%;
+  background: rgba(140, 170, 210, 0.35);
+}
+
+.col-resizer:hover::after {
+  background: rgba(172, 205, 248, 0.8);
 }
 
 tr.dragging {

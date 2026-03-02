@@ -52,6 +52,24 @@ const ALERT_MARKS = [
   { ms: 7000, seconds: 5 }
 ]
 const CYCLE_DRIFT_CORRECTION_MS = 10000
+const COLUMN_PREF_COOKIE_KEY = 'aion2boss_column_prefs'
+const COLUMN_WIDTH_COOKIE_KEY = 'aion2boss_column_widths'
+const RACE_FILTER_COOKIE_KEY = 'aion2boss_race_filter'
+const DEFAULT_COLUMN_PREFS = {
+  name: true,
+  info: false,
+  location: true,
+  remaining: true,
+  next: true
+}
+const DEFAULT_COLUMN_WIDTHS = {
+  name: 180,
+  info: 240,
+  location: 190,
+  remaining: 140,
+  next: 140,
+  manage: 110
+}
 
 function formatDateTime(timestamp) {
   if (!timestamp) return '-'
@@ -113,6 +131,87 @@ function hasMapPoint(boss) {
   return boss?.mapX !== '' && boss?.mapY !== '' && boss?.mapX != null && boss?.mapY != null
 }
 
+function readCookie(name) {
+  const key = `${name}=`
+  const found = document.cookie.split(';').map((p) => p.trim()).find((p) => p.startsWith(key))
+  return found ? decodeURIComponent(found.slice(key.length)) : ''
+}
+
+function loadColumnPrefsFromCookie() {
+  try {
+    const raw = readCookie(COLUMN_PREF_COOKIE_KEY)
+    if (!raw) return DEFAULT_COLUMN_PREFS
+    const parsed = JSON.parse(raw)
+    return {
+      name: parsed?.name !== false,
+      info: parsed?.info !== false,
+      location: parsed?.location !== false,
+      remaining: parsed?.remaining !== false,
+      next: parsed?.next !== false
+    }
+  } catch {
+    return DEFAULT_COLUMN_PREFS
+  }
+}
+
+function saveColumnPrefsToCookie(prefs) {
+  const expires = 60 * 60 * 24 * 365
+  document.cookie = `${COLUMN_PREF_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(prefs))}; path=/; max-age=${expires}; SameSite=Lax`
+}
+
+function loadColumnWidthsFromCookie() {
+  try {
+    const raw = readCookie(COLUMN_WIDTH_COOKIE_KEY)
+    if (!raw) return DEFAULT_COLUMN_WIDTHS
+    const parsed = JSON.parse(raw)
+    return {
+      name: Number.isFinite(parsed?.name) ? parsed.name : DEFAULT_COLUMN_WIDTHS.name,
+      info: Number.isFinite(parsed?.info) ? parsed.info : DEFAULT_COLUMN_WIDTHS.info,
+      location: Number.isFinite(parsed?.location) ? parsed.location : DEFAULT_COLUMN_WIDTHS.location,
+      remaining: Number.isFinite(parsed?.remaining) ? parsed.remaining : DEFAULT_COLUMN_WIDTHS.remaining,
+      next: Number.isFinite(parsed?.next) ? parsed.next : DEFAULT_COLUMN_WIDTHS.next,
+      manage: Number.isFinite(parsed?.manage) ? parsed.manage : DEFAULT_COLUMN_WIDTHS.manage
+    }
+  } catch {
+    return DEFAULT_COLUMN_WIDTHS
+  }
+}
+
+function saveColumnWidthsToCookie(widths) {
+  const expires = 60 * 60 * 24 * 365
+  document.cookie = `${COLUMN_WIDTH_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(widths))}; path=/; max-age=${expires}; SameSite=Lax`
+}
+
+function hasColumnWidthCookie() {
+  return Boolean(readCookie(COLUMN_WIDTH_COOKIE_KEY))
+}
+
+function loadRaceFilterFromCookie() {
+  const raw = readCookie(RACE_FILTER_COOKIE_KEY)
+  if (raw === '천족' || raw === '마족' || raw === '기타' || raw === '모두') {
+    return raw
+  }
+  return '모두'
+}
+
+function saveRaceFilterToCookie(filterValue) {
+  const expires = 60 * 60 * 24 * 365
+  document.cookie = `${RACE_FILTER_COOKIE_KEY}=${encodeURIComponent(filterValue)}; path=/; max-age=${expires}; SameSite=Lax`
+}
+
+function loadTtsEnabledFromCookie() {
+  const raw = readCookie(TTS_STORAGE_KEY)
+  if (raw === 'true') return true
+  if (raw === 'false') return false
+  // Backward compatibility: migrate old localStorage value if present.
+  return window.localStorage.getItem(TTS_STORAGE_KEY) === 'true'
+}
+
+function saveTtsEnabledToCookie(enabled) {
+  const expires = 60 * 60 * 24 * 365
+  document.cookie = `${TTS_STORAGE_KEY}=${encodeURIComponent(enabled ? 'true' : 'false')}; path=/; max-age=${expires}; SameSite=Lax`
+}
+
 export default function App() {
   const [roomInput, setRoomInput] = useState('')
   const [roomId, setRoomId] = useState('')
@@ -122,15 +221,18 @@ export default function App() {
   const [showForm, setShowForm] = useState(false)
   const [showManagePanel, setShowManagePanel] = useState(false)
   const [form, setForm] = useState(emptyForm)
-  const [raceFilter, setRaceFilter] = useState('모두')
+  const [raceFilter, setRaceFilter] = useState(() => loadRaceFilterFromCookie())
+  const [columnPrefs, setColumnPrefs] = useState(() => loadColumnPrefsFromCookie())
+  const [columnWidths, setColumnWidths] = useState(() => loadColumnWidthsFromCookie())
+  const [columnWidthsSeeded, setColumnWidthsSeeded] = useState(() => hasColumnWidthCookie())
+  const [resizingColumn, setResizingColumn] = useState('')
   const [undoStack, setUndoStack] = useState([])
   const [redoStack, setRedoStack] = useState([])
+  const [serverOffsetMs, setServerOffsetMs] = useState(0)
   const [now, setNow] = useState(Date.now())
   const [dragKey, setDragKey] = useState(null)
   const [isMapOpen, setIsMapOpen] = useState(false)
-  const [ttsEnabled, setTtsEnabled] = useState(() => {
-    return window.localStorage.getItem(TTS_STORAGE_KEY) === 'true'
-  })
+  const [ttsEnabled, setTtsEnabled] = useState(() => loadTtsEnabledFromCookie())
   const [ttsNoticeDialogOpen, setTtsNoticeDialogOpen] = useState(false)
   const [ttsNoticeDontShow, setTtsNoticeDontShow] = useState(() => {
     return window.localStorage.getItem(TTS_NOTICE_DISMISS_KEY) === 'true'
@@ -145,11 +247,6 @@ export default function App() {
     m: 0,
     s: 0
   })
-  const [infoDialog, setInfoDialog] = useState({
-    open: false,
-    name: '',
-    content: ''
-  })
   const [syncNoticeDialog, setSyncNoticeDialog] = useState({
     open: false,
     bosses: []
@@ -157,6 +254,7 @@ export default function App() {
 
   const mapViewportRef = useRef(null)
   const mapImgRef = useRef(null)
+  const tableWrapRef = useRef(null)
   const mapRef = useRef({
     scale: 1,
     x: 0,
@@ -165,6 +263,11 @@ export default function App() {
     dragging: false,
     dragStartX: 0,
     dragStartY: 0
+  })
+  const resizeRef = useRef({
+    key: '',
+    startX: 0,
+    startWidth: 0
   })
   const ttsStateRef = useRef({
     cycleId: '',
@@ -181,7 +284,7 @@ export default function App() {
   }, [])
 
   useEffect(() => {
-    window.localStorage.setItem(TTS_STORAGE_KEY, ttsEnabled ? 'true' : 'false')
+    saveTtsEnabledToCookie(ttsEnabled)
     if (!ttsEnabled && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel()
     }
@@ -192,9 +295,21 @@ export default function App() {
   }, [ttsNoticeDontShow])
 
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
-    return () => window.clearInterval(timer)
+    const offsetRef = ref(db, '.info/serverTimeOffset')
+    const unsubscribe = onValue(offsetRef, (snapshot) => {
+      const offset = Number(snapshot.val())
+      setServerOffsetMs(Number.isFinite(offset) ? offset : 0)
+    })
+    return () => unsubscribe()
   }, [])
+
+  const getServerNow = useCallback(() => Date.now() + serverOffsetMs, [serverOffsetMs])
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(getServerNow()), 1000)
+    setNow(getServerNow())
+    return () => window.clearInterval(timer)
+  }, [getServerNow])
 
   useEffect(() => {
     if (!roomId) return undefined
@@ -234,6 +349,43 @@ export default function App() {
   const mainBoss = panelBosses[0] ?? null
   const nextBoss = panelBosses.length > 1 ? panelBosses[1] : null
   const prevBoss = panelBosses.length > 1 ? panelBosses[panelBosses.length - 1] : null
+  const adjacentSpawnBossGroups = useMemo(() => {
+    const oneMinuteMs = 60000
+    const groups = []
+    if (panelBosses.length < 2) return groups
+
+    let currentGroup = [panelBosses[0]]
+
+    for (let i = 0; i < panelBosses.length - 1; i += 1) {
+      const current = panelBosses[i]
+      const next = panelBosses[i + 1]
+      if (!Number.isFinite(current.effectiveTime) || !Number.isFinite(next.effectiveTime)) continue
+      if (Math.abs(next.effectiveTime - current.effectiveTime) <= oneMinuteMs) {
+        if (currentGroup[currentGroup.length - 1]?.key !== next.key) {
+          currentGroup.push(next)
+        }
+      } else {
+        if (currentGroup.length >= 2) groups.push(currentGroup)
+        currentGroup = [next]
+      }
+    }
+
+    if (currentGroup.length >= 2) groups.push(currentGroup)
+    return groups
+  }, [panelBosses])
+  const nearSpawnBossKeySet = useMemo(() => {
+    return new Set(adjacentSpawnBossGroups.flat().map((boss) => boss.key))
+  }, [adjacentSpawnBossGroups])
+  const adjacentSpawnGroupLines = useMemo(() => {
+    return adjacentSpawnBossGroups.map((group) =>
+      group
+        .map((boss) => {
+          const sec = Math.max(0, Math.floor((boss.effectiveTime - now) / 1000))
+          return sec <= 600 ? `${boss.name}(${sec}s)` : boss.name
+        })
+        .join(' vs ')
+    )
+  }, [adjacentSpawnBossGroups, now])
   const highlightedRows = useMemo(() => {
     return {
       main: mainBoss?.key ?? '',
@@ -246,6 +398,63 @@ export default function App() {
       .map((boss) => ({ name: boss.name, color: boss.color || '#ffadad' }))
   }, [orderedBosses, now])
   const mapImageSrc = `${import.meta.env.BASE_URL}aion2boss.png`
+  const shouldShowColumn = useCallback((key) => {
+    if (showManagePanel) return true
+    return columnPrefs[key]
+  }, [showManagePanel, columnPrefs])
+  const tableTotalWidth = useMemo(() => {
+    let sum = 0
+    if (shouldShowColumn('name')) sum += columnWidths.name
+    if (shouldShowColumn('info')) sum += columnWidths.info
+    if (shouldShowColumn('location')) sum += columnWidths.location
+    if (shouldShowColumn('remaining')) sum += columnWidths.remaining
+    if (shouldShowColumn('next')) sum += columnWidths.next
+    if (role === 'admin' && showManagePanel) sum += columnWidths.manage
+    return sum
+  }, [shouldShowColumn, columnWidths, role, showManagePanel])
+
+  useEffect(() => {
+    saveColumnPrefsToCookie(columnPrefs)
+  }, [columnPrefs])
+
+  useEffect(() => {
+    saveColumnWidthsToCookie(columnWidths)
+  }, [columnWidths])
+
+  useEffect(() => {
+    saveRaceFilterToCookie(raceFilter)
+  }, [raceFilter])
+
+  useEffect(() => {
+    if (columnWidthsSeeded) return undefined
+    if (!roomId) return undefined
+
+    const raf = window.requestAnimationFrame(() => {
+      const wrapWidth = tableWrapRef.current?.clientWidth || 0
+      if (wrapWidth <= 0) return
+
+      const visibleKeys = []
+      if (shouldShowColumn('name')) visibleKeys.push('name')
+      if (shouldShowColumn('info')) visibleKeys.push('info')
+      if (shouldShowColumn('location')) visibleKeys.push('location')
+      if (shouldShowColumn('remaining')) visibleKeys.push('remaining')
+      if (shouldShowColumn('next')) visibleKeys.push('next')
+      if (role === 'admin' && showManagePanel) visibleKeys.push('manage')
+      if (!visibleKeys.length) return
+
+      const eachWidth = Math.max(70, Math.floor(wrapWidth / visibleKeys.length))
+      setColumnWidths((prev) => {
+        const next = { ...prev }
+        visibleKeys.forEach((key) => {
+          next[key] = eachWidth
+        })
+        return next
+      })
+      setColumnWidthsSeeded(true)
+    })
+
+    return () => window.cancelAnimationFrame(raf)
+  }, [columnWidthsSeeded, roomId, shouldShowColumn, role, showManagePanel])
 
   useEffect(() => {
     if (!roomId || role !== 'admin') return
@@ -462,18 +671,6 @@ export default function App() {
     setTimeDialog({ open: false, key: '', name: '', h: 0, m: 0, s: 0 })
   }
 
-  const openInfoDialog = (boss) => {
-    setInfoDialog({
-      open: true,
-      name: boss.name || '',
-      content: boss.drop || '정보가 없습니다.'
-    })
-  }
-
-  const closeInfoDialog = () => {
-    setInfoDialog({ open: false, name: '', content: '' })
-  }
-
   const saveRemainingTime = async () => {
     const boss = bosses[timeDialog.key]
     if (!boss) return closeRemainingDialog()
@@ -487,7 +684,7 @@ export default function App() {
     const s = Math.max(0, Math.min(59, Number(timeDialog.s) || 0))
     const totalMs = (h * 3600 + m * 60 + s) * 1000
 
-    const nextSpawnTimestamp = Date.now() + totalMs
+    const nextSpawnTimestamp = getServerNow() + totalMs
     const intervalMs = Number(boss.interval) * 3600000
     const lastKillTimestamp = nextSpawnTimestamp - intervalMs
 
@@ -577,7 +774,7 @@ export default function App() {
     } else {
       await updateBoss(name, {
         ...payload,
-        order: Date.now()
+        order: getServerNow()
       })
     }
 
@@ -613,6 +810,21 @@ export default function App() {
     setSyncNoticeDialog({ open: false, bosses: [] })
   }
 
+  const toggleColumnPref = (key) => {
+    setColumnPrefs((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const startColumnResize = (e, key) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    resizeRef.current = {
+      key,
+      startX: e.clientX,
+      startWidth: columnWidths[key] || DEFAULT_COLUMN_WIDTHS[key] || 120
+    }
+    setResizingColumn(key)
+  }
+
   const closeBossFormDialog = () => {
     setShowForm(false)
     resetForm()
@@ -628,9 +840,10 @@ export default function App() {
   }
 
   const handleSort = async () => {
+    const nowTs = getServerNow()
     const sorted = Object.entries(bosses).sort((a, b) => {
-      const aTime = getSpawnInfo(a[1], Date.now()).time ?? Number.MAX_SAFE_INTEGER
-      const bTime = getSpawnInfo(b[1], Date.now()).time ?? Number.MAX_SAFE_INTEGER
+      const aTime = getSpawnInfo(a[1], nowTs).time ?? Number.MAX_SAFE_INTEGER
+      const bTime = getSpawnInfo(b[1], nowTs).time ?? Number.MAX_SAFE_INTEGER
       return aTime - bTime
     })
 
@@ -770,10 +983,6 @@ export default function App() {
         closeRemainingDialog()
         return
       }
-      if (infoDialog.open) {
-        closeInfoDialog()
-        return
-      }
       if (ttsNoticeDialogOpen) {
         closeTtsNoticeDialog()
         return
@@ -785,7 +994,31 @@ export default function App() {
 
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [showForm, timeDialog.open, infoDialog.open, ttsNoticeDialogOpen, syncNoticeDialog.open])
+  }, [showForm, timeDialog.open, ttsNoticeDialogOpen, syncNoticeDialog.open])
+
+  useEffect(() => {
+    if (!resizingColumn) return undefined
+
+    const handleMove = (e) => {
+      const { key, startX, startWidth } = resizeRef.current
+      if (!key) return
+      const delta = e.clientX - startX
+      const nextWidth = Math.max(70, Math.min(700, Math.round(startWidth + delta)))
+      setColumnWidths((prev) => ({ ...prev, [key]: nextWidth }))
+    }
+
+    const handleUp = () => {
+      setResizingColumn('')
+      resizeRef.current = { key: '', startX: 0, startWidth: 0 }
+    }
+
+    window.addEventListener('mousemove', handleMove)
+    window.addEventListener('mouseup', handleUp)
+    return () => {
+      window.removeEventListener('mousemove', handleMove)
+      window.removeEventListener('mouseup', handleUp)
+    }
+  }, [resizingColumn])
 
   return (
     <div className='page'>
@@ -870,6 +1103,13 @@ export default function App() {
             </div>
 
             <div className='map-wrap'>
+              {adjacentSpawnGroupLines.length ? (
+                <div className='adjacent-spawn-info'>
+                  {adjacentSpawnGroupLines.map((line, idx) => (
+                    <div key={`adjacent-line-${idx}`}>{line}</div>
+                  ))}
+                </div>
+              ) : null}
               <button className='btn ghost' onClick={() => setIsMapOpen((v) => !v)}>
                 {isMapOpen ? '지도 닫기' : '지도 열기'}
               </button>
@@ -895,6 +1135,7 @@ export default function App() {
                   <option value='모두'>모두</option>
                   <option value='천족'>천족</option>
                   <option value='마족'>마족</option>
+                  <option value='기타'>기타</option>
                 </select>
               </div>
               {role === 'admin' ? (
@@ -913,15 +1154,50 @@ export default function App() {
               ) : null}
             </div>
 
-            <div className='table-wrap'>
-              <table>
+            {role === 'admin' && showManagePanel ? (
+              <div className='column-controls'>
+                <label><input type='checkbox' checked={columnPrefs.name} onChange={() => toggleColumnPref('name')} /> 보스명</label>
+                <label><input type='checkbox' checked={columnPrefs.info} onChange={() => toggleColumnPref('info')} /> 정보</label>
+                <label><input type='checkbox' checked={columnPrefs.location} onChange={() => toggleColumnPref('location')} /> 위치</label>
+                <label><input type='checkbox' checked={columnPrefs.remaining} onChange={() => toggleColumnPref('remaining')} /> 남은 시간</label>
+                <label><input type='checkbox' checked={columnPrefs.next} onChange={() => toggleColumnPref('next')} /> 다음 젠 시간</label>
+              </div>
+            ) : null}
+
+            <div className='table-wrap' ref={tableWrapRef}>
+              <table style={{ width: `${tableTotalWidth}px`, tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
-                    <th>보스명</th>
-                    <th>위치</th>
-                    <th>남은 시간</th>
-                    <th>다음 젠 시간</th>
-                    {role === 'admin' && showManagePanel ? <th>관리</th> : null}
+                    {shouldShowColumn('name') ? (
+                      <th style={{ width: `${columnWidths.name}px` }}>
+                        <div className='th-cell'>보스명<span className='col-resizer' onMouseDown={(e) => startColumnResize(e, 'name')} /></div>
+                      </th>
+                    ) : null}
+                    {shouldShowColumn('info') ? (
+                      <th style={{ width: `${columnWidths.info}px` }}>
+                        <div className='th-cell'>정보<span className='col-resizer' onMouseDown={(e) => startColumnResize(e, 'info')} /></div>
+                      </th>
+                    ) : null}
+                    {shouldShowColumn('location') ? (
+                      <th style={{ width: `${columnWidths.location}px` }}>
+                        <div className='th-cell'>위치<span className='col-resizer' onMouseDown={(e) => startColumnResize(e, 'location')} /></div>
+                      </th>
+                    ) : null}
+                    {shouldShowColumn('remaining') ? (
+                      <th style={{ width: `${columnWidths.remaining}px` }}>
+                        <div className='th-cell'>남은 시간<span className='col-resizer' onMouseDown={(e) => startColumnResize(e, 'remaining')} /></div>
+                      </th>
+                    ) : null}
+                    {shouldShowColumn('next') ? (
+                      <th style={{ width: `${columnWidths.next}px` }}>
+                        <div className='th-cell'>다음 젠 시간<span className='col-resizer' onMouseDown={(e) => startColumnResize(e, 'next')} /></div>
+                      </th>
+                    ) : null}
+                    {role === 'admin' && showManagePanel ? (
+                      <th style={{ width: `${columnWidths.manage}px` }}>
+                        <div className='th-cell'>관리<span className='col-resizer' onMouseDown={(e) => startColumnResize(e, 'manage')} /></div>
+                      </th>
+                    ) : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -948,42 +1224,47 @@ export default function App() {
                         onDrop={() => canReorder && handleDrop(boss.key)}
                         className={rowClassName}
                       >
-                        <td>
-                          <div className='name-cell'>
+                        {shouldShowColumn('name') ? (
+                          <td style={{ width: `${columnWidths.name}px` }}>
+                            {nearSpawnBossKeySet.has(boss.key) ? <span title='스폰 시간이 1분 이내로 인접한 보스'>👉 </span> : null}
                             <span style={{ color: boss.color || '#ffadad', fontWeight: 700 }}>{boss.name}</span>
-                            <button className='btn-icon-info' onClick={() => openInfoDialog(boss)} aria-label={`${boss.name} 정보 보기`}>i</button>
-                          </div>
-                        </td>
-                        <td>
-                          {boss.location || '-'}
-                          {mapReady ? (
+                          </td>
+                        ) : null}
+                        {shouldShowColumn('info') ? <td style={{ width: `${columnWidths.info}px` }}>{boss.drop || '-'}</td> : null}
+                        {shouldShowColumn('location') ? (
+                          <td style={{ width: `${columnWidths.location}px` }}>
+                            {boss.location || '-'}
+                            {mapReady ? (
+                              <button
+                                className='btn tiny ghost map-icon-btn'
+                                onClick={() => flyTo(boss.mapX, boss.mapY)}
+                                aria-label={`${boss.name} 지도 보기`}
+                                title='지도 보기'
+                              >
+                                🗺️
+                              </button>
+                            ) : null}
+                          </td>
+                        ) : null}
+                        {shouldShowColumn('remaining') ? (
+                          <td style={{ width: `${columnWidths.remaining}px` }}>
                             <button
-                              className='btn tiny ghost map-icon-btn'
-                              onClick={() => flyTo(boss.mapX, boss.mapY)}
-                              aria-label={`${boss.name} 지도 보기`}
-                              title='지도 보기'
+                              className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''}`}
+                              disabled={role !== 'admin'}
+                              onClick={() => openRemainingDialog(boss)}
+                              title={syncNeeded ? '싱크 필요: 남은 시간을 눌러 수정하세요.' : undefined}
                             >
-                              🗺️
+                              {syncNeeded ? '! ' : ''}
+                              {renderCountdown({
+                                ...boss,
+                                effectiveTime: spawn.time ?? Number.MAX_SAFE_INTEGER
+                              })}
                             </button>
-                          ) : null}
-                        </td>
-                        <td>
-                          <button
-                            className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''}`}
-                            disabled={role !== 'admin'}
-                            onClick={() => openRemainingDialog(boss)}
-                            title={syncNeeded ? '싱크 필요: 남은 시간을 눌러 수정하세요.' : undefined}
-                          >
-                            {syncNeeded ? '! ' : ''}
-                            {renderCountdown({
-                              ...boss,
-                              effectiveTime: spawn.time ?? Number.MAX_SAFE_INTEGER
-                            })}
-                          </button>
-                        </td>
-                        <td>{nextText}</td>
+                          </td>
+                        ) : null}
+                        {shouldShowColumn('next') ? <td style={{ width: `${columnWidths.next}px` }}>{nextText}</td> : null}
                         {role === 'admin' && showManagePanel ? (
-                          <td>
+                          <td style={{ width: `${columnWidths.manage}px` }}>
                             <div className='inline-actions'>
                               <button className='btn tiny' onClick={() => setEditMode(boss)}>수정</button>
                             </div>
@@ -1050,17 +1331,6 @@ export default function App() {
           </div>
         </div>
       ) : null}
-      {infoDialog.open ? (
-        <div className='dialog-backdrop' onClick={closeInfoDialog}>
-          <div className='dialog info-dialog' onClick={(e) => e.stopPropagation()}>
-            <h4>{infoDialog.name} 정보</h4>
-            <pre>{infoDialog.content}</pre>
-            <div className='dialog-actions'>
-              <button className='btn primary' onClick={closeInfoDialog}>닫기</button>
-            </div>
-          </div>
-        </div>
-      ) : null}
       {ttsNoticeDialogOpen ? (
         <div className='dialog-backdrop' onClick={closeTtsNoticeDialog}>
           <div className='dialog tts-notice-dialog' onClick={(e) => e.stopPropagation()}>
@@ -1086,6 +1356,7 @@ export default function App() {
               <select className='input-text' value={form.race} onChange={(e) => setForm((p) => ({ ...p, race: e.target.value }))}>
                 <option value='천족'>천족</option>
                 <option value='마족'>마족</option>
+                <option value='기타'>기타</option>
               </select>
               <input className='input-text' placeholder='위치 정보' value={form.location} maxLength={100} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} />
               <select className='input-text' value={form.interval} onChange={(e) => setForm((p) => ({ ...p, interval: e.target.value }))}>

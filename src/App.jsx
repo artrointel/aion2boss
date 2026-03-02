@@ -1283,6 +1283,7 @@ export default function App() {
               <button className='btn' onClick={handleSort}>다음 젠 시간순 정렬</button>
               <button className='btn' disabled={!undoStack.length} onClick={handleUndo}>실행 취소</button>
               <button className='btn' disabled={!redoStack.length} onClick={handleRedo}>다시 실행</button>
+              <span className='creator-credit'>제작자: 마족 브리트라, 마도성 뿌띠</span>
             </section>
           ) : null}
         </main>

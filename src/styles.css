@@ -468,6 +468,14 @@ tr.row-next-boss td {
   flex-wrap: wrap;
 }
 
+.creator-credit {
+  margin-left: auto;
+  align-self: center;
+  color: #8fa8cc;
+  font-size: 0.84rem;
+  white-space: nowrap;
+}
+
 .input-text {
   width: 100%;
   border: 1px solid var(--line);

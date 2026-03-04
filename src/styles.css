@@ -373,6 +373,14 @@ th {
   text-transform: uppercase;
 }
 
+th[draggable='true'] .th-cell {
+  cursor: grab;
+}
+
+th.dragging-col {
+  opacity: 0.55;
+}
+
 .th-cell {
   position: relative;
   display: block;

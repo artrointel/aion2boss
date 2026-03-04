@@ -54,7 +54,16 @@ const ALERT_MARKS = [
 const CYCLE_DRIFT_CORRECTION_MS = 10000
 const COLUMN_PREF_COOKIE_KEY = 'aion2boss_column_prefs'
 const COLUMN_WIDTH_COOKIE_KEY = 'aion2boss_column_widths'
+const COLUMN_ORDER_COOKIE_KEY = 'aion2boss_column_order'
 const RACE_FILTER_COOKIE_KEY = 'aion2boss_race_filter'
+const BASE_COLUMN_ORDER = ['name', 'info', 'location', 'remaining', 'next']
+const COLUMN_LABELS = {
+  name: '보스명',
+  info: '정보',
+  location: '위치',
+  remaining: '남은 시간',
+  next: '다음 젠 시간'
+}
 const DEFAULT_COLUMN_PREFS = {
   name: true,
   info: false,
@@ -186,6 +195,25 @@ function hasColumnWidthCookie() {
   return Boolean(readCookie(COLUMN_WIDTH_COOKIE_KEY))
 }
 
+function loadColumnOrderFromCookie() {
+  try {
+    const raw = readCookie(COLUMN_ORDER_COOKIE_KEY)
+    if (!raw) return BASE_COLUMN_ORDER
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return BASE_COLUMN_ORDER
+    const known = parsed.filter((key) => BASE_COLUMN_ORDER.includes(key))
+    const missing = BASE_COLUMN_ORDER.filter((key) => !known.includes(key))
+    return [...known, ...missing]
+  } catch {
+    return BASE_COLUMN_ORDER
+  }
+}
+
+function saveColumnOrderToCookie(order) {
+  const expires = 60 * 60 * 24 * 365
+  document.cookie = `${COLUMN_ORDER_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(order))}; path=/; max-age=${expires}; SameSite=Lax`
+}
+
 function loadRaceFilterFromCookie() {
   const raw = readCookie(RACE_FILTER_COOKIE_KEY)
   if (raw === '천족' || raw === '마족' || raw === '기타' || raw === '모두') {
@@ -223,9 +251,11 @@ export default function App() {
   const [form, setForm] = useState(emptyForm)
   const [raceFilter, setRaceFilter] = useState(() => loadRaceFilterFromCookie())
   const [columnPrefs, setColumnPrefs] = useState(() => loadColumnPrefsFromCookie())
+  const [columnOrder, setColumnOrder] = useState(() => loadColumnOrderFromCookie())
   const [columnWidths, setColumnWidths] = useState(() => loadColumnWidthsFromCookie())
   const [columnWidthsSeeded, setColumnWidthsSeeded] = useState(() => hasColumnWidthCookie())
   const [resizingColumn, setResizingColumn] = useState('')
+  const [draggingColumn, setDraggingColumn] = useState('')
   const [undoStack, setUndoStack] = useState([])
   const [redoStack, setRedoStack] = useState([])
   const [serverOffsetMs, setServerOffsetMs] = useState(0)
@@ -402,16 +432,17 @@ export default function App() {
     if (showManagePanel) return true
     return columnPrefs[key]
   }, [showManagePanel, columnPrefs])
+  const orderedVisibleColumnKeys = useMemo(() => {
+    return columnOrder.filter((key) => shouldShowColumn(key))
+  }, [columnOrder, shouldShowColumn])
   const tableTotalWidth = useMemo(() => {
     let sum = 0
-    if (shouldShowColumn('name')) sum += columnWidths.name
-    if (shouldShowColumn('info')) sum += columnWidths.info
-    if (shouldShowColumn('location')) sum += columnWidths.location
-    if (shouldShowColumn('remaining')) sum += columnWidths.remaining
-    if (shouldShowColumn('next')) sum += columnWidths.next
+    orderedVisibleColumnKeys.forEach((key) => {
+      sum += columnWidths[key]
+    })
     if (role === 'admin' && showManagePanel) sum += columnWidths.manage
     return sum
-  }, [shouldShowColumn, columnWidths, role, showManagePanel])
+  }, [orderedVisibleColumnKeys, columnWidths, role, showManagePanel])
 
   useEffect(() => {
     saveColumnPrefsToCookie(columnPrefs)
@@ -420,6 +451,10 @@ export default function App() {
   useEffect(() => {
     saveColumnWidthsToCookie(columnWidths)
   }, [columnWidths])
+
+  useEffect(() => {
+    saveColumnOrderToCookie(columnOrder)
+  }, [columnOrder])
 
   useEffect(() => {
     saveRaceFilterToCookie(raceFilter)
@@ -433,12 +468,7 @@ export default function App() {
       const wrapWidth = tableWrapRef.current?.clientWidth || 0
       if (wrapWidth <= 0) return
 
-      const visibleKeys = []
-      if (shouldShowColumn('name')) visibleKeys.push('name')
-      if (shouldShowColumn('info')) visibleKeys.push('info')
-      if (shouldShowColumn('location')) visibleKeys.push('location')
-      if (shouldShowColumn('remaining')) visibleKeys.push('remaining')
-      if (shouldShowColumn('next')) visibleKeys.push('next')
+      const visibleKeys = [...orderedVisibleColumnKeys]
       if (role === 'admin' && showManagePanel) visibleKeys.push('manage')
       if (!visibleKeys.length) return
 
@@ -454,7 +484,7 @@ export default function App() {
     })
 
     return () => window.cancelAnimationFrame(raf)
-  }, [columnWidthsSeeded, roomId, shouldShowColumn, role, showManagePanel])
+  }, [columnWidthsSeeded, roomId, orderedVisibleColumnKeys, role, showManagePanel])
 
   useEffect(() => {
     if (!roomId || role !== 'admin') return
@@ -814,6 +844,30 @@ export default function App() {
     setColumnPrefs((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
+  const handleColumnDragStart = (e, key) => {
+    if (!(role === 'admin' && showManagePanel)) return
+    if (resizingColumn) return
+    setDraggingColumn(key)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/plain', key)
+  }
+
+  const handleColumnDrop = (targetKey) => {
+    if (!draggingColumn || draggingColumn === targetKey) {
+      setDraggingColumn('')
+      return
+    }
+    setColumnOrder((prev) => {
+      const from = prev.indexOf(draggingColumn)
+      const to = prev.indexOf(targetKey)
+      if (from < 0 || to < 0) return prev
+      const next = [...prev]
+      next.splice(to, 0, next.splice(from, 1)[0])
+      return next
+    })
+    setDraggingColumn('')
+  }
+
   const startColumnResize = (e, key) => {
     if (e.button !== 0) return
     e.preventDefault()
@@ -1168,31 +1222,29 @@ export default function App() {
               <table style={{ width: `${tableTotalWidth}px`, tableLayout: 'fixed' }}>
                 <thead>
                   <tr>
-                    {shouldShowColumn('name') ? (
-                      <th style={{ width: `${columnWidths.name}px` }}>
-                        <div className='th-cell'>보스명<span className='col-resizer' onMouseDown={(e) => startColumnResize(e, 'name')} /></div>
+                    {orderedVisibleColumnKeys.map((key) => (
+                      <th
+                        key={key}
+                        style={{ width: `${columnWidths[key]}px` }}
+                        draggable={role === 'admin' && showManagePanel}
+                        onDragStart={(e) => handleColumnDragStart(e, key)}
+                        onDragOver={(e) => role === 'admin' && showManagePanel && e.preventDefault()}
+                        onDrop={() => handleColumnDrop(key)}
+                        onDragEnd={() => setDraggingColumn('')}
+                        className={draggingColumn === key ? 'dragging-col' : ''}
+                      >
+                        <div className='th-cell'>
+                          {COLUMN_LABELS[key]}
+                          <span
+                            className='col-resizer'
+                            onMouseDown={(e) => {
+                              e.stopPropagation()
+                              startColumnResize(e, key)
+                            }}
+                          />
+                        </div>
                       </th>
-                    ) : null}
-                    {shouldShowColumn('info') ? (
-                      <th style={{ width: `${columnWidths.info}px` }}>
-                        <div className='th-cell'>정보<span className='col-resizer' onMouseDown={(e) => startColumnResize(e, 'info')} /></div>
-                      </th>
-                    ) : null}
-                    {shouldShowColumn('location') ? (
-                      <th style={{ width: `${columnWidths.location}px` }}>
-                        <div className='th-cell'>위치<span className='col-resizer' onMouseDown={(e) => startColumnResize(e, 'location')} /></div>
-                      </th>
-                    ) : null}
-                    {shouldShowColumn('remaining') ? (
-                      <th style={{ width: `${columnWidths.remaining}px` }}>
-                        <div className='th-cell'>남은 시간<span className='col-resizer' onMouseDown={(e) => startColumnResize(e, 'remaining')} /></div>
-                      </th>
-                    ) : null}
-                    {shouldShowColumn('next') ? (
-                      <th style={{ width: `${columnWidths.next}px` }}>
-                        <div className='th-cell'>다음 젠 시간<span className='col-resizer' onMouseDown={(e) => startColumnResize(e, 'next')} /></div>
-                      </th>
-                    ) : null}
+                    ))}
                     {role === 'admin' && showManagePanel ? (
                       <th style={{ width: `${columnWidths.manage}px` }}>
                         <div className='th-cell'>관리<span className='col-resizer' onMouseDown={(e) => startColumnResize(e, 'manage')} /></div>
@@ -1224,45 +1276,58 @@ export default function App() {
                         onDrop={() => canReorder && handleDrop(boss.key)}
                         className={rowClassName}
                       >
-                        {shouldShowColumn('name') ? (
-                          <td style={{ width: `${columnWidths.name}px` }}>
-                            {nearSpawnBossKeySet.has(boss.key) ? <span title='스폰 시간이 1분 이내로 인접한 보스'>👉 </span> : null}
-                            <span style={{ color: boss.color || '#ffadad', fontWeight: 700 }}>{boss.name}</span>
-                          </td>
-                        ) : null}
-                        {shouldShowColumn('info') ? <td style={{ width: `${columnWidths.info}px` }}>{boss.drop || '-'}</td> : null}
-                        {shouldShowColumn('location') ? (
-                          <td style={{ width: `${columnWidths.location}px` }}>
-                            {boss.location || '-'}
-                            {mapReady ? (
-                              <button
-                                className='btn tiny ghost map-icon-btn'
-                                onClick={() => flyTo(boss.mapX, boss.mapY)}
-                                aria-label={`${boss.name} 지도 보기`}
-                                title='지도 보기'
-                              >
-                                🗺️
-                              </button>
-                            ) : null}
-                          </td>
-                        ) : null}
-                        {shouldShowColumn('remaining') ? (
-                          <td style={{ width: `${columnWidths.remaining}px` }}>
-                            <button
-                              className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''}`}
-                              disabled={role !== 'admin'}
-                              onClick={() => openRemainingDialog(boss)}
-                              title={syncNeeded ? '싱크 필요: 남은 시간을 눌러 수정하세요.' : undefined}
-                            >
-                              {syncNeeded ? '! ' : ''}
-                              {renderCountdown({
-                                ...boss,
-                                effectiveTime: spawn.time ?? Number.MAX_SAFE_INTEGER
-                              })}
-                            </button>
-                          </td>
-                        ) : null}
-                        {shouldShowColumn('next') ? <td style={{ width: `${columnWidths.next}px` }}>{nextText}</td> : null}
+                        {orderedVisibleColumnKeys.map((key) => {
+                          if (key === 'name') {
+                            return (
+                              <td key={key} style={{ width: `${columnWidths[key]}px` }}>
+                                {nearSpawnBossKeySet.has(boss.key) ? <span title='스폰 시간이 1분 이내로 인접한 보스'>👉 </span> : null}
+                                <span style={{ color: boss.color || '#ffadad', fontWeight: 700 }}>{boss.name}</span>
+                              </td>
+                            )
+                          }
+                          if (key === 'info') {
+                            return <td key={key} style={{ width: `${columnWidths[key]}px` }}>{boss.drop || '-'}</td>
+                          }
+                          if (key === 'location') {
+                            return (
+                              <td key={key} style={{ width: `${columnWidths[key]}px` }}>
+                                {boss.location || '-'}
+                                {mapReady ? (
+                                  <button
+                                    className='btn tiny ghost map-icon-btn'
+                                    onClick={() => flyTo(boss.mapX, boss.mapY)}
+                                    aria-label={`${boss.name} 지도 보기`}
+                                    title='지도 보기'
+                                  >
+                                    🗺️
+                                  </button>
+                                ) : null}
+                              </td>
+                            )
+                          }
+                          if (key === 'remaining') {
+                            return (
+                              <td key={key} style={{ width: `${columnWidths[key]}px` }}>
+                                <button
+                                  className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''}`}
+                                  disabled={role !== 'admin'}
+                                  onClick={() => openRemainingDialog(boss)}
+                                  title={syncNeeded ? '싱크 필요: 남은 시간을 눌러 수정하세요.' : undefined}
+                                >
+                                  {syncNeeded ? '! ' : ''}
+                                  {renderCountdown({
+                                    ...boss,
+                                    effectiveTime: spawn.time ?? Number.MAX_SAFE_INTEGER
+                                  })}
+                                </button>
+                              </td>
+                            )
+                          }
+                          if (key === 'next') {
+                            return <td key={key} style={{ width: `${columnWidths[key]}px` }}>{nextText}</td>
+                          }
+                          return null
+                        })}
                         {role === 'admin' && showManagePanel ? (
                           <td style={{ width: `${columnWidths.manage}px` }}>
                             <div className='inline-actions'>

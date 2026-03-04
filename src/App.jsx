@@ -278,6 +278,13 @@ function saveAlertPrefsToCookie(prefs) {
   document.cookie = `${ALERT_PREF_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(prefs))}; path=/; max-age=${expires}; SameSite=Lax`
 }
 
+function getPointerClientX(event) {
+  if (typeof event.clientX === 'number') return event.clientX
+  if (event.touches?.length) return event.touches[0].clientX
+  if (event.changedTouches?.length) return event.changedTouches[0].clientX
+  return null
+}
+
 export default function App() {
   const [roomInput, setRoomInput] = useState('')
   const [roomId, setRoomId] = useState('')
@@ -928,11 +935,13 @@ export default function App() {
   }
 
   const startColumnResize = (e, key) => {
-    if (e.button !== 0) return
+    if (typeof e.button === 'number' && e.button !== 0) return
+    const clientX = getPointerClientX(e)
+    if (clientX == null) return
     e.preventDefault()
     resizeRef.current = {
       key,
-      startX: e.clientX,
+      startX: clientX,
       startWidth: columnWidths[key] || DEFAULT_COLUMN_WIDTHS[key] || 120
     }
     setResizingColumn(key)
@@ -1115,7 +1124,10 @@ export default function App() {
     const handleMove = (e) => {
       const { key, startX, startWidth } = resizeRef.current
       if (!key) return
-      const delta = e.clientX - startX
+      const clientX = getPointerClientX(e)
+      if (clientX == null) return
+      if (typeof e.preventDefault === 'function') e.preventDefault()
+      const delta = clientX - startX
       const nextWidth = Math.max(70, Math.min(700, Math.round(startWidth + delta)))
       setColumnWidths((prev) => ({ ...prev, [key]: nextWidth }))
     }
@@ -1127,9 +1139,15 @@ export default function App() {
 
     window.addEventListener('mousemove', handleMove)
     window.addEventListener('mouseup', handleUp)
+    window.addEventListener('touchmove', handleMove, { passive: false })
+    window.addEventListener('touchend', handleUp)
+    window.addEventListener('touchcancel', handleUp)
     return () => {
       window.removeEventListener('mousemove', handleMove)
       window.removeEventListener('mouseup', handleUp)
+      window.removeEventListener('touchmove', handleMove)
+      window.removeEventListener('touchend', handleUp)
+      window.removeEventListener('touchcancel', handleUp)
     }
   }, [resizingColumn])
 
@@ -1274,9 +1292,11 @@ export default function App() {
                 <label><input type='checkbox' checked={columnPrefs.location} onChange={() => toggleColumnPref('location')} /> 위치</label>
                 <label><input type='checkbox' checked={columnPrefs.remaining} onChange={() => toggleColumnPref('remaining')} /> 남은 시간</label>
                 <label><input type='checkbox' checked={columnPrefs.next} onChange={() => toggleColumnPref('next')} /> 다음 젠 시간</label>
-                {ALERT_MARKS.map((mark) => (
-                  <label key={mark.id}><input type='checkbox' checked={alertPrefs[mark.id]} onChange={() => toggleAlertPref(mark.id)} /> {mark.label} 알림</label>
-                ))}
+                <div className='alert-controls'>
+                  {ALERT_MARKS.map((mark) => (
+                    <label key={mark.id}><input type='checkbox' checked={alertPrefs[mark.id]} onChange={() => toggleAlertPref(mark.id)} /> {mark.label} 알림</label>
+                  ))}
+                </div>
               </div>
             ) : null}
 
@@ -1303,13 +1323,24 @@ export default function App() {
                               e.stopPropagation()
                               startColumnResize(e, key)
                             }}
+                            onTouchStart={(e) => {
+                              e.stopPropagation()
+                              startColumnResize(e, key)
+                            }}
                           />
                         </div>
                       </th>
                     ))}
                     {role === 'admin' && showManagePanel ? (
                       <th style={{ width: `${columnWidths.manage}px` }}>
-                        <div className='th-cell'>관리<span className='col-resizer' onMouseDown={(e) => startColumnResize(e, 'manage')} /></div>
+                        <div className='th-cell'>
+                          관리
+                          <span
+                            className='col-resizer'
+                            onMouseDown={(e) => startColumnResize(e, 'manage')}
+                            onTouchStart={(e) => startColumnResize(e, 'manage')}
+                          />
+                        </div>
                       </th>
                     ) : null}
                   </tr>

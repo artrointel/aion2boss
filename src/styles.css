@@ -288,6 +288,13 @@ body {
   gap: 5px;
 }
 
+.alert-controls {
+  flex-basis: 100%;
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .bell-btn {
   min-width: 40px;
   padding-left: 8px;
@@ -394,6 +401,7 @@ th.dragging-col {
   width: 10px;
   height: calc(100% + 16px);
   cursor: col-resize;
+  touch-action: none;
 }
 
 .col-resizer::after {

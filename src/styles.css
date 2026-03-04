@@ -347,8 +347,8 @@ body {
 }
 
 .status-card .table-wrap {
-  margin-left: -2px;
-  margin-right: -2px;
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .form-grid {
@@ -375,29 +375,71 @@ body {
   overflow: auto;
   display: flex;
   justify-content: center;
+  width: 100%;
+}
+
+.boss-table-card {
+  margin: 12px auto 0;
+  border: 1px solid rgba(82, 118, 170, 0.45);
+  border-radius: 14px;
+  padding: 10px;
+  background: linear-gradient(180deg, rgba(16, 28, 44, 0.9), rgba(12, 22, 36, 0.94));
+  box-shadow: inset 0 1px 0 rgba(145, 179, 226, 0.08), 0 10px 24px rgba(4, 10, 19, 0.3);
+  width: fit-content;
+  max-width: 100%;
+}
+
+.boss-table-card .table-wrap {
+  margin-top: 0;
+  width: auto;
+  max-width: 100%;
+  display: block;
+  overflow: auto;
 }
 
 table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0 8px;
   min-width: 0;
   table-layout: fixed;
   font-size: 0.8rem;
 }
 
+.boss-table {
+  font-size: 0.92rem;
+}
+
 th,
 td {
-  padding: 10px 8px;
-  border-bottom: 1px solid rgba(60, 86, 121, 0.45);
+  padding: 11px 9px;
   vertical-align: middle;
   text-align: center;
   word-break: break-word;
+  font-weight: 400;
 }
 
 th {
   color: #9eb6d8;
   font-size: 0.82rem;
   text-transform: uppercase;
+  padding-bottom: 2px;
+  letter-spacing: 0.01em;
+}
+
+.boss-table th .th-cell {
+  color: #8fc1ff;
+  font-weight: 800;
+}
+
+.boss-table th:not(:last-child) .th-cell::before {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: 2px;
+  width: 2px;
+  height: calc(100% - 4px);
+  background: linear-gradient(180deg, rgba(146, 185, 236, 0.8), rgba(76, 115, 168, 0.4));
 }
 
 th[draggable='true'] .th-cell {
@@ -438,16 +480,41 @@ th.dragging-col {
   background: rgba(172, 205, 248, 0.8);
 }
 
-tr.dragging {
+.dragging {
   opacity: 0.55;
 }
 
+tbody tr td {
+  background: linear-gradient(180deg, rgba(17, 29, 45, 0.95), rgba(12, 23, 36, 0.98));
+  border-top: 1px solid rgba(83, 117, 165, 0.4);
+  border-bottom: 1px solid rgba(54, 79, 112, 0.38);
+  box-shadow: inset 0 1px 0 rgba(129, 161, 207, 0.08);
+}
+
+tbody tr td:first-child {
+  border-left: 1px solid rgba(83, 117, 165, 0.4);
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+}
+
+tbody tr td:last-child {
+  border-right: 1px solid rgba(83, 117, 165, 0.4);
+  border-top-right-radius: 10px;
+  border-bottom-right-radius: 10px;
+}
+
+tbody tr:hover td {
+  background: linear-gradient(180deg, rgba(24, 41, 63, 0.98), rgba(15, 30, 47, 0.98));
+}
+
 tr.row-main-boss td {
-  background: rgba(47, 179, 125, 0.18);
+  background: linear-gradient(180deg, rgba(30, 64, 56, 0.95), rgba(20, 48, 42, 0.98));
+  border-color: rgba(79, 200, 154, 0.55);
 }
 
 tr.row-next-boss td {
-  background: rgba(82, 159, 255, 0.14);
+  background: linear-gradient(180deg, rgba(29, 52, 83, 0.95), rgba(18, 38, 66, 0.98));
+  border-color: rgba(96, 163, 241, 0.55);
 }
 
 .inline-actions {
@@ -460,6 +527,34 @@ tr.row-next-boss td {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.name-near-icon {
+  color: #ffd34e;
+  font-size: 0.95rem;
+}
+
+.boss-name-text {
+  font-weight: 400;
+  font-size: 1rem;
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 14px rgba(96, 179, 255, 0.2);
+}
+
+.info-cell-text {
+  color: #c7d9f6;
+}
+
+.location-cell {
+  white-space: nowrap;
+  text-align: left;
+}
+
+.location-text {
+  font-weight: 400;
+  color: #edf5ff;
+  display: inline-block;
+  text-align: left;
 }
 
 .btn-icon-info {
@@ -481,21 +576,41 @@ tr.row-next-boss td {
 }
 
 .time-cell-btn {
-  min-width: 88px;
+  min-width: 98px;
   font-variant-numeric: tabular-nums;
+  border: 1px solid rgba(68, 118, 188, 0.78);
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(25, 49, 87, 0.95), rgba(19, 38, 68, 0.98));
+  color: #ffe19a;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
 .time-cell-btn.sync-needed {
-  background: rgba(255, 210, 84, 0.18);
-  border-color: rgba(255, 215, 99, 0.8);
+  background: linear-gradient(180deg, rgba(69, 55, 20, 0.86), rgba(49, 38, 12, 0.9));
+  border-color: rgba(255, 215, 99, 0.9);
   color: #ffeaa8;
-  font-weight: 800;
+  font-weight: 500;
+  box-shadow: 0 0 0 1px rgba(255, 215, 99, 0.16);
 }
 
 .map-icon-btn {
-  margin-left: 6px;
-  min-width: 28px;
-  padding: 5px 6px;
+  margin-left: 8px;
+  min-width: 36px;
+  min-height: 30px;
+  padding: 5px 8px;
+  border-radius: 10px;
+  border-color: rgba(65, 120, 191, 0.66);
+  background: linear-gradient(180deg, rgba(22, 45, 77, 0.82), rgba(14, 35, 63, 0.88));
+}
+
+.next-time-text {
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  font-weight: 400;
+  color: #d7e9ff;
+  letter-spacing: 0.01em;
 }
 
 .controls {
@@ -724,8 +839,13 @@ tr.row-next-boss td {
   }
 
   .table-wrap {
-    margin-left: -4px;
-    margin-right: -4px;
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .boss-table-card {
+    padding: 6px;
+    width: 100%;
   }
 
   .login-card {
@@ -747,7 +867,7 @@ tr.row-next-boss td {
 
   th,
   td {
-    padding: 7px 3px;
+    padding: 7px 4px;
     font-size: 0.76rem;
   }
 

@@ -1288,7 +1288,7 @@ export default function App() {
             {role === 'admin' && showManagePanel ? (
               <div className='column-controls'>
                 <div className='pref-row'>
-                  <span className='pref-row-label'>📋 테이블 필드 표시</span>
+                  <span className='pref-row-label'>📋 정보 표시</span>
                   <div className='pref-row-options'>
                     <label><input type='checkbox' checked={columnPrefs.name} onChange={() => toggleColumnPref('name')} /> 보스명</label>
                     <label><input type='checkbox' checked={columnPrefs.info} onChange={() => toggleColumnPref('info')} /> 정보</label>
@@ -1301,17 +1301,18 @@ export default function App() {
                   <span className='pref-row-label'>🔔 알림 여부</span>
                   <div className='pref-row-options'>
                   {ALERT_MARKS.map((mark) => (
-                    <label key={mark.id}><input type='checkbox' checked={alertPrefs[mark.id]} onChange={() => toggleAlertPref(mark.id)} /> {mark.label} 알림</label>
+                    <label key={mark.id}><input type='checkbox' checked={alertPrefs[mark.id]} onChange={() => toggleAlertPref(mark.id)} /> {mark.label}</label>
                   ))}
                   </div>
                 </div>
               </div>
             ) : null}
 
-            <div className='table-wrap' ref={tableWrapRef}>
-              <table style={{ width: `${tableTotalWidth}px`, tableLayout: 'fixed' }}>
-                <thead>
-                  <tr>
+            <div className='boss-table-card'>
+              <div className='table-wrap' ref={tableWrapRef}>
+                <table className='boss-table' style={{ width: `${tableTotalWidth}px`, tableLayout: 'fixed' }}>
+                  <thead>
+                    <tr>
                     {orderedVisibleColumnKeys.map((key) => (
                       <th
                         key={key}
@@ -1339,21 +1340,21 @@ export default function App() {
                         </div>
                       </th>
                     ))}
-                    {role === 'admin' && showManagePanel ? (
-                      <th style={{ width: `${columnWidths.manage}px` }}>
-                        <div className='th-cell'>
-                          관리
-                          <span
-                            className='col-resizer'
-                            onMouseDown={(e) => startColumnResize(e, 'manage')}
-                            onTouchStart={(e) => startColumnResize(e, 'manage')}
-                          />
-                        </div>
-                      </th>
-                    ) : null}
-                  </tr>
-                </thead>
-                <tbody>
+                      {role === 'admin' && showManagePanel ? (
+                        <th style={{ width: `${columnWidths.manage}px` }}>
+                          <div className='th-cell'>
+                            관리
+                            <span
+                              className='col-resizer'
+                              onMouseDown={(e) => startColumnResize(e, 'manage')}
+                              onTouchStart={(e) => startColumnResize(e, 'manage')}
+                            />
+                          </div>
+                        </th>
+                      ) : null}
+                    </tr>
+                  </thead>
+                  <tbody>
                   {filteredOrderedBosses.map((boss) => {
                     const spawn = getSpawnInfo(boss, now)
                     const nextText = spawn.time ? formatDateTime(spawn.time) : '-'
@@ -1381,18 +1382,24 @@ export default function App() {
                           if (key === 'name') {
                             return (
                               <td key={key} style={{ width: `${columnWidths[key]}px` }}>
-                                {nearSpawnBossKeySet.has(boss.key) ? <span title='스폰 시간이 1분 이내로 인접한 보스'>👉 </span> : null}
-                                <span style={{ color: boss.color || '#ffadad', fontWeight: 700 }}>{boss.name}</span>
+                                <div className='name-cell'>
+                                  {nearSpawnBossKeySet.has(boss.key) ? <span className='name-near-icon' title='스폰 시간이 1분 이내로 인접한 보스'>👉</span> : null}
+                                  <span className='boss-name-text' style={{ color: boss.color || '#ffadad' }}>{boss.name}</span>
+                                </div>
                               </td>
                             )
                           }
                           if (key === 'info') {
-                            return <td key={key} style={{ width: `${columnWidths[key]}px` }}>{boss.drop || '-'}</td>
+                            return (
+                              <td key={key} style={{ width: `${columnWidths[key]}px` }}>
+                                <span className='info-cell-text'>{boss.drop || '-'}</span>
+                              </td>
+                            )
                           }
                           if (key === 'location') {
                             return (
-                              <td key={key} style={{ width: `${columnWidths[key]}px` }}>
-                                {boss.location || '-'}
+                              <td key={key} style={{ width: `${columnWidths[key]}px` }} className='location-cell'>
+                                <span className='location-text'>{boss.location || '-'}</span>
                                 {mapReady ? (
                                   <button
                                     className='btn tiny ghost map-icon-btn'
@@ -1425,7 +1432,11 @@ export default function App() {
                             )
                           }
                           if (key === 'next') {
-                            return <td key={key} style={{ width: `${columnWidths[key]}px` }}>{nextText}</td>
+                            return (
+                              <td key={key} style={{ width: `${columnWidths[key]}px` }}>
+                                <span className='next-time-text'>{nextText}</span>
+                              </td>
+                            )
                           }
                           return null
                         })}
@@ -1439,8 +1450,9 @@ export default function App() {
                       </tr>
                     )
                   })}
-                </tbody>
-              </table>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </section>
 

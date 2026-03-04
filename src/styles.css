@@ -288,11 +288,31 @@ body {
   gap: 5px;
 }
 
-.alert-controls {
-  flex-basis: 100%;
+.pref-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+
+.pref-row-label {
+  display: inline-flex;
+  align-items: center;
+  min-width: 132px;
+  font-weight: 700;
+  color: #b9d0f0;
+  line-height: 1.5;
+}
+
+.pref-row-options {
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
+  flex: 1;
+}
+
+.alert-controls {
+  margin-top: 2px;
 }
 
 .bell-btn {

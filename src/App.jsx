@@ -1287,15 +1287,23 @@ export default function App() {
 
             {role === 'admin' && showManagePanel ? (
               <div className='column-controls'>
-                <label><input type='checkbox' checked={columnPrefs.name} onChange={() => toggleColumnPref('name')} /> 보스명</label>
-                <label><input type='checkbox' checked={columnPrefs.info} onChange={() => toggleColumnPref('info')} /> 정보</label>
-                <label><input type='checkbox' checked={columnPrefs.location} onChange={() => toggleColumnPref('location')} /> 위치</label>
-                <label><input type='checkbox' checked={columnPrefs.remaining} onChange={() => toggleColumnPref('remaining')} /> 남은 시간</label>
-                <label><input type='checkbox' checked={columnPrefs.next} onChange={() => toggleColumnPref('next')} /> 다음 젠 시간</label>
-                <div className='alert-controls'>
+                <div className='pref-row'>
+                  <span className='pref-row-label'>📋 테이블 필드 표시</span>
+                  <div className='pref-row-options'>
+                    <label><input type='checkbox' checked={columnPrefs.name} onChange={() => toggleColumnPref('name')} /> 보스명</label>
+                    <label><input type='checkbox' checked={columnPrefs.info} onChange={() => toggleColumnPref('info')} /> 정보</label>
+                    <label><input type='checkbox' checked={columnPrefs.location} onChange={() => toggleColumnPref('location')} /> 위치</label>
+                    <label><input type='checkbox' checked={columnPrefs.remaining} onChange={() => toggleColumnPref('remaining')} /> 남은 시간</label>
+                    <label><input type='checkbox' checked={columnPrefs.next} onChange={() => toggleColumnPref('next')} /> 다음 젠 시간</label>
+                  </div>
+                </div>
+                <div className='pref-row alert-controls'>
+                  <span className='pref-row-label'>🔔 알림 여부</span>
+                  <div className='pref-row-options'>
                   {ALERT_MARKS.map((mark) => (
                     <label key={mark.id}><input type='checkbox' checked={alertPrefs[mark.id]} onChange={() => toggleAlertPref(mark.id)} /> {mark.label} 알림</label>
                   ))}
+                  </div>
                 </div>
               </div>
             ) : null}

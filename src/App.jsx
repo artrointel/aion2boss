@@ -45,12 +45,26 @@ const emptyForm = {
 const pad2 = (num) => String(num).padStart(2, '0')
 const TTS_STORAGE_KEY = 'aion2boss_tts_enabled'
 const TTS_NOTICE_DISMISS_KEY = 'aion2boss_tts_notice_dismissed'
+const ALERT_PREF_COOKIE_KEY = 'aion2boss_alert_prefs'
 const ALERT_MARKS = [
-  { ms: 62000, seconds: 60 },
-  { ms: 32000, seconds: 30 },
-  { ms: 12000, seconds: 10 },
-  { ms: 7000, seconds: 5 }
+  { id: 'm20', ms: 20 * 60000, label: '20분 전', notice: '20분 남았습니다.' },
+  { id: 'm10', ms: 10 * 60000, label: '10분 전', notice: '10분 남았습니다.' },
+  { id: 'm5', ms: 5 * 60000, label: '5분 전', notice: '5분 남았습니다.' },
+  { id: 'm1', ms: 62000, label: '1분 전', notice: '1분 남았습니다.' },
+  { id: 's30', ms: 32000, label: '30초 전', notice: '30초 남았습니다.' },
+  { id: 's10', ms: 12000, label: '10초 전', notice: '10초 남았습니다.' },
+  { id: 's5', ms: 7000, label: '5초 전', notice: '5초 남았습니다.' }
 ]
+const ALERT_ARM_THRESHOLD_MS = 62000
+const DEFAULT_ALERT_PREFS = {
+  m20: false,
+  m10: true,
+  m5: false,
+  m1: true,
+  s30: true,
+  s10: true,
+  s5: true
+}
 const CYCLE_DRIFT_CORRECTION_MS = 10000
 const COLUMN_PREF_COOKIE_KEY = 'aion2boss_column_prefs'
 const COLUMN_WIDTH_COOKIE_KEY = 'aion2boss_column_widths'
@@ -240,6 +254,30 @@ function saveTtsEnabledToCookie(enabled) {
   document.cookie = `${TTS_STORAGE_KEY}=${encodeURIComponent(enabled ? 'true' : 'false')}; path=/; max-age=${expires}; SameSite=Lax`
 }
 
+function loadAlertPrefsFromCookie() {
+  try {
+    const raw = readCookie(ALERT_PREF_COOKIE_KEY)
+    if (!raw) return DEFAULT_ALERT_PREFS
+    const parsed = JSON.parse(raw)
+    return {
+      m20: parsed?.m20 === true,
+      m10: parsed?.m10 !== false,
+      m5: parsed?.m5 === true,
+      m1: parsed?.m1 !== false,
+      s30: parsed?.s30 !== false,
+      s10: parsed?.s10 !== false,
+      s5: parsed?.s5 !== false
+    }
+  } catch {
+    return DEFAULT_ALERT_PREFS
+  }
+}
+
+function saveAlertPrefsToCookie(prefs) {
+  const expires = 60 * 60 * 24 * 365
+  document.cookie = `${ALERT_PREF_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(prefs))}; path=/; max-age=${expires}; SameSite=Lax`
+}
+
 export default function App() {
   const [roomInput, setRoomInput] = useState('')
   const [roomId, setRoomId] = useState('')
@@ -263,6 +301,7 @@ export default function App() {
   const [dragKey, setDragKey] = useState(null)
   const [isMapOpen, setIsMapOpen] = useState(false)
   const [ttsEnabled, setTtsEnabled] = useState(() => loadTtsEnabledFromCookie())
+  const [alertPrefs, setAlertPrefs] = useState(() => loadAlertPrefsFromCookie())
   const [ttsNoticeDialogOpen, setTtsNoticeDialogOpen] = useState(false)
   const [ttsNoticeDontShow, setTtsNoticeDontShow] = useState(() => {
     return window.localStorage.getItem(TTS_NOTICE_DISMISS_KEY) === 'true'
@@ -461,6 +500,10 @@ export default function App() {
   }, [raceFilter])
 
   useEffect(() => {
+    saveAlertPrefsToCookie(alertPrefs)
+  }, [alertPrefs])
+
+  useEffect(() => {
     if (columnWidthsSeeded) return undefined
     if (!roomId) return undefined
 
@@ -517,10 +560,9 @@ export default function App() {
 
     const prevState = ttsStateRef.current
     if (prevState.cycleId !== cycleId || prevState.prevRemainingMs == null) {
-      const maxAlertMs = ALERT_MARKS[0].ms
       // Only arm TTS when the newly-tracked current boss still has enough lead time.
       // This prevents chained alerts from the immediately following boss (e.g. 14s case).
-      ttsStateRef.current = { cycleId, prevRemainingMs: remainingMs, armed: remainingMs > maxAlertMs }
+      ttsStateRef.current = { cycleId, prevRemainingMs: remainingMs, armed: remainingMs > ALERT_ARM_THRESHOLD_MS }
       return
     }
 
@@ -529,11 +571,24 @@ export default function App() {
       return
     }
 
+    const hasOtherBossInWindow = (windowMs) => {
+      return bossList.some((boss) => {
+        if (boss.key === mainBoss.key) return false
+        if (!Number.isFinite(boss.effectiveTime) || boss.effectiveTime >= Number.MAX_SAFE_INTEGER) return false
+        const bossRemainingMs = boss.effectiveTime - now
+        return bossRemainingMs > 0 && bossRemainingMs <= windowMs
+      })
+    }
+
     for (const mark of ALERT_MARKS) {
+      if (!alertPrefs[mark.id]) continue
       if (prevState.prevRemainingMs > mark.ms && remainingMs <= mark.ms) {
+        if (hasOtherBossInWindow(mark.ms)) {
+          continue
+        }
         if ('speechSynthesis' in window) {
           const bossName = mainBoss.name || '보스'
-          const utter = new SpeechSynthesisUtterance(`${bossName}, ${mark.seconds}초 남았습니다.`)
+          const utter = new SpeechSynthesisUtterance(`${bossName}, ${mark.notice}`)
           utter.lang = 'ko-KR'
           utter.rate = 1.2
           utter.pitch = 1.25
@@ -544,7 +599,7 @@ export default function App() {
     }
 
     ttsStateRef.current = { ...prevState, prevRemainingMs: remainingMs }
-  }, [ttsEnabled, mainBoss, now])
+  }, [ttsEnabled, mainBoss, now, alertPrefs, bossList])
 
   const applyMapTransform = useCallback(() => {
     const img = mapImgRef.current
@@ -842,6 +897,10 @@ export default function App() {
 
   const toggleColumnPref = (key) => {
     setColumnPrefs((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const toggleAlertPref = (key) => {
+    setAlertPrefs((prev) => ({ ...prev, [key]: !prev[key] }))
   }
 
   const handleColumnDragStart = (e, key) => {
@@ -1215,6 +1274,9 @@ export default function App() {
                 <label><input type='checkbox' checked={columnPrefs.location} onChange={() => toggleColumnPref('location')} /> 위치</label>
                 <label><input type='checkbox' checked={columnPrefs.remaining} onChange={() => toggleColumnPref('remaining')} /> 남은 시간</label>
                 <label><input type='checkbox' checked={columnPrefs.next} onChange={() => toggleColumnPref('next')} /> 다음 젠 시간</label>
+                {ALERT_MARKS.map((mark) => (
+                  <label key={mark.id}><input type='checkbox' checked={alertPrefs[mark.id]} onChange={() => toggleAlertPref(mark.id)} /> {mark.label} 알림</label>
+                ))}
               </div>
             ) : null}
 

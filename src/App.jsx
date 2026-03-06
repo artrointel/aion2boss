@@ -1488,7 +1488,7 @@ export default function App() {
                         {orderedVisibleColumnKeys.map((key) => {
                           if (key === 'alert') {
                             return (
-                              <td key={key} style={{ width: `${columnWidths[key]}px` }}>
+                              <td key={key} className='alert-cell' style={{ width: `${columnWidths[key]}px` }}>
                                 <input
                                   type='checkbox'
                                   className='boss-alert-checkbox'

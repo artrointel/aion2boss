@@ -550,7 +550,7 @@ tr.row-timer-disabled td {
   opacity: 0.62;
 }
 
-tr.row-timer-disabled td:first-child {
+tr.row-timer-disabled td.alert-cell {
   filter: none;
   opacity: 1;
 }

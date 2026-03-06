@@ -70,8 +70,12 @@ const COLUMN_PREF_COOKIE_KEY = 'aion2boss_column_prefs'
 const COLUMN_WIDTH_COOKIE_KEY = 'aion2boss_column_widths'
 const COLUMN_ORDER_COOKIE_KEY = 'aion2boss_column_order'
 const RACE_FILTER_COOKIE_KEY = 'aion2boss_race_filter'
-const BASE_COLUMN_ORDER = ['name', 'info', 'location', 'remaining', 'next']
+const DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC = 40
+const ADJACENT_BOSS_THRESHOLD_MIN_SEC = 1
+const ADJACENT_BOSS_THRESHOLD_MAX_SEC = 600
+const BASE_COLUMN_ORDER = ['alert', 'name', 'info', 'location', 'remaining', 'next']
 const COLUMN_LABELS = {
+  alert: '알림',
   name: '보스명',
   info: '정보',
   location: '위치',
@@ -79,6 +83,7 @@ const COLUMN_LABELS = {
   next: '다음 젠 시간'
 }
 const DEFAULT_COLUMN_PREFS = {
+  alert: true,
   name: true,
   info: false,
   location: true,
@@ -86,6 +91,7 @@ const DEFAULT_COLUMN_PREFS = {
   next: true
 }
 const DEFAULT_COLUMN_WIDTHS = {
+  alert: 96,
   name: 180,
   info: 240,
   location: 190,
@@ -144,6 +150,7 @@ function getBossList(bosses, now) {
       return {
         key,
         ...boss,
+        alertEnabled: boss?.alertEnabled !== false,
         effectiveTime: spawn.time ?? Number.MAX_SAFE_INTEGER
       }
     })
@@ -166,6 +173,7 @@ function loadColumnPrefsFromCookie() {
     if (!raw) return DEFAULT_COLUMN_PREFS
     const parsed = JSON.parse(raw)
     return {
+      alert: parsed?.alert !== false,
       name: parsed?.name !== false,
       info: parsed?.info !== false,
       location: parsed?.location !== false,
@@ -188,6 +196,7 @@ function loadColumnWidthsFromCookie() {
     if (!raw) return DEFAULT_COLUMN_WIDTHS
     const parsed = JSON.parse(raw)
     return {
+      alert: Number.isFinite(parsed?.alert) ? parsed.alert : DEFAULT_COLUMN_WIDTHS.alert,
       name: Number.isFinite(parsed?.name) ? parsed.name : DEFAULT_COLUMN_WIDTHS.name,
       info: Number.isFinite(parsed?.info) ? parsed.info : DEFAULT_COLUMN_WIDTHS.info,
       location: Number.isFinite(parsed?.location) ? parsed.location : DEFAULT_COLUMN_WIDTHS.location,
@@ -285,6 +294,15 @@ function getPointerClientX(event) {
   return null
 }
 
+function normalizeAdjacentBossThresholdSec(value) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC
+  return Math.min(
+    ADJACENT_BOSS_THRESHOLD_MAX_SEC,
+    Math.max(ADJACENT_BOSS_THRESHOLD_MIN_SEC, Math.round(parsed))
+  )
+}
+
 export default function App() {
   const [roomInput, setRoomInput] = useState('')
   const [roomId, setRoomId] = useState('')
@@ -315,6 +333,8 @@ export default function App() {
   })
   const [mapAspectRatio, setMapAspectRatio] = useState('16 / 9')
   const [roomDataLoaded, setRoomDataLoaded] = useState(false)
+  const [adjacentBossThresholdSec, setAdjacentBossThresholdSec] = useState(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC)
+  const [adjacentBossThresholdInput, setAdjacentBossThresholdInput] = useState(String(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC))
   const [timeDialog, setTimeDialog] = useState({
     open: false,
     key: '',
@@ -399,17 +419,33 @@ export default function App() {
     return () => unsubscribe()
   }, [roomId])
 
+  useEffect(() => {
+    if (!roomId) return undefined
+
+    const roomSettingsRef = ref(db, `${roomId}/settings`)
+    const unsubscribe = onValue(roomSettingsRef, (snapshot) => {
+      const sec = normalizeAdjacentBossThresholdSec(snapshot.val()?.adjacentBossThresholdSec)
+      setAdjacentBossThresholdSec(sec)
+      setAdjacentBossThresholdInput(String(sec))
+    })
+
+    return () => unsubscribe()
+  }, [roomId])
+
   const bossList = useMemo(() => getBossList(bosses, now), [bosses, now])
+  const enabledBossList = useMemo(() => {
+    return bossList.filter((boss) => boss.alertEnabled !== false)
+  }, [bossList])
   const filteredBossList = useMemo(() => {
     if (raceFilter === '모두') {
-      return bossList
+      return enabledBossList
     }
-    return bossList.filter((boss) => (boss.race || '마족') === raceFilter)
-  }, [bossList, raceFilter])
+    return enabledBossList.filter((boss) => (boss.race || '마족') === raceFilter)
+  }, [enabledBossList, raceFilter])
   const orderedBosses = useMemo(() => {
     return Object.entries(bosses)
       .sort((a, b) => (a[1]?.order ?? 0) - (b[1]?.order ?? 0))
-      .map(([key, value]) => ({ key, ...value }))
+      .map(([key, value]) => ({ key, ...value, alertEnabled: value?.alertEnabled !== false }))
   }, [bosses])
   const filteredOrderedBosses = useMemo(() => {
     if (raceFilter === '모두') {
@@ -426,7 +462,7 @@ export default function App() {
   const nextBoss = panelBosses.length > 1 ? panelBosses[1] : null
   const prevBoss = panelBosses.length > 1 ? panelBosses[panelBosses.length - 1] : null
   const adjacentSpawnBossGroups = useMemo(() => {
-    const oneMinuteMs = 60000
+    const adjacentThresholdMs = adjacentBossThresholdSec * 1000
     const groups = []
     if (panelBosses.length < 2) return groups
 
@@ -436,7 +472,7 @@ export default function App() {
       const current = panelBosses[i]
       const next = panelBosses[i + 1]
       if (!Number.isFinite(current.effectiveTime) || !Number.isFinite(next.effectiveTime)) continue
-      if (Math.abs(next.effectiveTime - current.effectiveTime) <= oneMinuteMs) {
+      if (Math.abs(next.effectiveTime - current.effectiveTime) <= adjacentThresholdMs) {
         if (currentGroup[currentGroup.length - 1]?.key !== next.key) {
           currentGroup.push(next)
         }
@@ -448,7 +484,7 @@ export default function App() {
 
     if (currentGroup.length >= 2) groups.push(currentGroup)
     return groups
-  }, [panelBosses])
+  }, [panelBosses, adjacentBossThresholdSec])
   const nearSpawnBossKeySet = useMemo(() => {
     return new Set(adjacentSpawnBossGroups.flat().map((boss) => boss.key))
   }, [adjacentSpawnBossGroups])
@@ -470,6 +506,7 @@ export default function App() {
   }, [mainBoss, nextBoss])
   const syncNeededBosses = useMemo(() => {
     return orderedBosses
+      .filter((boss) => boss.alertEnabled !== false)
       .filter((boss) => isSyncNeeded(boss, now))
       .map((boss) => ({ name: boss.name, color: boss.color || '#ffadad' }))
   }, [orderedBosses, now])
@@ -552,7 +589,7 @@ export default function App() {
   }, [roomId, role, roomDataLoaded, syncNeededBosses])
 
   useEffect(() => {
-    if (!ttsEnabled || !mainBoss || mainBoss.effectiveTime === Number.MAX_SAFE_INTEGER) {
+    if (!ttsEnabled || !mainBoss || mainBoss.effectiveTime === Number.MAX_SAFE_INTEGER || mainBoss.alertEnabled === false) {
       ttsStateRef.current = { cycleId: '', prevRemainingMs: null, armed: false }
       return
     }
@@ -579,7 +616,7 @@ export default function App() {
     }
 
     const hasOtherBossInWindow = (windowMs) => {
-      return bossList.some((boss) => {
+      return enabledBossList.some((boss) => {
         if (boss.key === mainBoss.key) return false
         if (!Number.isFinite(boss.effectiveTime) || boss.effectiveTime >= Number.MAX_SAFE_INTEGER) return false
         const bossRemainingMs = boss.effectiveTime - now
@@ -606,7 +643,7 @@ export default function App() {
     }
 
     ttsStateRef.current = { ...prevState, prevRemainingMs: remainingMs }
-  }, [ttsEnabled, mainBoss, now, alertPrefs, bossList])
+  }, [ttsEnabled, mainBoss, now, alertPrefs, enabledBossList])
 
   const applyMapTransform = useCallback(() => {
     const img = mapImgRef.current
@@ -703,6 +740,9 @@ export default function App() {
   const saveOrder = useCallback((updates) => {
     return update(ref(db), updates)
   }, [])
+  const updateRoomSettings = useCallback((payload) => {
+    return update(ref(db, `${roomId}/settings`), payload)
+  }, [roomId])
 
   const pushHistory = useCallback((key, data) => {
     setUndoStack((prev) => [...prev, { key, data: { ...data } }])
@@ -723,6 +763,8 @@ export default function App() {
     setShowForm(false)
     setShowManagePanel(false)
     setRoomDataLoaded(false)
+    setAdjacentBossThresholdSec(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC)
+    setAdjacentBossThresholdInput(String(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC))
     setSyncNoticeDialog({ open: false, bosses: [] })
     syncNoticeShownRef.current = false
     syncNoticeCheckedOnEntryRef.current = false
@@ -841,6 +883,7 @@ export default function App() {
       location: form.location.trim(),
       drop: form.drop.trim(),
       interval,
+      alertEnabled: editingKey ? bosses[editingKey]?.alertEnabled !== false : true,
       mapX: form.mapX,
       mapY: form.mapY
     }
@@ -898,6 +941,35 @@ export default function App() {
     setTtsNoticeDialogOpen(false)
   }
 
+  const handleAdjacentThresholdInputChange = (event) => {
+    const raw = event.target.value
+    if (raw === '') {
+      setAdjacentBossThresholdInput('')
+      return
+    }
+    const digits = raw.replace(/[^\d]/g, '')
+    if (!digits) {
+      setAdjacentBossThresholdInput('')
+      return
+    }
+    const sec = normalizeAdjacentBossThresholdSec(Number(digits))
+    setAdjacentBossThresholdInput(String(sec))
+  }
+
+  const saveAdjacentThreshold = async () => {
+    const sec = normalizeAdjacentBossThresholdSec(adjacentBossThresholdInput)
+    setAdjacentBossThresholdSec(sec)
+    setAdjacentBossThresholdInput(String(sec))
+    if (role !== 'admin' || !roomId) return
+    await updateRoomSettings({ adjacentBossThresholdSec: sec })
+  }
+
+  const handleAdjacentThresholdInputKeyDown = (event) => {
+    if (event.key !== 'Enter') return
+    event.preventDefault()
+    event.currentTarget.blur()
+  }
+
   const closeSyncNoticeDialog = () => {
     setSyncNoticeDialog({ open: false, bosses: [] })
   }
@@ -908,6 +980,11 @@ export default function App() {
 
   const toggleAlertPref = (key) => {
     setAlertPrefs((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const toggleBossAlertEnabled = async (boss) => {
+    if (role !== 'admin') return
+    await updateBoss(boss.key, { alertEnabled: boss.alertEnabled === false })
   }
 
   const handleColumnDragStart = (e, key) => {
@@ -964,8 +1041,10 @@ export default function App() {
   const handleSort = async () => {
     const nowTs = getServerNow()
     const sorted = Object.entries(bosses).sort((a, b) => {
-      const aTime = getSpawnInfo(a[1], nowTs).time ?? Number.MAX_SAFE_INTEGER
-      const bTime = getSpawnInfo(b[1], nowTs).time ?? Number.MAX_SAFE_INTEGER
+      const aEnabled = a[1]?.alertEnabled !== false
+      const bEnabled = b[1]?.alertEnabled !== false
+      const aTime = aEnabled ? (getSpawnInfo(a[1], nowTs).time ?? Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER
+      const bTime = bEnabled ? (getSpawnInfo(b[1], nowTs).time ?? Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER
       return aTime - bTime
     })
 
@@ -1287,24 +1366,47 @@ export default function App() {
 
             {role === 'admin' && showManagePanel ? (
               <div className='column-controls'>
-                <div className='pref-row'>
-                  <span className='pref-row-label'>📋 정보 표시</span>
-                  <div className='pref-row-options'>
-                    <label><input type='checkbox' checked={columnPrefs.name} onChange={() => toggleColumnPref('name')} /> 보스명</label>
-                    <label><input type='checkbox' checked={columnPrefs.info} onChange={() => toggleColumnPref('info')} /> 정보</label>
-                    <label><input type='checkbox' checked={columnPrefs.location} onChange={() => toggleColumnPref('location')} /> 위치</label>
-                    <label><input type='checkbox' checked={columnPrefs.remaining} onChange={() => toggleColumnPref('remaining')} /> 남은 시간</label>
-                    <label><input type='checkbox' checked={columnPrefs.next} onChange={() => toggleColumnPref('next')} /> 다음 젠 시간</label>
+                <section className='pref-group'>
+                  <h4 className='pref-group-title'>개인 설정</h4>
+                  <div className='pref-row'>
+                    <span className='pref-row-label'>📋 정보 표시</span>
+                    <div className='pref-row-options'>
+                      <label><input type='checkbox' checked={columnPrefs.alert} onChange={() => toggleColumnPref('alert')} /> 알림</label>
+                      <label><input type='checkbox' checked={columnPrefs.name} onChange={() => toggleColumnPref('name')} /> 보스명</label>
+                      <label><input type='checkbox' checked={columnPrefs.info} onChange={() => toggleColumnPref('info')} /> 정보</label>
+                      <label><input type='checkbox' checked={columnPrefs.location} onChange={() => toggleColumnPref('location')} /> 위치</label>
+                      <label><input type='checkbox' checked={columnPrefs.remaining} onChange={() => toggleColumnPref('remaining')} /> 남은 시간</label>
+                      <label><input type='checkbox' checked={columnPrefs.next} onChange={() => toggleColumnPref('next')} /> 다음 젠 시간</label>
+                    </div>
                   </div>
-                </div>
-                <div className='pref-row alert-controls'>
-                  <span className='pref-row-label'>🔔 알림 여부</span>
-                  <div className='pref-row-options'>
-                  {ALERT_MARKS.map((mark) => (
-                    <label key={mark.id}><input type='checkbox' checked={alertPrefs[mark.id]} onChange={() => toggleAlertPref(mark.id)} /> {mark.label}</label>
-                  ))}
+                  <div className='pref-row alert-controls'>
+                    <span className='pref-row-label'>🔔 알림 여부</span>
+                    <div className='pref-row-options'>
+                    {ALERT_MARKS.map((mark) => (
+                      <label key={mark.id}><input type='checkbox' checked={alertPrefs[mark.id]} onChange={() => toggleAlertPref(mark.id)} /> {mark.label}</label>
+                    ))}
+                    </div>
                   </div>
-                </div>
+                </section>
+                <section className='pref-group'>
+                  <h4 className='pref-group-title'>전체 설정</h4>
+                  <div className='pref-row adjacent-threshold-controls'>
+                    <span className='pref-row-label'>👉 중첩 탐지 (초)</span>
+                    <div className='pref-row-options'>
+                      <input
+                        className='input-text adjacent-threshold-input'
+                        type='number'
+                        min={ADJACENT_BOSS_THRESHOLD_MIN_SEC}
+                        max={ADJACENT_BOSS_THRESHOLD_MAX_SEC}
+                        step='1'
+                        value={adjacentBossThresholdInput}
+                        onChange={handleAdjacentThresholdInputChange}
+                        onBlur={saveAdjacentThreshold}
+                        onKeyDown={handleAdjacentThresholdInputKeyDown}
+                      />
+                    </div>
+                  </div>
+                </section>
               </div>
             ) : null}
 
@@ -1313,16 +1415,18 @@ export default function App() {
                 <table className='boss-table' style={{ width: `${tableTotalWidth}px`, tableLayout: 'fixed' }}>
                   <thead>
                     <tr>
-                    {orderedVisibleColumnKeys.map((key) => (
+                    {orderedVisibleColumnKeys.map((key) => {
+                      const canDragColumn = role === 'admin' && showManagePanel
+                      return (
                       <th
                         key={key}
                         style={{ width: `${columnWidths[key]}px` }}
-                        draggable={role === 'admin' && showManagePanel}
-                        onDragStart={(e) => handleColumnDragStart(e, key)}
-                        onDragOver={(e) => role === 'admin' && showManagePanel && e.preventDefault()}
-                        onDrop={() => handleColumnDrop(key)}
+                        draggable={canDragColumn}
+                        onDragStart={(e) => canDragColumn && handleColumnDragStart(e, key)}
+                        onDragOver={(e) => canDragColumn && e.preventDefault()}
+                        onDrop={() => canDragColumn && handleColumnDrop(key)}
                         onDragEnd={() => setDraggingColumn('')}
-                        className={draggingColumn === key ? 'dragging-col' : ''}
+                        className={draggingColumn === key && canDragColumn ? 'dragging-col' : ''}
                       >
                         <div className='th-cell'>
                           {COLUMN_LABELS[key]}
@@ -1339,7 +1443,8 @@ export default function App() {
                           />
                         </div>
                       </th>
-                    ))}
+                      )
+                    })}
                       {role === 'admin' && showManagePanel ? (
                         <th style={{ width: `${columnWidths.manage}px` }}>
                           <div className='th-cell'>
@@ -1356,13 +1461,15 @@ export default function App() {
                   </thead>
                   <tbody>
                   {filteredOrderedBosses.map((boss) => {
+                    const isTimerExcluded = boss.alertEnabled === false
                     const spawn = getSpawnInfo(boss, now)
                     const nextText = spawn.time ? formatDateTime(spawn.time) : '-'
                     const mapReady = hasMapPoint(boss)
-                    const syncNeeded = isSyncNeeded(boss, now)
+                    const syncNeeded = !isTimerExcluded && isSyncNeeded(boss, now)
 
                     const rowClassName = [
                       dragKey === boss.key ? 'dragging' : '',
+                      isTimerExcluded ? 'row-timer-disabled' : '',
                       highlightedRows.main === boss.key ? 'row-main-boss' : '',
                       highlightedRows.next === boss.key ? 'row-next-boss' : ''
                     ].filter(Boolean).join(' ')
@@ -1379,11 +1486,28 @@ export default function App() {
                         className={rowClassName}
                       >
                         {orderedVisibleColumnKeys.map((key) => {
+                          if (key === 'alert') {
+                            return (
+                              <td key={key} style={{ width: `${columnWidths[key]}px` }}>
+                                <input
+                                  type='checkbox'
+                                  className='boss-alert-checkbox'
+                                  checked={boss.alertEnabled !== false}
+                                  disabled={role !== 'admin'}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onClick={(e) => e.stopPropagation()}
+                                  onChange={() => toggleBossAlertEnabled(boss)}
+                                  aria-label={`${boss.name} 타이머 동작 사용`}
+                                  title='체크 해제 시 타이머 기반 동작에서 제외'
+                                />
+                              </td>
+                            )
+                          }
                           if (key === 'name') {
                             return (
                               <td key={key} style={{ width: `${columnWidths[key]}px` }}>
                                 <div className='name-cell'>
-                                  {nearSpawnBossKeySet.has(boss.key) ? <span className='name-near-icon' title='스폰 시간이 1분 이내로 인접한 보스'>👉</span> : null}
+                                  {nearSpawnBossKeySet.has(boss.key) ? <span className='name-near-icon' title={`스폰 시간이 ${adjacentBossThresholdSec}초 이내로 인접한 보스`}>👉</span> : null}
                                   <span className='boss-name-text' style={{ color: boss.color || '#ffadad' }}>{boss.name}</span>
                                 </div>
                               </td>
@@ -1418,9 +1542,9 @@ export default function App() {
                               <td key={key} style={{ width: `${columnWidths[key]}px` }}>
                                 <button
                                   className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''}`}
-                                  disabled={role !== 'admin'}
-                                  onClick={() => openRemainingDialog(boss)}
-                                  title={syncNeeded ? '싱크 필요: 남은 시간을 눌러 수정하세요.' : undefined}
+                                  disabled={role !== 'admin' || isTimerExcluded}
+                                  onClick={() => !isTimerExcluded && openRemainingDialog(boss)}
+                                  title={isTimerExcluded ? '타이머 제외 상태입니다.' : (syncNeeded ? '싱크 필요: 남은 시간을 눌러 수정하세요.' : undefined)}
                                 >
                                   {syncNeeded ? '! ' : ''}
                                   {renderCountdown({

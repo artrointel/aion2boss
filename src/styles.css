@@ -282,6 +282,21 @@ body {
   font-size: 0.86rem;
 }
 
+.pref-group {
+  width: 100%;
+  border: 1px solid rgba(82, 118, 170, 0.35);
+  border-radius: 12px;
+  padding: 10px;
+  background: rgba(13, 23, 36, 0.38);
+}
+
+.pref-group-title {
+  margin: 0 0 8px;
+  font-size: 0.86rem;
+  color: #9fc3ef;
+  font-weight: 800;
+}
+
 .column-controls label {
   display: inline-flex;
   align-items: center;
@@ -313,6 +328,19 @@ body {
 
 .alert-controls {
   margin-top: 2px;
+}
+
+.adjacent-threshold-controls {
+  margin-top: 2px;
+}
+
+.pref-row-options .input-text.adjacent-threshold-input {
+  width: 5em;
+  min-width: 5em;
+  max-width: 5em;
+  flex: 0 0 5em;
+  padding: 6px 8px;
+  text-align: center;
 }
 
 .bell-btn {
@@ -517,6 +545,16 @@ tr.row-next-boss td {
   border-color: rgba(96, 163, 241, 0.55);
 }
 
+tr.row-timer-disabled td {
+  filter: grayscale(1);
+  opacity: 0.62;
+}
+
+tr.row-timer-disabled td:first-child {
+  filter: none;
+  opacity: 1;
+}
+
 .inline-actions {
   display: flex;
   gap: 6px;
@@ -527,6 +565,17 @@ tr.row-next-boss td {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.boss-alert-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.boss-alert-checkbox:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .name-near-icon {

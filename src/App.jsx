@@ -303,10 +303,117 @@ function normalizeAdjacentBossThresholdSec(value) {
   )
 }
 
+const VIEW_BOSS = 'boss'
+const VIEW_RACING = 'racing'
+const TOPBAR_LABEL_TO_RACING = '달려달려'
+const TOPBAR_LABEL_TO_BOSS = '필보관리'
+const PET_TYPE_RABBIT = 'rabbit'
+const PET_TYPE_HORSE = 'horse'
+const MAP_DEFAULT = 'default'
+const MAP_DIZZY_CLIFF = 'dizzy_cliff'
+const DEFAULT_RACE_DISTANCE = 1000
+const RACE_TICK_MS = 120
+const SKILL_CHECK_MS = 1000
+const MAP_EVENT_TICK_MS = 1000
+const STUN_DURATION_MS = 2000
+const SHIELD_DURATION_MS = 3000
+const BOULDER_STUN_DURATION_MS = 3000
+const MUD_SLOW_DURATION_MS = 3000
+const MUD_LIFETIME_MS = 9000
+const SKILL_ATTACK_CHANCE = 0.2
+const SKILL_SHIELD_CHANCE = 0.2
+const SKILL_BOOST_CHANCE = 0.2
+const MAP_BOULDER_CHANCE = 0.2
+const MAP_MUD_CHANCE = 0.2
+const CARROT_PROJECTILE_SPEED_PX_PER_MS = 0.225
+const CARROT_PROJECTILE_MAX_LIFETIME_MS = 2400
+const CARROT_HIT_DISTANCE_PX = 10
+const RACING_BGM_STORAGE_KEY = 'aion2boss_racing_bgm_enabled'
+const RACING_SFX_STORAGE_KEY = 'aion2boss_racing_sfx_enabled'
+const RACING_BGM_VOLUME_SCALE = 0.5
+const RACING_SFX_VOLUME_SCALE = 0.7
+const RACING_BGM_BASE_VOLUME = 0.36 * RACING_BGM_VOLUME_SCALE
+const RACING_BGM_FADE_MS = 700
+const APP_BASE_URL = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')
+const SOUND_SOURCES = {
+  bgmWaiting: `${APP_BASE_URL}sound/bgm_waiting.mp3`,
+  bgmPlaying: `${APP_BASE_URL}sound/bgm_playing.mp3`,
+  throwing: `${APP_BASE_URL}sound/throwing.wav`,
+  boost: `${APP_BASE_URL}sound/boost.wav`,
+  stun: `${APP_BASE_URL}sound/stun.wav`,
+  shield: `${APP_BASE_URL}sound/shield.wav`
+}
+const RACER_COLOR_PALETTE = [
+  '#ff8da1',
+  '#7fd7ff',
+  '#ffd677',
+  '#c2b2ff',
+  '#81df9c',
+  '#b8d6ff',
+  '#ffb993',
+  '#9dddc1'
+]
+
+function parsePetNamesInput(rawValue) {
+  return rawValue
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean)
+}
+
+function createInitialRacers(names, previousRacers = []) {
+  const previousById = new Map(previousRacers.map((racer) => [racer.id, racer]))
+  return names.map((name, index) => {
+    const id = `p${index + 1}`
+    const previous = previousById.get(id)
+    return {
+      id,
+      name,
+      color: previous?.color || RACER_COLOR_PALETTE[index % RACER_COLOR_PALETTE.length],
+      petType: previous?.petType || PET_TYPE_RABBIT,
+      position: 0,
+      speed: 0,
+      status: '대기',
+      finished: false,
+      finishTime: null,
+      baseSpeed: 55 + Math.random() * 12,
+      stunUntil: 0,
+      shieldUntil: 0,
+      shieldCharges: 0,
+      isShieldActive: false,
+      boostUntil: 0,
+      slowUntil: 0,
+      isSlowed: false,
+      skillTickOffsetMs: Math.random() * SKILL_CHECK_MS,
+      nextSkillRollAt: 0,
+      eventText: '',
+      eventTicks: 0
+    }
+  })
+}
+
+function formatRaceDuration(ms) {
+  if (!Number.isFinite(ms) || ms < 0) return '-'
+  return `${(ms / 1000).toFixed(2)}s`
+}
+
+function formatRaceClock(ms) {
+  const safe = Math.max(0, Math.floor(ms / 1000))
+  const m = String(Math.floor(safe / 60)).padStart(2, '0')
+  const s = String(safe % 60).padStart(2, '0')
+  return `${m}:${s}`
+}
+
+function getMapLabel(mapId) {
+  if (mapId === MAP_DIZZY_CLIFF) return '어질어질한 절벽'
+  return '기본'
+}
+
 export default function App() {
   const [roomInput, setRoomInput] = useState('')
   const [roomId, setRoomId] = useState('')
   const [role, setRole] = useState('admin')
+  const [activeView, setActiveView] = useState(VIEW_BOSS)
   const [bosses, setBosses] = useState({})
   const [editingKey, setEditingKey] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -762,6 +869,7 @@ export default function App() {
     setEditingKey(null)
     setShowForm(false)
     setShowManagePanel(false)
+    setActiveView(VIEW_BOSS)
     setRoomDataLoaded(false)
     setAdjacentBossThresholdSec(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC)
     setAdjacentBossThresholdInput(String(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC))
@@ -784,7 +892,19 @@ export default function App() {
 
   const handleLeave = () => {
     if (!window.confirm('정말 나가시겠습니까?')) return
+    setActiveView(VIEW_BOSS)
     window.location.href = window.location.pathname
+  }
+
+  const openRacingView = () => {
+    setShowForm(false)
+    setTimeDialog({ open: false, key: '', name: '', h: 0, m: 0, s: 0 })
+    setSyncNoticeDialog({ open: false, bosses: [] })
+    setActiveView(VIEW_RACING)
+  }
+
+  const openBossView = () => {
+    setActiveView(VIEW_BOSS)
   }
 
   const openRemainingDialog = (boss) => {
@@ -1265,12 +1385,17 @@ export default function App() {
           <header className='topbar'>
             <div className='room-pill'>ROOM: {roomId} / {role === 'admin' ? '관리자' : '손님'}</div>
             <div className='topbar-actions'>
+              <button className='btn ghost' onClick={activeView === VIEW_BOSS ? openRacingView : openBossView}>
+                {activeView === VIEW_BOSS ? TOPBAR_LABEL_TO_RACING : TOPBAR_LABEL_TO_BOSS}
+              </button>
               <button className='btn ghost' onClick={handleShare}>주소복사</button>
               {role === 'admin' ? <button className='btn danger ghost' onClick={handleLeave}>방 나가기</button> : null}
             </div>
           </header>
 
-          <section className='hero card'>
+          {activeView === VIEW_BOSS ? (
+            <>
+              <section className='hero card'>
             <div className='hero-label'>NEXT BOSS</div>
             <div className='boss-grid'>
               <BossCard
@@ -1580,17 +1705,21 @@ export default function App() {
             </div>
           </section>
 
-          {role === 'admin' ? (
-            <section className='card controls'>
-              <button className='btn' onClick={handleSort}>다음 젠 시간순 정렬</button>
-              <button className='btn' disabled={!undoStack.length} onClick={handleUndo}>실행 취소</button>
-              <button className='btn' disabled={!redoStack.length} onClick={handleRedo}>다시 실행</button>
-              <span className='creator-credit'>제작자: 마족 브리트라, 마도성 뿌띠</span>
-            </section>
-          ) : null}
+              {role === 'admin' ? (
+                <section className='card controls'>
+                  <button className='btn' onClick={handleSort}>다음 젠 시간순 정렬</button>
+                  <button className='btn' disabled={!undoStack.length} onClick={handleUndo}>실행 취소</button>
+                  <button className='btn' disabled={!redoStack.length} onClick={handleRedo}>다시 실행</button>
+                  <span className='creator-credit'>제작자: 마족 브리트라, 마도성 뿌띠</span>
+                </section>
+              ) : null}
+            </>
+          ) : (
+            <RacingGamePage />
+          )}
         </main>
       )}
-      {timeDialog.open ? (
+      {activeView === VIEW_BOSS && timeDialog.open ? (
         <div className='dialog-backdrop' onClick={closeRemainingDialog}>
           <div className='dialog' onClick={(e) => e.stopPropagation()}>
             <h4>남은 시간 수정</h4>
@@ -1634,7 +1763,7 @@ export default function App() {
           </div>
         </div>
       ) : null}
-      {ttsNoticeDialogOpen ? (
+      {activeView === VIEW_BOSS && ttsNoticeDialogOpen ? (
         <div className='dialog-backdrop' onClick={closeTtsNoticeDialog}>
           <div className='dialog tts-notice-dialog' onClick={(e) => e.stopPropagation()}>
             <h4>음성 알림 안내</h4>
@@ -1649,7 +1778,7 @@ export default function App() {
           </div>
         </div>
       ) : null}
-      {role === 'admin' && showForm ? (
+      {activeView === VIEW_BOSS && role === 'admin' && showForm ? (
         <div className='dialog-backdrop' onClick={closeBossFormDialog}>
           <div className='dialog form-dialog' onClick={(e) => e.stopPropagation()}>
             <h4>{editingKey ? '보스 수정' : '보스 추가'}</h4>
@@ -1687,7 +1816,7 @@ export default function App() {
           </div>
         </div>
       ) : null}
-      {syncNoticeDialog.open ? (
+      {activeView === VIEW_BOSS && syncNoticeDialog.open ? (
         <div className='dialog-backdrop' onClick={closeSyncNoticeDialog}>
           <div className='dialog' onClick={(e) => e.stopPropagation()}>
             <h4>싱크 필요 안내</h4>
@@ -1707,6 +1836,1235 @@ export default function App() {
           </div>
         </div>
       ) : null}
+    </div>
+  )
+}
+
+function RacingGamePage() {
+  const [petNamesInput, setPetNamesInput] = useState('')
+  const [trackLengthInput, setTrackLengthInput] = useState(String(DEFAULT_RACE_DISTANCE))
+  const [selectedMap, setSelectedMap] = useState(MAP_DEFAULT)
+  const [racers, setRacers] = useState(() => createInitialRacers([]))
+  const [isRunning, setIsRunning] = useState(false)
+  const [rankingIds, setRankingIds] = useState([])
+  const [projectiles, setProjectiles] = useState([])
+  const [mapHazards, setMapHazards] = useState([])
+  const [skillLogs, setSkillLogs] = useState([])
+  const [resultPopup, setResultPopup] = useState({ open: false, entries: [] })
+  const [skillInfoPopupOpen, setSkillInfoPopupOpen] = useState(false)
+  const [bgmEnabled, setBgmEnabled] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return window.localStorage.getItem(RACING_BGM_STORAGE_KEY) !== 'false'
+  })
+  const [sfxEnabled, setSfxEnabled] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return window.localStorage.getItem(RACING_SFX_STORAGE_KEY) !== 'false'
+  })
+
+  const trackWrapRef = useRef(null)
+  const trackRefs = useRef({})
+  const skillLogRef = useRef(null)
+  const waitingBgmRef = useRef(null)
+  const playingBgmRef = useRef(null)
+  const bgmFadeRef = useRef({ frameId: 0, token: 0 })
+  const bgmInitializedRef = useRef(false)
+  const restartPlayingBgmRef = useRef(false)
+  const throwingSfxRef = useRef(null)
+  const boostSfxRef = useRef(null)
+  const stunSfxRef = useRef(null)
+  const shieldBreakSfxRef = useRef(null)
+  const racersRef = useRef([])
+  const projectilesRef = useRef([])
+  const mapHazardsRef = useRef([])
+  const startTimeRef = useRef(0)
+  const lastTickAtRef = useRef(0)
+  const finishOrderRef = useRef([])
+  const nextMapEventAtRef = useRef(0)
+  const logSeqRef = useRef(1)
+  const hazardSeqRef = useRef(1)
+  const projectileSeqRef = useRef(1)
+  const projectileTimerRef = useRef([])
+  const hitTimerRef = useRef([])
+  const parsedPetNames = useMemo(() => parsePetNamesInput(petNamesInput), [petNamesInput])
+  const raceDistance = useMemo(() => {
+    const parsed = Number(trackLengthInput.trim())
+    if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_RACE_DISTANCE
+    return Math.round(parsed)
+  }, [trackLengthInput])
+
+  const shufflePetNamesInput = useCallback(() => {
+    if (isRunning) return
+    const names = parsePetNamesInput(petNamesInput)
+    if (names.length < 2) return
+
+    const shuffled = [...names]
+    for (let i = shuffled.length - 1; i > 0; i -= 1) {
+      const j = Math.floor(Math.random() * (i + 1))
+      const tmp = shuffled[i]
+      shuffled[i] = shuffled[j]
+      shuffled[j] = tmp
+    }
+    setPetNamesInput(shuffled.join(', '))
+  }, [isRunning, petNamesInput])
+
+  const raceCompleted = rankingIds.length > 0 && rankingIds.length === racers.length
+
+  useEffect(() => {
+    racersRef.current = racers
+  }, [racers])
+
+  useEffect(() => {
+    projectilesRef.current = projectiles
+  }, [projectiles])
+
+  useEffect(() => {
+    mapHazardsRef.current = mapHazards
+  }, [mapHazards])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(RACING_BGM_STORAGE_KEY, bgmEnabled ? 'true' : 'false')
+  }, [bgmEnabled])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(RACING_SFX_STORAGE_KEY, sfxEnabled ? 'true' : 'false')
+  }, [sfxEnabled])
+
+  const clearProjectileTimers = useCallback(() => {
+    projectileTimerRef.current.forEach((timerId) => window.clearTimeout(timerId))
+    hitTimerRef.current.forEach((timerId) => window.clearTimeout(timerId))
+    projectileTimerRef.current = []
+    hitTimerRef.current = []
+  }, [])
+
+  const playSfx = useCallback((audioRef, volume = 0.9) => {
+    if (!sfxEnabled) return
+    const baseAudio = audioRef.current
+    if (!baseAudio) return
+    try {
+      const clip = baseAudio.cloneNode(true)
+      clip.volume = Math.max(0, Math.min(1, volume * RACING_SFX_VOLUME_SCALE))
+      const playPromise = clip.play()
+      if (playPromise && typeof playPromise.catch === 'function') {
+        playPromise.catch(() => {})
+      }
+    } catch {
+      // Ignore audio playback failures (for autoplay restrictions, etc.).
+    }
+  }, [sfxEnabled])
+
+  const cancelBgmFade = useCallback(() => {
+    const frameId = bgmFadeRef.current.frameId
+    if (frameId) {
+      window.cancelAnimationFrame(frameId)
+      bgmFadeRef.current.frameId = 0
+    }
+  }, [])
+
+  const safePlayAudio = useCallback((audio) => {
+    if (!audio) return
+    const playPromise = audio.play()
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(() => {})
+    }
+  }, [])
+
+  const runBgmFade = useCallback(
+    (primaryAudio, secondaryAudio, primaryTargetVolume, secondaryTargetVolume, options = {}) => {
+      const { pausePrimaryOnEnd = false, pauseSecondaryOnEnd = false } = options
+
+      cancelBgmFade()
+
+      const transitionToken = bgmFadeRef.current.token + 1
+      bgmFadeRef.current.token = transitionToken
+
+      const startTime = performance.now()
+      const startPrimaryVolume = Math.max(0, Math.min(1, Number(primaryAudio?.volume) || 0))
+      const startSecondaryVolume = Math.max(0, Math.min(1, Number(secondaryAudio?.volume) || 0))
+      const targetPrimaryVolume = Math.max(0, Math.min(1, primaryTargetVolume))
+      const targetSecondaryVolume = Math.max(0, Math.min(1, secondaryTargetVolume))
+
+      const step = (now) => {
+        if (bgmFadeRef.current.token !== transitionToken) return
+
+        const progress = Math.min(1, (now - startTime) / RACING_BGM_FADE_MS)
+        const eased = progress * progress * (3 - 2 * progress)
+
+        if (primaryAudio) {
+          primaryAudio.volume = startPrimaryVolume + (targetPrimaryVolume - startPrimaryVolume) * eased
+        }
+        if (secondaryAudio) {
+          secondaryAudio.volume = startSecondaryVolume + (targetSecondaryVolume - startSecondaryVolume) * eased
+        }
+
+        if (progress < 1) {
+          bgmFadeRef.current.frameId = window.requestAnimationFrame(step)
+          return
+        }
+
+        bgmFadeRef.current.frameId = 0
+        if (pausePrimaryOnEnd && primaryAudio) {
+          primaryAudio.pause()
+        }
+        if (pauseSecondaryOnEnd && secondaryAudio) {
+          secondaryAudio.pause()
+        }
+      }
+
+      bgmFadeRef.current.frameId = window.requestAnimationFrame(step)
+    },
+    [cancelBgmFade]
+  )
+
+  const syncRacingBgm = useCallback(() => {
+    const waitingAudio = waitingBgmRef.current
+    const playingAudio = playingBgmRef.current
+    if (!waitingAudio || !playingAudio) return
+
+    waitingAudio.loop = true
+    playingAudio.loop = true
+    if (!bgmInitializedRef.current) {
+      waitingAudio.volume = 0
+      playingAudio.volume = 0
+      bgmInitializedRef.current = true
+    }
+
+    if (!bgmEnabled) {
+      runBgmFade(waitingAudio, playingAudio, 0, 0, {
+        pausePrimaryOnEnd: true,
+        pauseSecondaryOnEnd: true
+      })
+      return
+    }
+
+    const activeAudio = isRunning ? playingAudio : waitingAudio
+    const inactiveAudio = isRunning ? waitingAudio : playingAudio
+
+    if (isRunning && restartPlayingBgmRef.current) {
+      activeAudio.currentTime = 0
+      restartPlayingBgmRef.current = false
+    }
+
+    safePlayAudio(activeAudio)
+    if (!inactiveAudio.paused || inactiveAudio.volume > 0.001) {
+      safePlayAudio(inactiveAudio)
+    }
+
+    runBgmFade(activeAudio, inactiveAudio, RACING_BGM_BASE_VOLUME, 0, {
+      pauseSecondaryOnEnd: true
+    })
+  }, [bgmEnabled, isRunning, runBgmFade, safePlayAudio])
+
+  const toggleRacingBgm = useCallback(() => {
+    setBgmEnabled((prev) => !prev)
+  }, [])
+
+  const toggleRacingSfx = useCallback(() => {
+    setSfxEnabled((prev) => !prev)
+  }, [])
+
+  const closeResultPopup = useCallback(() => {
+    setResultPopup((prev) => ({ ...prev, open: false }))
+  }, [])
+
+  const openSkillInfoPopup = useCallback(() => {
+    setSkillInfoPopupOpen(true)
+  }, [])
+
+  const closeSkillInfoPopup = useCallback(() => {
+    setSkillInfoPopupOpen(false)
+  }, [])
+
+  useEffect(() => {
+    if (isRunning) return
+    clearProjectileTimers()
+    setProjectiles([])
+    projectilesRef.current = []
+    mapHazardsRef.current = []
+    setMapHazards([])
+    nextMapEventAtRef.current = 0
+    lastTickAtRef.current = 0
+    setRankingIds([])
+    setSkillLogs([])
+    setResultPopup({ open: false, entries: [] })
+    const nextRacers = createInitialRacers(parsedPetNames, racersRef.current)
+    racersRef.current = nextRacers
+    setRacers(nextRacers)
+  }, [clearProjectileTimers, parsedPetNames, selectedMap])
+
+  const raceLeader = useMemo(() => {
+    if (!racers.length) return null
+    return [...racers].sort((a, b) => {
+      if (a.finished !== b.finished) return a.finished ? -1 : 1
+      if (a.finished && b.finished) return (a.finishTime ?? Number.MAX_SAFE_INTEGER) - (b.finishTime ?? Number.MAX_SAFE_INTEGER)
+      return b.position - a.position
+    })[0]
+  }, [racers])
+
+  const rankingEntries = useMemo(() => {
+    if (!rankingIds.length) return []
+    const byId = new Map(racers.map((racer) => [racer.id, racer]))
+    return rankingIds.map((id) => byId.get(id)).filter(Boolean)
+  }, [rankingIds, racers])
+
+  const racerRows = useMemo(() => {
+    return racers.map((racer, idx) => {
+      const progressRaw = raceDistance > 0 ? (racer.position / raceDistance) * 100 : 0
+      const progress = Math.max(0, Math.min(100, progressRaw))
+      const visualProgress = Math.max(3, progress)
+      const eventClass =
+        racer.eventText === '공격'
+          ? 'is-attack'
+          : racer.eventText === '실드' || racer.eventText === '방어'
+            ? 'is-shield'
+            : racer.eventText === '부스트'
+              ? 'is-boost'
+              : racer.eventText === '기절'
+                ? 'is-stun'
+                : racer.eventText === '완주' || /\d+등$/.test(racer.eventText)
+                  ? 'is-finished'
+                  : racer.eventText === '감속'
+                    ? 'is-slow'
+                    : racer.eventText === '회피!'
+                      ? 'is-evade'
+                    : ''
+
+      return {
+        idx,
+        racer,
+        progress,
+        eventClass,
+        runnerLeft: `clamp(28px, ${visualProgress}%, calc(100% - 28px))`
+      }
+    })
+  }, [racers, raceDistance])
+
+  const appendSkillLogs = useCallback((messages, now) => {
+    if (!messages.length) return
+    const raceClock = formatRaceClock(now - startTimeRef.current)
+    setSkillLogs((prev) => {
+      const nextLogs = messages.map((message) => ({
+        id: logSeqRef.current++,
+        time: raceClock,
+        message
+      }))
+      return [...prev, ...nextLogs].slice(-220)
+    })
+  }, [])
+
+  const getTrackPointFromProgress = useCallback((racerId, progressPercent) => {
+    const trackWrap = trackWrapRef.current
+    const trackLane = trackRefs.current[racerId]
+    if (!trackWrap || !trackLane) return null
+
+    const wrapRect = trackWrap.getBoundingClientRect()
+    const laneRect = trackLane.getBoundingClientRect()
+    const safeProgress = Math.max(0, Math.min(100, progressPercent))
+
+    const x = laneRect.left - wrapRect.left + Math.min(laneRect.width - 10, Math.max(12, (safeProgress / 100) * laneRect.width))
+    const y = laneRect.top - wrapRect.top + laneRect.height / 2
+
+    return { x, y }
+  }, [])
+
+  const resolveProjectileImpact = useCallback((projectile, mutableRacers, now, pendingLogs) => {
+    const target = mutableRacers.find((racer) => racer.id === projectile.toId)
+    const attacker = mutableRacers.find((racer) => racer.id === projectile.fromId)
+    const attackerName = attacker?.name || projectile.attackerName
+
+    if (!target || target.finished) {
+      pendingLogs.push(`${attackerName}의 당근이 빗나갔습니다.`)
+      return
+    }
+
+    const boosted = target.boostUntil > now
+    const boostedEvaded = boosted && Math.random() < 0.5
+    const shieldActive = target.shieldUntil > now && target.shieldCharges > 0
+
+    if (boostedEvaded) {
+      if (shieldActive) {
+        target.shieldCharges = 0
+        target.shieldUntil = now
+        target.isShieldActive = false
+        playSfx(shieldBreakSfxRef, 0.72)
+        pendingLogs.push(`${attackerName}의 당근을 ${target.name}이(가) 회피했습니다. 실드는 소모되었습니다.`)
+      } else {
+        pendingLogs.push(`${attackerName}의 당근을 ${target.name}이(가) 회피했습니다.`)
+      }
+      target.eventText = '회피!'
+      target.eventTicks = 12
+      return
+    }
+
+    if (shieldActive) {
+      target.shieldCharges = 0
+      target.shieldUntil = now
+      target.isShieldActive = false
+      target.eventText = '방어'
+      target.eventTicks = 10
+      playSfx(shieldBreakSfxRef, 0.72)
+      pendingLogs.push(`${attackerName}의 당근이 ${target.name}에게 도착! 실드가 공격을 막았습니다.`)
+      return
+    }
+
+    target.stunUntil = Math.max(target.stunUntil, now + STUN_DURATION_MS)
+    target.eventText = '기절'
+    target.eventTicks = 10
+    target.status = '기절'
+    playSfx(stunSfxRef, 0.8)
+    pendingLogs.push(`${attackerName}의 당근이 ${target.name}에게 적중! 2초 동안 기절합니다.`)
+  }, [playSfx])
+
+  const updateProjectiles = useCallback((shotsPrev, mutableRacers, now, elapsedMs, pendingLogs) => {
+    if (!shotsPrev.length) return shotsPrev
+
+    const stepPx = Math.max(4, CARROT_PROJECTILE_SPEED_PX_PER_MS * elapsedMs)
+    const nextShots = []
+
+    shotsPrev.forEach((shot) => {
+      const target = mutableRacers.find((racer) => racer.id === shot.toId)
+      if (!target || target.finished) {
+        pendingLogs.push(`${shot.attackerName}의 당근이 빗나갔습니다.`)
+        return
+      }
+
+      const targetProgress = raceDistance > 0 ? (target.position / raceDistance) * 100 : 0
+      const targetPoint = getTrackPointFromProgress(shot.toId, targetProgress)
+      if (!targetPoint) {
+        nextShots.push(shot)
+        return
+      }
+
+      const dx = targetPoint.x - shot.x
+      const dy = targetPoint.y - shot.y
+      const distance = Math.hypot(dx, dy)
+      const directionDeg = Math.atan2(dy, dx) * (180 / Math.PI)
+
+      if (distance <= CARROT_HIT_DISTANCE_PX) {
+        resolveProjectileImpact(shot, mutableRacers, now, pendingLogs)
+        return
+      }
+
+      if (now - shot.createdAt >= CARROT_PROJECTILE_MAX_LIFETIME_MS) {
+        pendingLogs.push(`${shot.attackerName}의 당근이 빗나갔습니다.`)
+        return
+      }
+
+      const ratio = Math.min(1, stepPx / Math.max(distance, 1))
+      nextShots.push({
+        ...shot,
+        x: shot.x + dx * ratio,
+        y: shot.y + dy * ratio,
+        angleDeg: directionDeg + 32
+      })
+    })
+
+    return nextShots
+  }, [getTrackPointFromProgress, raceDistance, resolveProjectileImpact])
+
+  const emitProjectiles = useCallback((requests) => {
+    if (!requests.length) return
+
+    const now = performance.now()
+    const spawned = []
+
+    requests.forEach((request) => {
+      const startPoint = getTrackPointFromProgress(request.fromId, request.fromProgress)
+      const targetPoint = getTrackPointFromProgress(request.toId, request.toProgress)
+      if (!startPoint || !targetPoint) return
+
+      const directionDeg = Math.atan2(targetPoint.y - startPoint.y, targetPoint.x - startPoint.x) * (180 / Math.PI)
+      spawned.push({
+        id: projectileSeqRef.current++,
+        fromId: request.fromId,
+        toId: request.toId,
+        attackerName: request.attackerName,
+        x: startPoint.x,
+        y: startPoint.y,
+        angleDeg: directionDeg + 32,
+        createdAt: now
+      })
+    })
+
+    if (!spawned.length) return
+
+    spawned.forEach(() => {
+      playSfx(throwingSfxRef, 0.74)
+    })
+    const nextShots = [...projectilesRef.current, ...spawned]
+    projectilesRef.current = nextShots
+    setProjectiles(nextShots)
+  }, [getTrackPointFromProgress, playSfx])
+
+  const spawnDizzyCliffEvents = useCallback((racersSnapshot, hazardsDraft, eventTime, pendingLogs) => {
+    const activeRacers = racersSnapshot.filter((racer) => !racer.finished)
+    if (!activeRacers.length) return
+
+    if (Math.random() < MAP_BOULDER_CHANCE) {
+      const laneRacer = activeRacers[Math.floor(Math.random() * activeRacers.length)]
+      const startRatio = 0.82 + Math.random() * 0.16
+      const speed = raceDistance * (0.2 + Math.random() * 0.12)
+      hazardsDraft.push({
+        id: `boulder-${hazardSeqRef.current++}`,
+        type: 'boulder',
+        laneId: laneRacer.id,
+        position: raceDistance * startRatio,
+        speed,
+        angleDeg: -24 + Math.random() * 48,
+        createdAt: eventTime
+      })
+      pendingLogs.push(`낙석 발생! ${laneRacer.name} 라인으로 바위가 굴러옵니다.`)
+    }
+
+    if (Math.random() < MAP_MUD_CHANCE) {
+      const laneRacer = activeRacers[Math.floor(Math.random() * activeRacers.length)]
+      const mudRatio = 0.2 + Math.random() * 0.62
+      hazardsDraft.push({
+        id: `mud-${hazardSeqRef.current++}`,
+        type: 'mud',
+        laneId: laneRacer.id,
+        position: raceDistance * mudRatio,
+        expiresAt: eventTime + MUD_LIFETIME_MS
+      })
+      pendingLogs.push(`진흙탕 생성! ${laneRacer.name} 라인에 진흙탕이 생겼습니다.`)
+    }
+  }, [raceDistance])
+
+  const updateMapHazards = useCallback((hazardsPrev, racersSnapshot, now, tickSeconds, pendingLogs) => {
+    const nextHazards = []
+
+    hazardsPrev.forEach((hazard) => {
+      const laneRacer = racersSnapshot.find((racer) => racer.id === hazard.laneId)
+
+      if (hazard.type === 'boulder') {
+        const nextPosition = hazard.position - hazard.speed * tickSeconds
+        if (nextPosition <= 0) return
+        if (!laneRacer || laneRacer.finished) {
+          nextHazards.push({ ...hazard, position: nextPosition })
+          return
+        }
+
+        const hitRange = Math.max(18, raceDistance * 0.015)
+        if (Math.abs(laneRacer.position - nextPosition) <= hitRange) {
+          const shieldActive = laneRacer.shieldUntil > now && laneRacer.shieldCharges > 0
+          if (shieldActive) {
+            laneRacer.shieldCharges = 0
+            laneRacer.shieldUntil = now
+            laneRacer.isShieldActive = false
+            laneRacer.eventText = '방어'
+            laneRacer.eventTicks = 12
+            pendingLogs.push(`${laneRacer.name}이(가) 낙석을 실드로 막아냈습니다.`)
+          } else {
+            laneRacer.stunUntil = Math.max(laneRacer.stunUntil, now + BOULDER_STUN_DURATION_MS)
+            laneRacer.eventText = '기절'
+            laneRacer.eventTicks = 12
+            laneRacer.status = '기절'
+            playSfx(stunSfxRef, 0.8)
+            pendingLogs.push(`${laneRacer.name}이(가) 낙석에 맞아 3초 기절했습니다.`)
+          }
+          return
+        }
+
+        nextHazards.push({ ...hazard, position: nextPosition })
+        return
+      }
+
+      if (hazard.type === 'mud') {
+        if (hazard.expiresAt <= now) return
+        if (!laneRacer || laneRacer.finished) {
+          nextHazards.push(hazard)
+          return
+        }
+
+        const triggerRange = Math.max(14, raceDistance * 0.012)
+        if (Math.abs(laneRacer.position - hazard.position) <= triggerRange) {
+          laneRacer.slowUntil = Math.max(laneRacer.slowUntil, now + MUD_SLOW_DURATION_MS)
+          laneRacer.isSlowed = true
+          laneRacer.eventText = '감속'
+          laneRacer.eventTicks = 12
+          pendingLogs.push(`${laneRacer.name}이(가) 진흙탕에 빠져 3초간 50% 감속됩니다.`)
+          return
+        }
+
+        nextHazards.push(hazard)
+      }
+    })
+
+    return nextHazards
+  }, [playSfx, raceDistance])
+
+  const runSkillRollForRacer = useCallback((racer, mutableRacers, now, pendingLogs, pendingShots) => {
+    if (racer.finished) return
+    if (racer.stunUntil > now) return
+
+    if (Math.random() < SKILL_ATTACK_CHANCE) {
+      const targets = mutableRacers.filter((candidate) => {
+        if (candidate.id === racer.id || candidate.finished) return false
+        return candidate.position > racer.position + 2
+      })
+
+      if (targets.length) {
+        const target = targets[Math.floor(Math.random() * targets.length)]
+        pendingShots.push({
+          fromId: racer.id,
+          toId: target.id,
+          attackerName: racer.name,
+          fromProgress: (racer.position / raceDistance) * 100,
+          toProgress: (target.position / raceDistance) * 100
+        })
+        racer.eventText = '공격'
+        racer.eventTicks = 10
+        pendingLogs.push(`${racer.name}이(가) ${target.name}에게 당근을 던졌습니다.`)
+      }
+    }
+
+    if (Math.random() < SKILL_SHIELD_CHANCE) {
+      racer.shieldUntil = now + SHIELD_DURATION_MS
+      racer.shieldCharges = 1
+      racer.isShieldActive = true
+      racer.eventText = '실드'
+      racer.eventTicks = 10
+      pendingLogs.push(`${racer.name}이(가) 3초 실드를 사용했습니다.`)
+    }
+
+    if (Math.random() < SKILL_BOOST_CHANCE) {
+      const boostMs = 500 + Math.random() * 500
+      racer.boostUntil = Math.max(racer.boostUntil, now + boostMs)
+      racer.eventText = '부스트'
+      racer.eventTicks = 10
+      playSfx(boostSfxRef, 0.78)
+      pendingLogs.push(`${racer.name}이(가) ${(boostMs / 1000).toFixed(2)}초 부스트를 사용했습니다.`)
+    }
+  }, [playSfx, raceDistance])
+
+  const resetRace = useCallback(() => {
+    setIsRunning(false)
+    setRankingIds([])
+    setProjectiles([])
+    projectilesRef.current = []
+    setMapHazards([])
+    setSkillLogs([])
+    setResultPopup({ open: false, entries: [] })
+    startTimeRef.current = 0
+    nextMapEventAtRef.current = 0
+    lastTickAtRef.current = 0
+    finishOrderRef.current = []
+    hazardSeqRef.current = 1
+    logSeqRef.current = 1
+    clearProjectileTimers()
+    mapHazardsRef.current = []
+    const nextRacers = createInitialRacers(parsedPetNames, racersRef.current)
+    racersRef.current = nextRacers
+    setRacers(nextRacers)
+  }, [clearProjectileTimers, parsedPetNames])
+
+  const selectPetType = useCallback((racerId, petType) => {
+    if (isRunning) return
+    const nextRacers = racersRef.current.map((racer) =>
+        racer.id === racerId
+          ? { ...racer, petType }
+          : racer
+    )
+    racersRef.current = nextRacers
+    setRacers(nextRacers)
+  }, [isRunning])
+
+  const startRace = useCallback(() => {
+    if (isRunning || !parsedPetNames.length) return
+    const now = performance.now()
+    startTimeRef.current = now
+    lastTickAtRef.current = now
+    finishOrderRef.current = []
+    nextMapEventAtRef.current = now + MAP_EVENT_TICK_MS
+    hazardSeqRef.current = 1
+    clearProjectileTimers()
+    setRankingIds([])
+    setProjectiles([])
+    projectilesRef.current = []
+    setMapHazards([])
+    mapHazardsRef.current = []
+    setResultPopup({ open: false, entries: [] })
+    setSkillLogs([
+      { id: logSeqRef.current++, time: '00:00', message: '경주가 시작되었습니다.' }
+    ])
+    const nextRacers = createInitialRacers(parsedPetNames, racersRef.current).map((racer) => ({
+        ...racer,
+        nextSkillRollAt: now + racer.skillTickOffsetMs,
+        status: '질주'
+      }))
+    racersRef.current = nextRacers
+    setRacers(nextRacers)
+    restartPlayingBgmRef.current = true
+    setIsRunning(true)
+  }, [clearProjectileTimers, isRunning, parsedPetNames])
+
+  const tickRace = useCallback(() => {
+    const now = performance.now()
+    const elapsedMs = lastTickAtRef.current > 0 ? Math.max(16, Math.min(280, now - lastTickAtRef.current)) : RACE_TICK_MS
+    const tickSeconds = elapsedMs / 1000
+    const eventTickDecay = Math.max(1, Math.round(elapsedMs / RACE_TICK_MS))
+    lastTickAtRef.current = now
+    const pendingLogs = []
+    const pendingShots = []
+
+    const next = racersRef.current.map((racer) => ({
+      ...racer,
+      eventTicks: Math.max(0, racer.eventTicks - eventTickDecay),
+      eventText: racer.eventTicks > eventTickDecay ? racer.eventText : ''
+    }))
+
+    next.forEach((racer) => {
+      if (racer.finished) return
+      if (!Number.isFinite(racer.nextSkillRollAt) || racer.nextSkillRollAt <= 0) {
+        racer.nextSkillRollAt = now + racer.skillTickOffsetMs
+      }
+      while (!racer.finished && now >= racer.nextSkillRollAt) {
+        runSkillRollForRacer(racer, next, now, pendingLogs, pendingShots)
+        racer.nextSkillRollAt += SKILL_CHECK_MS
+      }
+    })
+
+    let nextHazards = mapHazardsRef.current.map((hazard) => ({ ...hazard }))
+    if (selectedMap === MAP_DIZZY_CLIFF) {
+      if (!Number.isFinite(nextMapEventAtRef.current) || nextMapEventAtRef.current <= 0) {
+        nextMapEventAtRef.current = now + MAP_EVENT_TICK_MS
+      }
+      while (now >= nextMapEventAtRef.current) {
+        spawnDizzyCliffEvents(next, nextHazards, nextMapEventAtRef.current, pendingLogs)
+        nextMapEventAtRef.current += MAP_EVENT_TICK_MS
+      }
+      nextHazards = updateMapHazards(nextHazards, next, now, tickSeconds, pendingLogs)
+    } else {
+      nextHazards = []
+    }
+
+    next.forEach((racer) => {
+      if (racer.finished) return
+
+      const stunned = racer.stunUntil > now
+      const boosted = racer.boostUntil > now
+      const slowed = racer.slowUntil > now
+      const shielded = racer.shieldUntil > now && racer.shieldCharges > 0
+      if (racer.shieldUntil <= now) {
+        racer.shieldCharges = 0
+      }
+      if (racer.slowUntil <= now) {
+        racer.slowUntil = 0
+      }
+      racer.isShieldActive = shielded
+      racer.isSlowed = slowed
+
+      let speed = 0
+      let nextPosition = racer.position
+
+      if (!stunned) {
+        const pace = 0.86 + Math.random() * 0.32
+        speed = racer.baseSpeed * pace * (boosted ? 2 : 1) * (slowed ? 0.5 : 1)
+        nextPosition = Math.min(raceDistance, racer.position + speed * tickSeconds)
+      }
+
+      const finished = nextPosition >= raceDistance
+      let finishTime = racer.finishTime
+      if (finished && !racer.finished) {
+        finishTime = now - startTimeRef.current
+        finishOrderRef.current.push(racer.id)
+        racer.eventText = `${finishOrderRef.current.length}등`
+        racer.eventTicks = 12
+        pendingLogs.push(`${racer.name}이(가) 완주했습니다. (${formatRaceDuration(finishTime)})`)
+      }
+
+      let status = '질주'
+      if (finished) status = '완주'
+      else if (stunned) status = '기절'
+      else if (boosted) status = '부스트'
+      else if (slowed) status = '감속'
+      else if (shielded) status = '실드'
+
+      racer.position = nextPosition
+      racer.speed = speed
+      racer.status = status
+      racer.finished = finished
+      racer.finishTime = finishTime
+    })
+
+    emitProjectiles(pendingShots)
+    const nextProjectiles = updateProjectiles(projectilesRef.current, next, now, elapsedMs, pendingLogs)
+    if (nextProjectiles !== projectilesRef.current) {
+      projectilesRef.current = nextProjectiles
+      setProjectiles(nextProjectiles)
+    }
+
+    const everyoneFinished = next.every((racer) => racer.finished)
+    racersRef.current = next
+    setRacers(next)
+    mapHazardsRef.current = nextHazards
+    setMapHazards(nextHazards)
+
+    appendSkillLogs(pendingLogs, now)
+
+    if (everyoneFinished) {
+      const finalRanking = [...finishOrderRef.current]
+      const byId = new Map(next.map((racer) => [racer.id, racer]))
+      const popupEntries = finalRanking
+        .map((id) => byId.get(id))
+        .filter(Boolean)
+        .map((racer) => ({
+          id: racer.id,
+          name: racer.name,
+          finishTime: racer.finishTime
+        }))
+
+      lastTickAtRef.current = 0
+      clearProjectileTimers()
+      setProjectiles([])
+      projectilesRef.current = []
+      setIsRunning(false)
+      setRankingIds(finalRanking)
+      setResultPopup({ open: true, entries: popupEntries })
+    }
+  }, [appendSkillLogs, clearProjectileTimers, emitProjectiles, raceDistance, runSkillRollForRacer, selectedMap, spawnDizzyCliffEvents, updateMapHazards, updateProjectiles])
+
+  useEffect(() => {
+    if (!isRunning) return undefined
+    const interval = window.setInterval(tickRace, RACE_TICK_MS)
+    return () => window.clearInterval(interval)
+  }, [isRunning, tickRace])
+
+  useEffect(() => {
+    syncRacingBgm()
+  }, [syncRacingBgm])
+
+  useEffect(() => {
+    const logNode = skillLogRef.current
+    if (!logNode) return
+    logNode.scrollTop = logNode.scrollHeight
+  }, [skillLogs])
+
+  useEffect(() => {
+    return () => {
+      cancelBgmFade()
+      clearProjectileTimers()
+      const waitingAudio = waitingBgmRef.current
+      const playingAudio = playingBgmRef.current
+      if (waitingAudio) {
+        waitingAudio.pause()
+        waitingAudio.currentTime = 0
+      }
+      if (playingAudio) {
+        playingAudio.pause()
+        playingAudio.currentTime = 0
+      }
+    }
+  }, [cancelBgmFade, clearProjectileTimers])
+
+  return (
+    <>
+      <section className='card racing-card'>
+      <div className='racing-head'>
+        <div>
+          <h2 className='racing-title'>달려달려</h2>
+          <p className='racing-subtitle'>토끼 펫들이 스킬을 쓰며 경쟁하는 자동 레이스</p>
+          <div className='pet-name-input-wrap'>
+            <label htmlFor='pet-name-input'>참가 펫 이름 (콤마 구분)</label>
+            <div className='pet-name-input-row'>
+              <input
+                id='pet-name-input'
+                className='input-text pet-name-input'
+                placeholder='예: A, B, C, D'
+                value={petNamesInput}
+                onChange={(e) => setPetNamesInput(e.target.value)}
+                disabled={isRunning}
+              />
+              <button
+                className='btn ghost pet-name-shuffle-btn'
+                onClick={shufflePetNamesInput}
+                disabled={isRunning || parsedPetNames.length < 2}
+              >
+                섞기
+              </button>
+            </div>
+            <div className='race-config-row'>
+              <div className='race-config-field'>
+                <label htmlFor='track-length-input'>트랙 길이</label>
+                <input
+                  id='track-length-input'
+                  className='input-text pet-name-input'
+                  value={trackLengthInput}
+                  onChange={(e) => setTrackLengthInput(e.target.value)}
+                  disabled={isRunning}
+                />
+              </div>
+              <div className='race-config-field'>
+                <label htmlFor='map-select-input'>맵 선택</label>
+                <select
+                  id='map-select-input'
+                  className='input-text pet-name-input'
+                  value={selectedMap}
+                  onChange={(e) => setSelectedMap(e.target.value)}
+                  disabled={isRunning}
+                >
+                  <option value={MAP_DEFAULT}>기본</option>
+                  <option value={MAP_DIZZY_CLIFF}>어질어질한 절벽</option>
+                </select>
+              </div>
+            </div>
+            <button className='btn ghost skill-info-btn' onClick={openSkillInfoPopup}>
+              스킬 설명
+            </button>
+          </div>
+        </div>
+        <div className='racing-actions'>
+          <button className='btn primary' onClick={startRace} disabled={isRunning || !racers.length}>경주 시작</button>
+          <button className='btn ghost' onClick={resetRace}>초기화</button>
+          <button className='btn ghost' onClick={toggleRacingBgm}>
+            {bgmEnabled ? '브금 끄기' : '브금 켜기'}
+          </button>
+          <button className='btn ghost' onClick={toggleRacingSfx}>
+            {sfxEnabled ? '효과음 끄기' : '효과음 켜기'}
+          </button>
+        </div>
+      </div>
+
+      <div className='racing-meta'>
+        <span className={`race-state ${isRunning ? 'running' : raceCompleted ? 'finished' : ''}`}>
+          {isRunning ? '경주 진행중' : raceCompleted ? '경주 종료' : '대기'}
+        </span>
+        <span>선두: {raceLeader?.name ?? '-'}</span>
+        <span>트랙 길이: {raceDistance}</span>
+        <span>맵: {getMapLabel(selectedMap)}</span>
+      </div>
+
+      <div className='race-track-wrap'>
+        {!racerRows.length ? (
+          <div className='race-empty-state'>참가 펫 이름을 입력하면 레이스에 배치됩니다.</div>
+        ) : (
+          <div className={`race-unified-layout ${isRunning ? 'is-running' : ''}`} style={{ '--lane-count': racerRows.length }}>
+            <div className='race-roster'>
+              {racerRows.map(({ racer, idx, progress }) => (
+                <article key={racer.id} className='race-roster-item'>
+                  <div className='race-roster-head'>
+                    <strong>#{idx + 1}</strong>
+                    <span>{racer.name}</span>
+                  </div>
+                  {!isRunning ? (
+                    <div className='pet-picker'>
+                      <button
+                        className={`pet-option ${racer.petType === PET_TYPE_RABBIT ? 'active' : ''}`}
+                        onClick={() => selectPetType(racer.id, PET_TYPE_RABBIT)}
+                        title='토끼 선택'
+                      >
+                        <RabbitRacerIcon accentColor={racer.color} compact />
+                        <span>토끼</span>
+                      </button>
+                      <button
+                        className={`pet-option ${racer.petType === PET_TYPE_HORSE ? 'active' : ''}`}
+                        onClick={() => selectPetType(racer.id, PET_TYPE_HORSE)}
+                        title='말 선택'
+                      >
+                        <HorseRacerIcon accentColor={racer.color} compact />
+                        <span>말</span>
+                      </button>
+                    </div>
+                  ) : (
+                    <span className='pet-type-text'>{racer.petType === PET_TYPE_HORSE ? '말' : '토끼'}</span>
+                  )}
+                  <div className='race-roster-stats'>
+                    <span>{Math.round(progress)}%</span>
+                    <span>{racer.finished ? formatRaceDuration(racer.finishTime) : `${Math.round(racer.speed)} 속도`}</span>
+                    <span className='race-status'>{racer.status}</span>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className='race-unified-track' ref={trackWrapRef}>
+              <div className='race-lane-finish race-unified-finish'>도착</div>
+              {racerRows.map(({ racer, idx, eventClass, runnerLeft }) => {
+                const laneHazards = mapHazards.filter((hazard) => hazard.laneId === racer.id)
+                return (
+                  <div key={racer.id} className='race-unified-lane' ref={(node) => { trackRefs.current[racer.id] = node }}>
+                    <span className='race-unified-index'>#{idx + 1}</span>
+                    {laneHazards.map((hazard) => {
+                      const hazardRatio = raceDistance > 0 ? hazard.position / raceDistance : 0
+                      const hazardPercent = Math.max(0, Math.min(100, hazardRatio * 100))
+                      const hazardLeft = `clamp(20px, ${hazardPercent}%, calc(100% - 20px))`
+
+                      if (hazard.type === 'boulder') {
+                        return (
+                          <span
+                            key={hazard.id}
+                            className='map-hazard map-hazard-boulder'
+                            style={{ left: hazardLeft, '--boulder-angle': `${hazard.angleDeg}deg` }}
+                            aria-hidden='true'
+                          >
+                            <span className='map-hazard-boulder-spin'>
+                              <BoulderHazardIcon />
+                            </span>
+                          </span>
+                        )
+                      }
+
+                      return (
+                        <span key={hazard.id} className='map-hazard map-hazard-mud' style={{ left: hazardLeft }} aria-hidden='true'>
+                          <MudHazardIcon />
+                        </span>
+                      )
+                    })}
+                    <div className='race-unified-runner' style={{ left: runnerLeft }}>
+                      {racer.eventText ? <span className={`race-event ${eventClass}`}>{racer.eventText}</span> : null}
+                      <div className={`race-pet-visual ${racer.isShieldActive ? 'shielded' : ''}`}>
+                        {racer.petType === PET_TYPE_HORSE ? (
+                          <HorseRacerIcon accentColor={racer.color} />
+                        ) : (
+                          <RabbitRacerIcon accentColor={racer.color} />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+
+              {projectiles.map((shot) => (
+                <span
+                  key={shot.id}
+                  className='carrot-shot'
+                  style={{
+                    left: `${shot.x}px`,
+                    top: `${shot.y}px`,
+                    '--shot-rotate': `${shot.angleDeg}deg`
+                  }}
+                  aria-hidden='true'
+                >
+                  <CarrotProjectileIcon />
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <audio ref={waitingBgmRef} src={SOUND_SOURCES.bgmWaiting} preload='auto' loop />
+      <audio ref={playingBgmRef} src={SOUND_SOURCES.bgmPlaying} preload='auto' loop />
+      <audio ref={throwingSfxRef} src={SOUND_SOURCES.throwing} preload='auto' />
+      <audio ref={boostSfxRef} src={SOUND_SOURCES.boost} preload='auto' />
+      <audio ref={stunSfxRef} src={SOUND_SOURCES.stun} preload='auto' />
+      <audio ref={shieldBreakSfxRef} src={SOUND_SOURCES.shield} preload='auto' />
+
+      {raceCompleted ? (
+        <section className='race-ranking'>
+          <h3>최종 순위</h3>
+          <ol>
+            {rankingEntries.map((racer, idx) => (
+              <li key={racer.id}>
+                <span>{idx + 1}등 - {racer.name}</span>
+                <strong>{formatRaceDuration(racer.finishTime)}</strong>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
+
+        <section className='race-log-card'>
+          <h3>스킬 로그</h3>
+          <div className='race-log-list' ref={skillLogRef}>
+            {skillLogs.length ? (
+              skillLogs.map((log) => (
+                <div key={log.id} className='race-log-item'>
+                  <span className='race-log-time'>[{log.time}]</span>
+                  <span>{log.message}</span>
+                </div>
+              ))
+            ) : (
+              <div className='race-log-empty'>경주 시작 후 스킬 로그가 표시됩니다.</div>
+            )}
+          </div>
+        </section>
+      </section>
+
+      {resultPopup.open ? (
+        <div className='dialog-backdrop' onClick={closeResultPopup}>
+          <div className='dialog race-result-dialog' onClick={(e) => e.stopPropagation()}>
+            <h4>최종 결과</h4>
+            <ol className='race-result-list'>
+              {resultPopup.entries.map((entry, idx) => (
+                <li key={entry.id}>
+                  <span>{idx + 1}등 - {entry.name}</span>
+                  <strong>{formatRaceDuration(entry.finishTime)}</strong>
+                </li>
+              ))}
+            </ol>
+            <div className='dialog-actions'>
+              <button className='btn primary' onClick={closeResultPopup}>확인</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {skillInfoPopupOpen ? (
+        <div className='dialog-backdrop' onClick={closeSkillInfoPopup}>
+          <div className='dialog race-skill-dialog' onClick={(e) => e.stopPropagation()}>
+            <h4>스킬 설명</h4>
+            <table className='race-skill-table'>
+              <thead>
+                <tr>
+                  <th>항목</th>
+                  <th>효과</th>
+                  <th>확률</th>
+                  <th>지속</th>
+                  <th>비고</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>공격</td>
+                  <td>앞선 대상 1명에게 당근 투척</td>
+                  <td>20%</td>
+                  <td>즉시</td>
+                  <td>적중 시 2초 기절</td>
+                </tr>
+                <tr>
+                  <td>실드</td>
+                  <td>피격 1회 무효</td>
+                  <td>20%</td>
+                  <td>3초</td>
+                  <td>피격 시 즉시 해제</td>
+                </tr>
+                <tr>
+                  <td>부스트</td>
+                  <td>이동 속도 2배</td>
+                  <td>20%</td>
+                  <td>0.5~1초</td>
+                  <td>피격 시 50% 확률 회피</td>
+                </tr>
+                <tr>
+                  <td>맵: 낙석</td>
+                  <td>골인지점 방향에서 시작 방향으로 굴러옴</td>
+                  <td>20%/초</td>
+                  <td>충돌까지</td>
+                  <td>피격 시 3초 기절</td>
+                </tr>
+                <tr>
+                  <td>맵: 진흙탕</td>
+                  <td>진로에 생성된 진흙탕 접촉 시 감속</td>
+                  <td>20%/초</td>
+                  <td>3초</td>
+                  <td>50% 감속</td>
+                </tr>
+              </tbody>
+            </table>
+            <div className='dialog-actions'>
+              <button className='btn primary' onClick={closeSkillInfoPopup}>닫기</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+function CarrotProjectileIcon() {
+  return (
+    <svg className='carrot-shot-svg' viewBox='0 0 20 20' aria-hidden='true'>
+      <path d='M5 11 L14 5 L11 14 Z' fill='#f58c3b' />
+      <path d='M5 11 L11 14 L8 16 L3 12 Z' fill='#de7030' />
+      <path d='M12 4 C13.5 2.4, 15.2 2.2, 16.8 2.8 C15.8 3.9, 14.5 4.6, 13.2 5 Z' fill='#66c86b' />
+      <path d='M11.2 5.1 C12.2 3.2, 13.6 2.5, 15.2 2.4 C14.6 3.9, 13.4 5.1, 12.2 5.8 Z' fill='#4bab57' />
+    </svg>
+  )
+}
+
+function BoulderHazardIcon() {
+  return (
+    <svg className='map-hazard-svg' viewBox='0 0 24 24' aria-hidden='true'>
+      <path d='M5 18 L3.5 13 L6.5 7.5 L11 4 L17 5.2 L20.5 9.5 L21 15 L17.2 19.3 L10.5 20.5 Z' fill='#8f99ab' />
+      <path d='M9 7 L14.5 6.7 L18 9.6 L17.4 13.8 L13.9 16.7 L9.3 16.2 L7.1 12.6 Z' fill='#a5afbf' opacity='0.68' />
+      <circle cx='9' cy='11' r='1.2' fill='#6f798c' />
+      <circle cx='14.5' cy='13.5' r='1.1' fill='#6b7486' />
+    </svg>
+  )
+}
+
+function MudHazardIcon() {
+  return (
+    <svg className='map-hazard-svg' viewBox='0 0 50 20' aria-hidden='true'>
+      <ellipse cx='25' cy='12' rx='22' ry='6.8' fill='rgba(78, 56, 36, 0.92)' />
+      <ellipse cx='23' cy='11' rx='13' ry='3.7' fill='rgba(108, 80, 53, 0.88)' />
+      <ellipse cx='33' cy='13' rx='6.4' ry='2.7' fill='rgba(95, 71, 46, 0.86)' />
+    </svg>
+  )
+}
+
+function RabbitRacerIcon({ accentColor, compact = false }) {
+  return (
+    <div className={`rabbit-racer ${compact ? 'compact' : ''}`} style={{ '--rabbit-accent': accentColor }} aria-hidden='true'>
+      <svg className='rabbit-racer-svg' viewBox='0 0 120 96'>
+        <ellipse cx='64' cy='84' rx='38' ry='8' fill='rgba(8, 13, 24, 0.35)' />
+
+        <ellipse cx='44' cy='30' rx='11' ry='25' transform='rotate(-8 44 30)' fill='#ffffff' />
+        <ellipse cx='43' cy='30' rx='5' ry='16' transform='rotate(-8 43 30)' fill='#f5d8df' />
+        <ellipse cx='68' cy='28' rx='11' ry='27' transform='rotate(8 68 28)' fill='#ffffff' />
+        <ellipse cx='68' cy='28' rx='5' ry='17' transform='rotate(8 68 28)' fill='#f5d8df' />
+
+        <ellipse cx='45' cy='68' rx='18' ry='17' fill='#f0f4fb' />
+        <ellipse cx='77' cy='67' rx='28' ry='20' fill='#edf2fa' />
+        <ellipse cx='82' cy='74' rx='16' ry='14' fill='#eef2f9' />
+
+        <ellipse cx='62' cy='50' rx='33' ry='28' fill='#ffffff' />
+        <ellipse cx='89' cy='52' rx='20' ry='19' fill='#f7f9fc' />
+
+        <circle cx='56' cy='47' r='6.5' fill='#35445f' />
+        <circle cx='58' cy='45' r='2.3' fill='#f4f8ff' />
+        <circle cx='79' cy='49' r='6.2' fill='#364760' />
+        <circle cx='81' cy='47' r='2.1' fill='#f4f8ff' />
+
+        <ellipse cx='57' cy='59' rx='4.8' ry='3.5' fill='#f8e2e8' />
+        <ellipse cx='75' cy='60' rx='4.6' ry='3.4' fill='#f8e2e8' />
+
+        <path d='M66 57 C68 55, 71 55, 72 57 C71 60, 67 60, 66 57 Z' fill='#f2b6c0' />
+        <path d='M69 58 L69 63 M69 63 C66.5 65.5, 63 65.7, 60 63.5 M69 63 C71.5 65.6, 75.5 65.8, 78.5 63.4' stroke='#d38b96' strokeWidth='1.4' strokeLinecap='round' fill='none' />
+
+        <path d='M56 71 L68 73 L56 82 Z' fill='var(--rabbit-accent)' />
+        <path d='M81 73 L70 74 L81 83 Z' fill='var(--rabbit-accent)' />
+        <circle cx='69' cy='74' r='4.7' fill='#f3edf8' stroke='rgba(92, 108, 146, 0.35)' />
+      </svg>
+    </div>
+  )
+}
+
+function HorseRacerIcon({ accentColor, compact = false }) {
+  return (
+    <div className={`horse-racer ${compact ? 'compact' : ''}`} style={{ '--horse-accent': accentColor }} aria-hidden='true'>
+      <svg className='horse-racer-svg' viewBox='0 0 132 98'>
+        <ellipse cx='70' cy='86' rx='38' ry='8' fill='rgba(8, 13, 24, 0.34)' />
+
+        <ellipse cx='70' cy='56' rx='32' ry='21' fill='#aa5d3e' />
+        <ellipse cx='95' cy='53' rx='22' ry='18' fill='#b96d4d' />
+        <ellipse cx='108' cy='53' rx='10' ry='9' fill='#f7f3ed' />
+        <ellipse cx='96' cy='51' rx='8' ry='7' fill='#f3ede6' />
+
+        <rect x='47' y='72' width='10' height='16' rx='4' fill='#c1875f' />
+        <rect x='64' y='73' width='10' height='15' rx='4' fill='#9f573a' />
+        <rect x='84' y='73' width='10' height='15' rx='4' fill='#9f573a' />
+        <rect x='100' y='73' width='10' height='15' rx='4' fill='#c1875f' />
+        <rect x='46' y='84' width='12' height='6' rx='3' fill='#efe9df' />
+        <rect x='63' y='84' width='12' height='6' rx='3' fill='#efe9df' />
+        <rect x='83' y='84' width='12' height='6' rx='3' fill='#efe9df' />
+        <rect x='99' y='84' width='12' height='6' rx='3' fill='#efe9df' />
+
+        <path d='M40 43 C32 35, 30 28, 29 20 C34 25, 39 31, 44 38' fill='none' stroke='#c5986f' strokeWidth='4' strokeLinecap='round' />
+        <path d='M83 30 C86 23, 89 18, 94 14 C94 21, 93 26, 91 31 Z' fill='#d2a57a' />
+        <path d='M91 29 C95 22, 99 18, 105 14 C105 20, 104 25, 102 31 Z' fill='#c79567' />
+        <path d='M84 32 C88 27, 93 24, 98 23 C95 27, 90 32, 86 35 Z' fill='#b07a54' />
+
+        <ellipse cx='94' cy='31' rx='8' ry='8' fill='#c47a54' />
+        <ellipse cx='94' cy='31' rx='4' ry='4' fill='#f7efe6' />
+        <circle cx='97' cy='49' r='2.1' fill='#1f1f23' />
+        <circle cx='98' cy='48' r='0.8' fill='#f4f4f6' />
+
+        <ellipse cx='80' cy='57' rx='26' ry='14' fill='none' stroke='rgba(58, 33, 24, 0.42)' strokeWidth='6' />
+        <path d='M64 46 C72 50, 80 50, 86 45' fill='none' stroke='var(--horse-accent)' strokeWidth='3.4' strokeLinecap='round' />
+      </svg>
     </div>
   )
 }

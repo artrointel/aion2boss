@@ -1339,6 +1339,17 @@ tr.row-timer-disabled td.alert-cell {
   color: #e5f1ff;
 }
 
+.race-skill-prob-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.race-skill-prob-input {
+  width: 82px;
+  text-align: right;
+}
+
 .input-text {
   width: 100%;
   border: 1px solid var(--line);

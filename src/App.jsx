@@ -320,11 +320,13 @@ const SHIELD_DURATION_MS = 3000
 const BOULDER_STUN_DURATION_MS = 3000
 const MUD_SLOW_DURATION_MS = 3000
 const MUD_LIFETIME_MS = 9000
-const SKILL_ATTACK_CHANCE = 0.2
-const SKILL_SHIELD_CHANCE = 0.2
-const SKILL_BOOST_CHANCE = 0.2
-const MAP_BOULDER_CHANCE = 0.2
-const MAP_MUD_CHANCE = 0.2
+const DEFAULT_SKILL_CHANCE_PERCENT = {
+  attack: 20,
+  shield: 10,
+  boost: 20,
+  boulder: 20,
+  mud: 20
+}
 const CARROT_PROJECTILE_SPEED_PX_PER_MS = 0.225
 const CARROT_PROJECTILE_MAX_LIFETIME_MS = 2400
 const CARROT_HIT_DISTANCE_PX = 10
@@ -1860,6 +1862,7 @@ function RacingGamePage() {
     if (typeof window === 'undefined') return true
     return window.localStorage.getItem(RACING_SFX_STORAGE_KEY) !== 'false'
   })
+  const [skillChancePercent, setSkillChancePercent] = useState(() => ({ ...DEFAULT_SKILL_CHANCE_PERCENT }))
 
   const trackWrapRef = useRef(null)
   const trackRefs = useRef({})
@@ -1886,6 +1889,13 @@ function RacingGamePage() {
   const projectileTimerRef = useRef([])
   const hitTimerRef = useRef([])
   const parsedPetNames = useMemo(() => parsePetNamesInput(petNamesInput), [petNamesInput])
+  const effectiveSkillChance = useMemo(() => ({
+    attack: Math.max(0, Math.min(1, Number(skillChancePercent.attack) / 100)),
+    shield: Math.max(0, Math.min(1, Number(skillChancePercent.shield) / 100)),
+    boost: Math.max(0, Math.min(1, Number(skillChancePercent.boost) / 100)),
+    boulder: Math.max(0, Math.min(1, Number(skillChancePercent.boulder) / 100)),
+    mud: Math.max(0, Math.min(1, Number(skillChancePercent.mud) / 100))
+  }), [skillChancePercent])
   const raceDistance = useMemo(() => {
     const parsed = Number(trackLengthInput.trim())
     if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_RACE_DISTANCE
@@ -2062,6 +2072,15 @@ function RacingGamePage() {
 
   const toggleRacingSfx = useCallback(() => {
     setSfxEnabled((prev) => !prev)
+  }, [])
+
+  const updateSkillChancePercent = useCallback((key, rawValue) => {
+    const parsed = Number(rawValue)
+    const nextValue = Number.isFinite(parsed) ? Math.max(0, Math.min(100, parsed)) : 0
+    setSkillChancePercent((prev) => ({
+      ...prev,
+      [key]: nextValue
+    }))
   }, [])
 
   const closeResultPopup = useCallback(() => {
@@ -2301,7 +2320,7 @@ function RacingGamePage() {
     const activeRacers = racersSnapshot.filter((racer) => !racer.finished)
     if (!activeRacers.length) return
 
-    if (Math.random() < MAP_BOULDER_CHANCE) {
+    if (Math.random() < effectiveSkillChance.boulder) {
       const laneRacer = activeRacers[Math.floor(Math.random() * activeRacers.length)]
       const startRatio = 0.82 + Math.random() * 0.16
       const speed = raceDistance * (0.2 + Math.random() * 0.12)
@@ -2317,7 +2336,7 @@ function RacingGamePage() {
       pendingLogs.push(`낙석 발생! ${laneRacer.name} 라인으로 바위가 굴러옵니다.`)
     }
 
-    if (Math.random() < MAP_MUD_CHANCE) {
+    if (Math.random() < effectiveSkillChance.mud) {
       const laneRacer = activeRacers[Math.floor(Math.random() * activeRacers.length)]
       const mudRatio = 0.2 + Math.random() * 0.62
       hazardsDraft.push({
@@ -2329,7 +2348,7 @@ function RacingGamePage() {
       })
       pendingLogs.push(`진흙탕 생성! ${laneRacer.name} 라인에 진흙탕이 생겼습니다.`)
     }
-  }, [raceDistance])
+  }, [effectiveSkillChance.boulder, effectiveSkillChance.mud, raceDistance])
 
   const updateMapHazards = useCallback((hazardsPrev, racersSnapshot, now, tickSeconds, pendingLogs) => {
     const nextHazards = []
@@ -2398,7 +2417,7 @@ function RacingGamePage() {
     if (racer.finished) return
     if (racer.stunUntil > now) return
 
-    if (Math.random() < SKILL_ATTACK_CHANCE) {
+    if (Math.random() < effectiveSkillChance.attack) {
       const targets = mutableRacers.filter((candidate) => {
         if (candidate.id === racer.id || candidate.finished) return false
         return candidate.position > racer.position + 2
@@ -2419,7 +2438,7 @@ function RacingGamePage() {
       }
     }
 
-    if (Math.random() < SKILL_SHIELD_CHANCE) {
+    if (Math.random() < effectiveSkillChance.shield) {
       racer.shieldUntil = now + SHIELD_DURATION_MS
       racer.shieldCharges = 1
       racer.isShieldActive = true
@@ -2428,7 +2447,7 @@ function RacingGamePage() {
       pendingLogs.push(`${racer.name}이(가) 3초 실드를 사용했습니다.`)
     }
 
-    if (Math.random() < SKILL_BOOST_CHANCE) {
+    if (Math.random() < effectiveSkillChance.boost) {
       const boostMs = 500 + Math.random() * 500
       racer.boostUntil = Math.max(racer.boostUntil, now + boostMs)
       racer.eventText = '부스트'
@@ -2436,7 +2455,7 @@ function RacingGamePage() {
       playSfx(boostSfxRef, 0.78)
       pendingLogs.push(`${racer.name}이(가) ${(boostMs / 1000).toFixed(2)}초 부스트를 사용했습니다.`)
     }
-  }, [playSfx, raceDistance])
+  }, [effectiveSkillChance.attack, effectiveSkillChance.boost, effectiveSkillChance.shield, playSfx, raceDistance])
 
   const resetRace = useCallback(() => {
     setIsRunning(false)
@@ -2710,7 +2729,7 @@ function RacingGamePage() {
               </div>
             </div>
             <button className='btn ghost skill-info-btn' onClick={openSkillInfoPopup}>
-              스킬 설명
+              스킬 설정
             </button>
           </div>
         </div>
@@ -2904,7 +2923,7 @@ function RacingGamePage() {
       {skillInfoPopupOpen ? (
         <div className='dialog-backdrop' onClick={closeSkillInfoPopup}>
           <div className='dialog race-skill-dialog' onClick={(e) => e.stopPropagation()}>
-            <h4>스킬 설명</h4>
+            <h4>스킬 설정</h4>
             <table className='race-skill-table'>
               <thead>
                 <tr>
@@ -2919,35 +2938,100 @@ function RacingGamePage() {
                 <tr>
                   <td>공격</td>
                   <td>앞선 대상 1명에게 당근 투척</td>
-                  <td>20%</td>
+                  <td>
+                    <div className='race-skill-prob-wrap'>
+                      <input
+                        className='input-text compact race-skill-prob-input'
+                        type='number'
+                        min='0'
+                        max='100'
+                        step='1'
+                        value={skillChancePercent.attack}
+                        onChange={(e) => updateSkillChancePercent('attack', e.target.value)}
+                      />
+                      <span>%</span>
+                    </div>
+                  </td>
                   <td>즉시</td>
                   <td>적중 시 2초 기절</td>
                 </tr>
                 <tr>
                   <td>실드</td>
                   <td>피격 1회 무효</td>
-                  <td>20%</td>
+                  <td>
+                    <div className='race-skill-prob-wrap'>
+                      <input
+                        className='input-text compact race-skill-prob-input'
+                        type='number'
+                        min='0'
+                        max='100'
+                        step='1'
+                        value={skillChancePercent.shield}
+                        onChange={(e) => updateSkillChancePercent('shield', e.target.value)}
+                      />
+                      <span>%</span>
+                    </div>
+                  </td>
                   <td>3초</td>
                   <td>피격 시 즉시 해제</td>
                 </tr>
                 <tr>
                   <td>부스트</td>
                   <td>이동 속도 2배</td>
-                  <td>20%</td>
+                  <td>
+                    <div className='race-skill-prob-wrap'>
+                      <input
+                        className='input-text compact race-skill-prob-input'
+                        type='number'
+                        min='0'
+                        max='100'
+                        step='1'
+                        value={skillChancePercent.boost}
+                        onChange={(e) => updateSkillChancePercent('boost', e.target.value)}
+                      />
+                      <span>%</span>
+                    </div>
+                  </td>
                   <td>0.5~1초</td>
                   <td>피격 시 50% 확률 회피</td>
                 </tr>
                 <tr>
                   <td>맵: 낙석</td>
                   <td>골인지점 방향에서 시작 방향으로 굴러옴</td>
-                  <td>20%/초</td>
+                  <td>
+                    <div className='race-skill-prob-wrap'>
+                      <input
+                        className='input-text compact race-skill-prob-input'
+                        type='number'
+                        min='0'
+                        max='100'
+                        step='1'
+                        value={skillChancePercent.boulder}
+                        onChange={(e) => updateSkillChancePercent('boulder', e.target.value)}
+                      />
+                      <span>%/초</span>
+                    </div>
+                  </td>
                   <td>충돌까지</td>
                   <td>피격 시 3초 기절</td>
                 </tr>
                 <tr>
                   <td>맵: 진흙탕</td>
                   <td>진로에 생성된 진흙탕 접촉 시 감속</td>
-                  <td>20%/초</td>
+                  <td>
+                    <div className='race-skill-prob-wrap'>
+                      <input
+                        className='input-text compact race-skill-prob-input'
+                        type='number'
+                        min='0'
+                        max='100'
+                        step='1'
+                        value={skillChancePercent.mud}
+                        onChange={(e) => updateSkillChancePercent('mud', e.target.value)}
+                      />
+                      <span>%/초</span>
+                    </div>
+                  </td>
                   <td>3초</td>
                   <td>50% 감속</td>
                 </tr>

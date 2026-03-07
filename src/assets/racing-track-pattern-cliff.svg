@@ -1,0 +1,41 @@
+<svg width="220" height="56" viewBox="0 0 220 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="mudShade" x1="110" y1="0" x2="110" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5E4A3A" stop-opacity="0.16"/>
+      <stop offset="0.5" stop-color="#7A604B" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#584635" stop-opacity="0.16"/>
+    </linearGradient>
+    <linearGradient id="mudTrack" x1="0" y1="28" x2="220" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#9B7C5E" stop-opacity="0.22"/>
+      <stop offset="0.5" stop-color="#B89470" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#9B7C5E" stop-opacity="0.22"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="220" height="56" fill="url(#mudShade)"/>
+
+  <path d="M0 23C20 19 44 31 66 27C86 24 114 31 136 27C158 23 182 32 220 26V34C182 40 158 31 136 36C114 40 86 31 66 35C44 39 20 27 0 33V23Z" fill="url(#mudTrack)"/>
+
+  <g fill="#A9B0B7" fill-opacity="0.34">
+    <ellipse cx="14" cy="14" rx="3.5" ry="2.4"/>
+    <ellipse cx="44" cy="43" rx="4.1" ry="2.7"/>
+    <ellipse cx="72" cy="12" rx="3.4" ry="2.2"/>
+    <ellipse cx="96" cy="45" rx="3.7" ry="2.5"/>
+    <ellipse cx="124" cy="13" rx="3.9" ry="2.6"/>
+    <ellipse cx="152" cy="42" rx="3.3" ry="2.2"/>
+    <ellipse cx="176" cy="14" rx="4" ry="2.6"/>
+    <ellipse cx="204" cy="43" rx="3.6" ry="2.4"/>
+  </g>
+
+  <g stroke="#D1B390" stroke-opacity="0.24" stroke-width="0.9">
+    <path d="M0 20H220"/>
+    <path d="M0 36H220"/>
+  </g>
+
+  <g fill="#6F5A47" fill-opacity="0.28">
+    <path d="M0 8L6 3L12 8Z"/>
+    <path d="M55 9L61 4L67 9Z"/>
+    <path d="M110 8L116 3L122 8Z"/>
+    <path d="M165 9L171 4L177 9Z"/>
+  </g>
+</svg>

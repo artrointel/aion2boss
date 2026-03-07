@@ -1,0 +1,55 @@
+<svg width="220" height="56" viewBox="0 0 220 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="shade" x1="110" y1="0" x2="110" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B8D6A4" stop-opacity="0.12"/>
+      <stop offset="0.5" stop-color="#D6E6C9" stop-opacity="0.08"/>
+      <stop offset="1" stop-color="#A9C998" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="dirt" x1="0" y1="28" x2="220" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#C9B289" stop-opacity="0.2"/>
+      <stop offset="0.5" stop-color="#E2CFAB" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#C9B289" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="220" height="56" fill="url(#shade)"/>
+
+  <path d="M0 26C24 23 44 31 68 28C92 25 112 31 136 28C160 25 180 31 220 27V33C180 37 160 31 136 34C112 37 92 31 68 34C44 37 24 31 0 34V26Z" fill="url(#dirt)"/>
+
+  <g stroke="#DDEBCF" stroke-opacity="0.24" stroke-width="1.1" stroke-linecap="round">
+    <path d="M8 12L8 8"/>
+    <path d="M20 11L20 7"/>
+    <path d="M32 12L32 8"/>
+    <path d="M64 11L64 7"/>
+    <path d="M76 12L76 8"/>
+    <path d="M88 11L88 7"/>
+    <path d="M120 12L120 8"/>
+    <path d="M132 11L132 7"/>
+    <path d="M144 12L144 8"/>
+    <path d="M176 11L176 7"/>
+    <path d="M188 12L188 8"/>
+    <path d="M200 11L200 7"/>
+  </g>
+
+  <g stroke="#DDEBCF" stroke-opacity="0.24" stroke-width="1.1" stroke-linecap="round">
+    <path d="M8 48L8 44"/>
+    <path d="M20 49L20 45"/>
+    <path d="M32 48L32 44"/>
+    <path d="M64 49L64 45"/>
+    <path d="M76 48L76 44"/>
+    <path d="M88 49L88 45"/>
+    <path d="M120 48L120 44"/>
+    <path d="M132 49L132 45"/>
+    <path d="M144 48L144 44"/>
+    <path d="M176 49L176 45"/>
+    <path d="M188 48L188 44"/>
+    <path d="M200 49L200 45"/>
+  </g>
+
+  <g fill="#9FBF8C" fill-opacity="0.26">
+    <path d="M0 15L4 10L8 15Z"/>
+    <path d="M55 16L59 11L63 16Z"/>
+    <path d="M110 15L114 10L118 15Z"/>
+    <path d="M165 16L169 11L173 16Z"/>
+  </g>
+</svg>

@@ -1,0 +1,39 @@
+<svg width="220" height="56" viewBox="0 0 220 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="laneBase" x1="110" y1="0" x2="110" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0E2A45" stop-opacity="0.96"/>
+      <stop offset="0.5" stop-color="#103154" stop-opacity="0.98"/>
+      <stop offset="1" stop-color="#0C253D" stop-opacity="0.96"/>
+    </linearGradient>
+    <linearGradient id="arrowGlow" x1="0" y1="28" x2="220" y2="28" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7CC5FF" stop-opacity="0.36"/>
+      <stop offset="0.5" stop-color="#DDF3FF" stop-opacity="0.85"/>
+      <stop offset="1" stop-color="#7CC5FF" stop-opacity="0.36"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="220" height="56" fill="url(#laneBase)"/>
+
+  <path d="M0 8H220" stroke="#7FB5E5" stroke-opacity="0.4"/>
+  <path d="M0 48H220" stroke="#7FB5E5" stroke-opacity="0.4"/>
+
+  <g stroke="#78B8EE" stroke-opacity="0.24" stroke-width="0.8">
+    <path d="M-10 56L18 0"/>
+    <path d="M30 56L58 0"/>
+    <path d="M70 56L98 0"/>
+    <path d="M110 56L138 0"/>
+    <path d="M150 56L178 0"/>
+    <path d="M190 56L218 0"/>
+  </g>
+
+  <path d="M0 28H220" stroke="#D5EDFF" stroke-opacity="0.44" stroke-dasharray="2.5 4.5"/>
+
+  <g fill="url(#arrowGlow)">
+    <path d="M2 28L14 20L26 28L14 36Z"/>
+    <path d="M38 28L50 20L62 28L50 36Z"/>
+    <path d="M74 28L86 20L98 28L86 36Z"/>
+    <path d="M110 28L122 20L134 28L122 36Z"/>
+    <path d="M146 28L158 20L170 28L158 36Z"/>
+    <path d="M182 28L194 20L206 28L194 36Z"/>
+  </g>
+</svg>

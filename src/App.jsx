@@ -1,6 +1,12 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { initializeApp } from 'firebase/app'
 import { getDatabase, onValue, ref, remove, update } from 'firebase/database'
+import racingBackgroundImage from './assets/racing-background.svg'
+import racingDizzyCliffBackgroundImage from './assets/racing-background-dizzy-cliff.svg'
+import racingLaneSceneryCliff from './assets/racing-lane-scenery-cliff.svg'
+import racingLaneSceneryMeadow from './assets/racing-lane-scenery-meadow.svg'
+import racingTrackPatternCliff from './assets/racing-track-pattern-cliff.svg'
+import racingTrackPatternMeadow from './assets/racing-track-pattern-meadow.svg'
 
 const CONFIG = {
   FIREBASE: {
@@ -312,6 +318,9 @@ const PET_TYPE_HORSE = 'horse'
 const MAP_DEFAULT = 'default'
 const MAP_DIZZY_CLIFF = 'dizzy_cliff'
 const DEFAULT_RACE_DISTANCE = 1000
+const TRACK_WORLD_PX_PER_DISTANCE = 1.55
+const MIN_TRACK_WORLD_WIDTH_PX = 1400
+const MAX_TRACK_WORLD_WIDTH_PX = 9600
 const RACE_TICK_MS = 120
 const SKILL_CHECK_MS = 1000
 const MAP_EVENT_TICK_MS = 1000
@@ -323,15 +332,19 @@ const MUD_LIFETIME_MS = 9000
 const DEFAULT_SKILL_CHANCE_PERCENT = {
   attack: 20,
   shield: 10,
-  boost: 20,
+  boost: 15,
   boulder: 20,
   mud: 20
 }
-const CARROT_PROJECTILE_SPEED_PX_PER_MS = 0.225
-const CARROT_PROJECTILE_MAX_LIFETIME_MS = 2400
-const CARROT_HIT_DISTANCE_PX = 10
+const CARROT_PROJECTILE_SPEED_PX_PER_MS = 0.2925
+const CARROT_PROJECTILE_DISTANCE_ACCEL_PER_PX_PER_MS = 0.00045
+const CARROT_PROJECTILE_MAX_SPEED_PX_PER_MS = 1.55
+const CARROT_HIT_DISTANCE_PX = 18
+const RUNNER_EDGE_PADDING_PX = 28
+const RUNNER_MIN_PROGRESS_PERCENT = 3
 const RACING_BGM_STORAGE_KEY = 'aion2boss_racing_bgm_enabled'
 const RACING_SFX_STORAGE_KEY = 'aion2boss_racing_sfx_enabled'
+const RACING_AUTO_SCROLL_STORAGE_KEY = 'aion2boss_racing_auto_scroll_enabled'
 const RACING_BGM_VOLUME_SCALE = 0.5
 const RACING_SFX_VOLUME_SCALE = 0.7
 const RACING_BGM_BASE_VOLUME = 0.36 * RACING_BGM_VOLUME_SCALE
@@ -345,6 +358,8 @@ const SOUND_SOURCES = {
   stun: `${APP_BASE_URL}sound/stun.wav`,
   shield: `${APP_BASE_URL}sound/shield.wav`
 }
+const LANE_SCENERY_POSITIONS = [4, 12, 20, 28, 36, 44, 52, 60, 68, 76, 84, 92, 100, 108]
+const LANE_SCENERY_LANE_OFFSET_PERCENT = 7
 const RACER_COLOR_PALETTE = [
   '#ff8da1',
   '#7fd7ff',
@@ -1862,8 +1877,15 @@ function RacingGamePage() {
     if (typeof window === 'undefined') return true
     return window.localStorage.getItem(RACING_SFX_STORAGE_KEY) !== 'false'
   })
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(() => {
+    if (typeof window === 'undefined') return true
+    return window.localStorage.getItem(RACING_AUTO_SCROLL_STORAGE_KEY) !== 'false'
+  })
   const [skillChancePercent, setSkillChancePercent] = useState(() => ({ ...DEFAULT_SKILL_CHANCE_PERCENT }))
 
+  const trackScrollRef = useRef(null)
+  const autoScrollTargetRef = useRef(0)
+  const autoScrollFrameRef = useRef(0)
   const trackWrapRef = useRef(null)
   const trackRefs = useRef({})
   const skillLogRef = useRef(null)
@@ -1901,6 +1923,38 @@ function RacingGamePage() {
     if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_RACE_DISTANCE
     return Math.round(parsed)
   }, [trackLengthInput])
+  const trackWorldWidth = useMemo(() => {
+    const scaled = raceDistance * TRACK_WORLD_PX_PER_DISTANCE
+    return Math.round(
+      Math.max(MIN_TRACK_WORLD_WIDTH_PX, Math.min(MAX_TRACK_WORLD_WIDTH_PX, scaled))
+    )
+  }, [raceDistance])
+  const racingCardBackgroundStyle = useMemo(() => {
+    const isCliffMap = selectedMap === MAP_DIZZY_CLIFF
+    const backgroundImage = isCliffMap ? racingDizzyCliffBackgroundImage : racingBackgroundImage
+    const lanePatternImage = isCliffMap ? racingTrackPatternCliff : racingTrackPatternMeadow
+    const laneSceneryStripImage = isCliffMap ? racingLaneSceneryCliff : racingLaneSceneryMeadow
+    return {
+      '--racing-bg-image': `url(${backgroundImage})`,
+      '--racing-bg-overlay-top': isCliffMap ? 'rgba(18, 20, 22, 0.2)' : 'rgba(16, 28, 24, 0.14)',
+      '--racing-bg-overlay-bottom': isCliffMap ? 'rgba(14, 16, 20, 0.3)' : 'rgba(12, 24, 21, 0.24)',
+      '--track-shell-top': isCliffMap ? 'rgba(31, 25, 21, 0.58)' : 'rgba(21, 34, 26, 0.56)',
+      '--track-shell-bottom': isCliffMap ? 'rgba(20, 16, 14, 0.62)' : 'rgba(15, 27, 20, 0.6)',
+      '--track-border-color': isCliffMap ? 'rgba(122, 106, 89, 0.52)' : 'rgba(110, 150, 118, 0.48)',
+      '--lane-border-color': isCliffMap ? 'rgba(126, 108, 90, 0.5)' : 'rgba(108, 145, 114, 0.46)',
+      '--lane-base-top': isCliffMap ? 'rgba(58, 44, 34, 0.28)' : 'rgba(35, 63, 40, 0.26)',
+      '--lane-base-bottom': isCliffMap ? 'rgba(44, 33, 26, 0.36)' : 'rgba(26, 50, 31, 0.34)',
+      '--lane-scene-overlay-top': isCliffMap ? 'rgba(30, 24, 20, 0.08)' : 'rgba(20, 38, 27, 0.05)',
+      '--lane-scene-overlay-bottom': isCliffMap ? 'rgba(23, 18, 15, 0.16)' : 'rgba(16, 31, 22, 0.11)',
+      '--lane-center-line-color': isCliffMap ? 'rgba(176, 150, 124, 0.28)' : 'rgba(176, 215, 180, 0.26)',
+      '--lane-inner-line-color': isCliffMap ? 'rgba(169, 145, 120, 0.2)' : 'rgba(166, 206, 164, 0.19)',
+      '--lane-index-color': isCliffMap ? '#cab69f' : '#bedcb5',
+      '--lane-scenery-opacity': isCliffMap ? 0.62 : 0.58,
+      '--lane-scenery-strip-image': `url(${laneSceneryStripImage})`,
+      '--lane-scenery-strip-opacity': isCliffMap ? 0.34 : 0.3,
+      '--lane-track-pattern-image': `url(${lanePatternImage})`
+    }
+  }, [selectedMap])
 
   const shufflePetNamesInput = useCallback(() => {
     if (isRunning) return
@@ -1941,11 +1995,24 @@ function RacingGamePage() {
     window.localStorage.setItem(RACING_SFX_STORAGE_KEY, sfxEnabled ? 'true' : 'false')
   }, [sfxEnabled])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem(RACING_AUTO_SCROLL_STORAGE_KEY, autoScrollEnabled ? 'true' : 'false')
+  }, [autoScrollEnabled])
+
   const clearProjectileTimers = useCallback(() => {
     projectileTimerRef.current.forEach((timerId) => window.clearTimeout(timerId))
     hitTimerRef.current.forEach((timerId) => window.clearTimeout(timerId))
     projectileTimerRef.current = []
     hitTimerRef.current = []
+  }, [])
+
+  const stopTrackAutoScrollLoop = useCallback(() => {
+    const frameId = autoScrollFrameRef.current
+    if (frameId) {
+      window.cancelAnimationFrame(frameId)
+      autoScrollFrameRef.current = 0
+    }
   }, [])
 
   const playSfx = useCallback((audioRef, volume = 0.9) => {
@@ -2131,7 +2198,7 @@ function RacingGamePage() {
     return racers.map((racer, idx) => {
       const progressRaw = raceDistance > 0 ? (racer.position / raceDistance) * 100 : 0
       const progress = Math.max(0, Math.min(100, progressRaw))
-      const visualProgress = Math.max(3, progress)
+      const visualProgress = Math.max(RUNNER_MIN_PROGRESS_PERCENT, progress)
       const eventClass =
         racer.eventText === '공격'
           ? 'is-attack'
@@ -2154,7 +2221,7 @@ function RacingGamePage() {
         racer,
         progress,
         eventClass,
-        runnerLeft: `clamp(28px, ${visualProgress}%, calc(100% - 28px))`
+        runnerLeft: `clamp(${RUNNER_EDGE_PADDING_PX}px, ${visualProgress}%, calc(100% - ${RUNNER_EDGE_PADDING_PX}px))`
       }
     })
   }, [racers, raceDistance])
@@ -2180,8 +2247,13 @@ function RacingGamePage() {
     const wrapRect = trackWrap.getBoundingClientRect()
     const laneRect = trackLane.getBoundingClientRect()
     const safeProgress = Math.max(0, Math.min(100, progressPercent))
-
-    const x = laneRect.left - wrapRect.left + Math.min(laneRect.width - 10, Math.max(12, (safeProgress / 100) * laneRect.width))
+    const visualProgress = Math.max(RUNNER_MIN_PROGRESS_PERCENT, safeProgress)
+    const laneWidth = Math.max(1, laneRect.width)
+    const minX = Math.min(RUNNER_EDGE_PADDING_PX, laneWidth / 2)
+    const maxX = Math.max(minX, laneWidth - minX)
+    const runnerRange = Math.max(1, maxX - minX)
+    const runnerX = minX + (visualProgress / 100) * runnerRange
+    const x = laneRect.left - wrapRect.left + Math.max(minX, Math.min(maxX, runnerX))
     const y = laneRect.top - wrapRect.top + laneRect.height / 2
 
     return { x, y }
@@ -2227,7 +2299,7 @@ function RacingGamePage() {
       return
     }
 
-    target.stunUntil = Math.max(target.stunUntil, now + STUN_DURATION_MS)
+    target.stunUntil = now + STUN_DURATION_MS
     target.eventText = '기절'
     target.eventTicks = 10
     target.status = '기절'
@@ -2238,7 +2310,6 @@ function RacingGamePage() {
   const updateProjectiles = useCallback((shotsPrev, mutableRacers, now, elapsedMs, pendingLogs) => {
     if (!shotsPrev.length) return shotsPrev
 
-    const stepPx = Math.max(4, CARROT_PROJECTILE_SPEED_PX_PER_MS * elapsedMs)
     const nextShots = []
 
     shotsPrev.forEach((shot) => {
@@ -2265,16 +2336,38 @@ function RacingGamePage() {
         return
       }
 
-      if (now - shot.createdAt >= CARROT_PROJECTILE_MAX_LIFETIME_MS) {
-        pendingLogs.push(`${shot.attackerName}의 당근이 빗나갔습니다.`)
+      const projectileSpeedPxPerMs = Math.min(
+        CARROT_PROJECTILE_MAX_SPEED_PX_PER_MS,
+        CARROT_PROJECTILE_SPEED_PX_PER_MS + distance * CARROT_PROJECTILE_DISTANCE_ACCEL_PER_PX_PER_MS
+      )
+      const stepPx = Math.max(4, projectileSpeedPxPerMs * elapsedMs)
+      const moveDistance = Math.min(stepPx, Math.max(distance, 0))
+      const unitX = distance > 0 ? dx / distance : 0
+      const unitY = distance > 0 ? dy / distance : 0
+      const nextX = shot.x + unitX * moveDistance
+      const nextY = shot.y + unitY * moveDistance
+
+      const segDx = nextX - shot.x
+      const segDy = nextY - shot.y
+      const segLenSq = segDx * segDx + segDy * segDy
+      let t = 0
+      if (segLenSq > 0) {
+        t = ((targetPoint.x - shot.x) * segDx + (targetPoint.y - shot.y) * segDy) / segLenSq
+        t = Math.max(0, Math.min(1, t))
+      }
+      const closestX = shot.x + segDx * t
+      const closestY = shot.y + segDy * t
+      const closestDist = Math.hypot(targetPoint.x - closestX, targetPoint.y - closestY)
+
+      if (closestDist <= CARROT_HIT_DISTANCE_PX) {
+        resolveProjectileImpact(shot, mutableRacers, now, pendingLogs)
         return
       }
 
-      const ratio = Math.min(1, stepPx / Math.max(distance, 1))
       nextShots.push({
         ...shot,
-        x: shot.x + dx * ratio,
-        y: shot.y + dy * ratio,
+        x: nextX,
+        y: nextY,
         angleDeg: directionDeg + 32
       })
     })
@@ -2321,9 +2414,12 @@ function RacingGamePage() {
     if (!activeRacers.length) return
 
     if (Math.random() < effectiveSkillChance.boulder) {
-      const laneRacer = activeRacers[Math.floor(Math.random() * activeRacers.length)]
+      const topRacers = [...activeRacers]
+        .sort((a, b) => b.position - a.position)
+        .slice(0, Math.min(2, activeRacers.length))
+      const laneRacer = topRacers[Math.floor(Math.random() * topRacers.length)]
       const startRatio = 0.82 + Math.random() * 0.16
-      const speed = raceDistance * (0.2 + Math.random() * 0.12)
+      const speed = raceDistance * (0.1 + Math.random() * 0.06)
       hazardsDraft.push({
         id: `boulder-${hazardSeqRef.current++}`,
         type: 'boulder',
@@ -2375,7 +2471,7 @@ function RacingGamePage() {
             laneRacer.eventTicks = 12
             pendingLogs.push(`${laneRacer.name}이(가) 낙석을 실드로 막아냈습니다.`)
           } else {
-            laneRacer.stunUntil = Math.max(laneRacer.stunUntil, now + BOULDER_STUN_DURATION_MS)
+            laneRacer.stunUntil = now + BOULDER_STUN_DURATION_MS
             laneRacer.eventText = '기절'
             laneRacer.eventTicks = 12
             laneRacer.status = '기절'
@@ -2655,6 +2751,79 @@ function RacingGamePage() {
   }, [syncRacingBgm])
 
   useEffect(() => {
+    const scrollNode = trackScrollRef.current
+    if (!isRunning || !autoScrollEnabled || !scrollNode) {
+      stopTrackAutoScrollLoop()
+      return undefined
+    }
+
+    autoScrollTargetRef.current = scrollNode.scrollLeft
+    let prevTs = performance.now()
+
+    const animate = (ts) => {
+      const node = trackScrollRef.current
+      const trackNode = trackWrapRef.current
+      if (!node || !trackNode) {
+        autoScrollFrameRef.current = 0
+        return
+      }
+
+      const dt = Math.max(8, Math.min(48, ts - prevTs))
+      prevTs = ts
+
+      const racersSnapshot = racersRef.current
+      const runningRacers = racersSnapshot.filter((racer) => !racer.finished)
+      if (!runningRacers.length) {
+        autoScrollFrameRef.current = window.requestAnimationFrame(animate)
+        return
+      }
+
+      let focusedRacer = runningRacers[0]
+      for (let i = 1; i < runningRacers.length; i += 1) {
+        if (runningRacers[i].position > focusedRacer.position) {
+          focusedRacer = runningRacers[i]
+        }
+      }
+
+      const tickAgeMs = lastTickAtRef.current > 0
+        ? Math.max(0, Math.min(RACE_TICK_MS * 1.3, ts - lastTickAtRef.current))
+        : 0
+      const canProjectMove = focusedRacer.stunUntil <= ts && !focusedRacer.finished
+      const projectedPosition = canProjectMove
+        ? Math.min(raceDistance, focusedRacer.position + focusedRacer.speed * (tickAgeMs / 1000))
+        : focusedRacer.position
+      const focusedRatio = raceDistance > 0
+        ? Math.max(0, Math.min(1, projectedPosition / raceDistance))
+        : 0
+      const trackWidth = Math.max(1, trackNode.clientWidth)
+      const runnerX = 12 + focusedRatio * Math.max(0, trackWidth - 22)
+
+      const maxScrollLeft = Math.max(0, node.scrollWidth - node.clientWidth)
+      const lookAheadPx = Math.max(22, Math.min(170, focusedRacer.speed * 0.5))
+      const targetScrollLeftRaw = runnerX - node.clientWidth * 0.44 + lookAheadPx
+      const targetScrollLeft = Math.max(0, Math.min(maxScrollLeft, targetScrollLeftRaw))
+      const targetSmoothing = 1 - Math.exp(-dt / 120)
+      autoScrollTargetRef.current += (targetScrollLeft - autoScrollTargetRef.current) * targetSmoothing
+
+      const delta = autoScrollTargetRef.current - node.scrollLeft
+      if (Math.abs(delta) > 0.05) {
+        const smoothing = 1 - Math.exp(-dt / 82)
+        const next = node.scrollLeft + delta * smoothing
+        node.scrollLeft = Math.max(0, Math.min(maxScrollLeft, next))
+      } else if (Math.abs(delta) > 0) {
+        node.scrollLeft = autoScrollTargetRef.current
+      }
+
+      autoScrollFrameRef.current = window.requestAnimationFrame(animate)
+    }
+
+    autoScrollFrameRef.current = window.requestAnimationFrame(animate)
+    return () => {
+      stopTrackAutoScrollLoop()
+    }
+  }, [autoScrollEnabled, isRunning, raceDistance, stopTrackAutoScrollLoop, trackWorldWidth])
+
+  useEffect(() => {
     const logNode = skillLogRef.current
     if (!logNode) return
     logNode.scrollTop = logNode.scrollHeight
@@ -2663,6 +2832,7 @@ function RacingGamePage() {
   useEffect(() => {
     return () => {
       cancelBgmFade()
+      stopTrackAutoScrollLoop()
       clearProjectileTimers()
       const waitingAudio = waitingBgmRef.current
       const playingAudio = playingBgmRef.current
@@ -2675,11 +2845,11 @@ function RacingGamePage() {
         playingAudio.currentTime = 0
       }
     }
-  }, [cancelBgmFade, clearProjectileTimers])
+  }, [cancelBgmFade, clearProjectileTimers, stopTrackAutoScrollLoop])
 
   return (
     <>
-      <section className='card racing-card'>
+      <section className='card racing-card' style={racingCardBackgroundStyle}>
       <div className='racing-head'>
         <div>
           <h2 className='racing-title'>달려달려</h2>
@@ -2752,13 +2922,24 @@ function RacingGamePage() {
         <span>선두: {raceLeader?.name ?? '-'}</span>
         <span>트랙 길이: {raceDistance}</span>
         <span>맵: {getMapLabel(selectedMap)}</span>
+        <label className='race-auto-scroll-toggle'>
+          <input
+            type='checkbox'
+            checked={autoScrollEnabled}
+            onChange={(e) => setAutoScrollEnabled(e.target.checked)}
+          />
+          자동 스크롤
+        </label>
       </div>
 
       <div className='race-track-wrap'>
         {!racerRows.length ? (
           <div className='race-empty-state'>참가 펫 이름을 입력하면 레이스에 배치됩니다.</div>
         ) : (
-          <div className={`race-unified-layout ${isRunning ? 'is-running' : ''}`} style={{ '--lane-count': racerRows.length }}>
+          <div
+            className={`race-unified-layout ${isRunning ? 'is-running' : ''}`}
+            style={{ '--lane-count': racerRows.length, '--track-world-width': `${trackWorldWidth}px` }}
+          >
             <div className='race-roster'>
               {racerRows.map(({ racer, idx, progress }) => (
                 <article key={racer.id} className='race-roster-item'>
@@ -2797,67 +2978,106 @@ function RacingGamePage() {
               ))}
             </div>
 
-            <div className='race-unified-track' ref={trackWrapRef}>
-              <div className='race-lane-finish race-unified-finish'>도착</div>
-              {racerRows.map(({ racer, idx, eventClass, runnerLeft }) => {
-                const laneHazards = mapHazards.filter((hazard) => hazard.laneId === racer.id)
-                return (
-                  <div key={racer.id} className='race-unified-lane' ref={(node) => { trackRefs.current[racer.id] = node }}>
-                    <span className='race-unified-index'>#{idx + 1}</span>
-                    {laneHazards.map((hazard) => {
-                      const hazardRatio = raceDistance > 0 ? hazard.position / raceDistance : 0
-                      const hazardPercent = Math.max(0, Math.min(100, hazardRatio * 100))
-                      const hazardLeft = `clamp(20px, ${hazardPercent}%, calc(100% - 20px))`
-
-                      if (hazard.type === 'boulder') {
-                        return (
-                          <span
-                            key={hazard.id}
-                            className='map-hazard map-hazard-boulder'
-                            style={{ left: hazardLeft, '--boulder-angle': `${hazard.angleDeg}deg` }}
-                            aria-hidden='true'
-                          >
-                            <span className='map-hazard-boulder-spin'>
-                              <BoulderHazardIcon />
+            <div className='race-unified-track-scroll' ref={trackScrollRef}>
+              <div className='race-unified-track' ref={trackWrapRef}>
+                <div className='race-lane-finish race-unified-finish'>도착</div>
+                {racerRows.map(({ racer, idx, eventClass, runnerLeft }) => {
+                  const laneHazards = mapHazards.filter((hazard) => hazard.laneId === racer.id)
+                  const laneSceneryOffset = (idx * LANE_SCENERY_LANE_OFFSET_PERCENT) % 18
+                  const laneSceneryBase = -laneSceneryOffset
+                  return (
+                    <div
+                      key={racer.id}
+                      className='race-unified-lane'
+                      style={{
+                        '--lane-pattern-shift': `${(idx * 120) % 220}px`,
+                        '--lane-scene-x-shift': `${((idx * 73) % 260) - 130}px`,
+                        '--lane-scene-y-shift': `${(idx - (racerRows.length - 1) / 2) * 9}px`
+                      }}
+                      ref={(node) => { trackRefs.current[racer.id] = node }}
+                    >
+                      <span className='race-unified-index'>#{idx + 1}</span>
+                      <span className='race-lane-scenery' aria-hidden='true'>
+                        {LANE_SCENERY_POSITIONS.map((position, sceneryIdx) => {
+                          const sceneSeed = idx * 37 + sceneryIdx * 17
+                          const shifted = position + laneSceneryBase
+                          const wrapped = shifted < 0 ? shifted + 120 : shifted
+                          const sceneScale = 0.9 + ((sceneSeed % 24) / 100)
+                          const sceneYOffset = (sceneSeed % 11) - 5
+                          const sceneOpacity = 0.48 + ((sceneSeed % 16) / 100)
+                          const sceneVariant = sceneSeed % 4
+                          const sceneClass = sceneSeed % 3 === 0 ? 'is-back' : sceneSeed % 3 === 1 ? 'is-mid' : 'is-front'
+                          return (
+                            <span
+                              key={`${racer.id}-scene-${sceneryIdx}`}
+                              className={`race-lane-scenery-item ${sceneClass}`}
+                              style={{
+                                left: `${wrapped}%`,
+                                '--scene-scale': sceneScale.toFixed(2),
+                                '--scene-y': `${sceneYOffset}px`,
+                                '--scene-opacity': sceneOpacity.toFixed(2)
+                              }}
+                            >
+                              <LaneSceneryMark mapId={selectedMap} variant={sceneVariant} />
                             </span>
+                          )
+                        })}
+                      </span>
+                      {laneHazards.map((hazard) => {
+                        const hazardRatio = raceDistance > 0 ? hazard.position / raceDistance : 0
+                        const hazardPercent = Math.max(0, Math.min(100, hazardRatio * 100))
+                        const hazardLeft = `clamp(20px, ${hazardPercent}%, calc(100% - 20px))`
+
+                        if (hazard.type === 'boulder') {
+                          return (
+                            <span
+                              key={hazard.id}
+                              className='map-hazard map-hazard-boulder'
+                              style={{ left: hazardLeft, '--boulder-angle': `${hazard.angleDeg}deg` }}
+                              aria-hidden='true'
+                            >
+                              <span className='map-hazard-boulder-spin'>
+                                <BoulderHazardIcon />
+                              </span>
+                            </span>
+                          )
+                        }
+
+                        return (
+                          <span key={hazard.id} className='map-hazard map-hazard-mud' style={{ left: hazardLeft }} aria-hidden='true'>
+                            <MudHazardIcon />
                           </span>
                         )
-                      }
-
-                      return (
-                        <span key={hazard.id} className='map-hazard map-hazard-mud' style={{ left: hazardLeft }} aria-hidden='true'>
-                          <MudHazardIcon />
-                        </span>
-                      )
-                    })}
-                    <div className='race-unified-runner' style={{ left: runnerLeft }}>
-                      {racer.eventText ? <span className={`race-event ${eventClass}`}>{racer.eventText}</span> : null}
-                      <div className={`race-pet-visual ${racer.isShieldActive ? 'shielded' : ''}`}>
-                        {racer.petType === PET_TYPE_HORSE ? (
-                          <HorseRacerIcon accentColor={racer.color} />
-                        ) : (
-                          <RabbitRacerIcon accentColor={racer.color} />
-                        )}
+                      })}
+                      <div className='race-unified-runner' style={{ left: runnerLeft }}>
+                        {racer.eventText ? <span className={`race-event ${eventClass}`}>{racer.eventText}</span> : null}
+                        <div className={`race-pet-visual ${racer.isShieldActive ? 'shielded' : ''}`}>
+                          {racer.petType === PET_TYPE_HORSE ? (
+                            <HorseRacerIcon accentColor={racer.color} />
+                          ) : (
+                            <RabbitRacerIcon accentColor={racer.color} />
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
 
-              {projectiles.map((shot) => (
-                <span
-                  key={shot.id}
-                  className='carrot-shot'
-                  style={{
-                    left: `${shot.x}px`,
-                    top: `${shot.y}px`,
-                    '--shot-rotate': `${shot.angleDeg}deg`
-                  }}
-                  aria-hidden='true'
-                >
-                  <CarrotProjectileIcon />
-                </span>
-              ))}
+                {projectiles.map((shot) => (
+                  <span
+                    key={shot.id}
+                    className='carrot-shot'
+                    style={{
+                      left: `${shot.x}px`,
+                      top: `${shot.y}px`,
+                      '--shot-rotate': `${shot.angleDeg}deg`
+                    }}
+                    aria-hidden='true'
+                  >
+                    <CarrotProjectileIcon />
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -2997,7 +3217,7 @@ function RacingGamePage() {
                 </tr>
                 <tr>
                   <td>맵: 낙석</td>
-                  <td>골인지점 방향에서 시작 방향으로 굴러옴</td>
+                  <td>상위권 2명 중 랜덤 대상으로 골인지점 방향에서 시작 방향으로 굴러옴</td>
                   <td>
                     <div className='race-skill-prob-wrap'>
                       <input
@@ -3044,6 +3264,92 @@ function RacingGamePage() {
         </div>
       ) : null}
     </>
+  )
+}
+
+function LaneSceneryMark({ mapId, variant = 0 }) {
+  if (mapId === MAP_DIZZY_CLIFF) {
+    if (variant === 0) {
+      return (
+        <svg className='race-lane-scenery-mark is-cliff' viewBox='0 0 30 20' aria-hidden='true'>
+          <ellipse cx='15' cy='14.5' rx='12' ry='4.2' fill='rgba(106, 88, 72, 0.9)' />
+          <path d='M5 14 L9 10.3 L13 14 Z' fill='rgba(177, 151, 128, 0.84)' />
+          <path d='M12 14 L16.6 9.8 L21 14 Z' fill='rgba(190, 166, 143, 0.82)' />
+        </svg>
+      )
+    }
+    if (variant === 1) {
+      return (
+        <svg className='race-lane-scenery-mark is-cliff' viewBox='0 0 30 20' aria-hidden='true'>
+          <ellipse cx='15' cy='14.7' rx='11' ry='4' fill='rgba(93, 76, 63, 0.88)' />
+          <path d='M7 14 L10.8 9.7 L14.8 14 Z' fill='rgba(159, 134, 112, 0.82)' />
+          <path d='M14 14 L18.2 10.2 L22.6 14 Z' fill='rgba(176, 152, 129, 0.8)' />
+          <path d='M11.3 12 L12.6 10.8 M17.4 12.4 L18.8 11.2' stroke='rgba(126, 106, 89, 0.72)' strokeWidth='0.8' strokeLinecap='round' />
+        </svg>
+      )
+    }
+    if (variant === 2) {
+      return (
+        <svg className='race-lane-scenery-mark is-cliff' viewBox='0 0 30 20' aria-hidden='true'>
+          <ellipse cx='15' cy='14.4' rx='11.5' ry='4.1' fill='rgba(101, 84, 68, 0.9)' />
+          <ellipse cx='11' cy='12.4' rx='3.6' ry='2.4' fill='rgba(164, 140, 118, 0.82)' />
+          <ellipse cx='16.2' cy='11.8' rx='3.9' ry='2.5' fill='rgba(176, 152, 130, 0.82)' />
+          <ellipse cx='21' cy='12.8' rx='3.2' ry='2.1' fill='rgba(160, 135, 112, 0.8)' />
+        </svg>
+      )
+    }
+    return (
+      <svg className='race-lane-scenery-mark is-cliff' viewBox='0 0 30 20' aria-hidden='true'>
+        <ellipse cx='15' cy='14.7' rx='12' ry='4.3' fill='rgba(98, 80, 66, 0.9)' />
+        <path d='M4.8 14 L8.4 11 L11.8 14 Z' fill='rgba(170, 146, 124, 0.8)' />
+        <path d='M11.6 14 L15 9.6 L18.8 14 Z' fill='rgba(188, 165, 143, 0.84)' />
+        <path d='M18 14 L22.2 10.4 L25.4 14 Z' fill='rgba(166, 141, 118, 0.8)' />
+      </svg>
+    )
+  }
+
+  if (variant === 0) {
+    return (
+      <svg className='race-lane-scenery-mark is-meadow' viewBox='0 0 30 20' aria-hidden='true'>
+        <rect x='13.8' y='9' width='2.7' height='7' rx='1.35' fill='rgba(71, 90, 62, 0.95)' />
+        <ellipse cx='15.1' cy='8' rx='8.6' ry='5.9' fill='rgba(98, 129, 86, 0.9)' />
+        <ellipse cx='10.2' cy='9.2' rx='4.2' ry='3.2' fill='rgba(86, 118, 75, 0.84)' />
+        <ellipse cx='20.1' cy='9.1' rx='4.3' ry='3.2' fill='rgba(86, 118, 75, 0.84)' />
+        <path d='M3 17 L4.6 13.3 L6.2 17 M8.4 17 L10 13.5 L11.6 17 M20.2 17 L21.8 13.4 L23.4 17 M25 17 L26.6 13.4 L28.2 17' stroke='rgba(188, 220, 170, 0.75)' strokeWidth='1.1' strokeLinecap='round' strokeLinejoin='round' fill='none' />
+      </svg>
+    )
+  }
+  if (variant === 1) {
+    return (
+      <svg className='race-lane-scenery-mark is-meadow' viewBox='0 0 30 20' aria-hidden='true'>
+        <ellipse cx='9.8' cy='10.5' rx='5.6' ry='3.7' fill='rgba(90, 122, 77, 0.86)' />
+        <ellipse cx='15.3' cy='9.7' rx='6.2' ry='4.1' fill='rgba(100, 133, 88, 0.88)' />
+        <ellipse cx='21.1' cy='10.6' rx='5.5' ry='3.6' fill='rgba(88, 121, 76, 0.84)' />
+        <path d='M4 17 L5.6 13.2 L7.2 17 M10.6 17 L12.2 13.1 L13.8 17 M17.8 17 L19.4 13.2 L21 17 M24 17 L25.6 13.1 L27.2 17' stroke='rgba(194, 225, 174, 0.74)' strokeWidth='1.1' strokeLinecap='round' strokeLinejoin='round' fill='none' />
+      </svg>
+    )
+  }
+  if (variant === 2) {
+    return (
+      <svg className='race-lane-scenery-mark is-meadow' viewBox='0 0 30 20' aria-hidden='true'>
+        <rect x='7.5' y='10' width='2.4' height='6.2' rx='1.2' fill='rgba(69, 88, 60, 0.92)' />
+        <ellipse cx='8.7' cy='9.2' rx='4.8' ry='3.4' fill='rgba(96, 126, 84, 0.88)' />
+        <rect x='18.5' y='9.2' width='2.6' height='6.9' rx='1.3' fill='rgba(71, 90, 61, 0.94)' />
+        <ellipse cx='19.8' cy='8.4' rx='5.4' ry='3.8' fill='rgba(101, 132, 88, 0.9)' />
+        <path d='M2.8 17 L4.5 13.3 L6.2 17 M12.8 17 L14.4 13.3 L16 17 M22.6 17 L24.2 13.4 L25.8 17' stroke='rgba(188, 220, 170, 0.72)' strokeWidth='1.05' strokeLinecap='round' strokeLinejoin='round' fill='none' />
+      </svg>
+    )
+  }
+  return (
+    <svg className='race-lane-scenery-mark is-meadow' viewBox='0 0 30 20' aria-hidden='true'>
+      <rect x='13.5' y='9.1' width='2.8' height='7.1' rx='1.4' fill='rgba(70, 89, 61, 0.95)' />
+      <ellipse cx='14.9' cy='8.4' rx='9.2' ry='5.8' fill='rgba(102, 134, 89, 0.9)' />
+      <ellipse cx='9.3' cy='9.5' rx='4.3' ry='3.2' fill='rgba(88, 120, 76, 0.84)' />
+      <ellipse cx='20.7' cy='9.4' rx='4.3' ry='3.2' fill='rgba(88, 120, 76, 0.84)' />
+      <circle cx='6.7' cy='6.3' r='1.05' fill='rgba(255, 225, 164, 0.74)' />
+      <circle cx='23.5' cy='6.9' r='0.95' fill='rgba(252, 207, 165, 0.72)' />
+      <path d='M3.4 17 L5 13.4 L6.6 17 M8.8 17 L10.4 13.5 L12 17 M19.6 17 L21.2 13.4 L22.8 17 M24.8 17 L26.4 13.5 L28 17' stroke='rgba(190, 222, 171, 0.74)' strokeWidth='1.06' strokeLinecap='round' strokeLinejoin='round' fill='none' />
+    </svg>
   )
 }
 

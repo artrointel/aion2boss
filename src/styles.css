@@ -679,6 +679,16 @@ tr.row-timer-disabled td.alert-cell {
 .racing-card {
   display: grid;
   gap: 12px;
+  background-image:
+    linear-gradient(
+      180deg,
+      var(--racing-bg-overlay-top, rgba(8, 18, 33, 0.38)),
+      var(--racing-bg-overlay-bottom, rgba(8, 17, 30, 0.5))
+    ),
+    var(--racing-bg-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .racing-head {
@@ -762,11 +772,32 @@ tr.row-timer-disabled td.alert-cell {
   font-size: 0.86rem;
 }
 
+.race-auto-scroll-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(101, 145, 196, 0.48);
+  border-radius: 999px;
+  padding: 4px 10px;
+  background: rgba(17, 30, 46, 0.34);
+  color: #cde3ff;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+.race-auto-scroll-toggle input {
+  width: 14px;
+  height: 14px;
+  accent-color: #4fd7a1;
+}
+
 .race-state {
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 4px 10px;
-  background: rgba(17, 30, 46, 0.9);
+  background: rgba(17, 30, 46, 0.36);
+  backdrop-filter: blur(2px);
 }
 
 .race-state.running {
@@ -792,7 +823,8 @@ tr.row-timer-disabled td.alert-cell {
   padding: 14px 12px;
   color: #9ab5d8;
   text-align: center;
-  background: rgba(10, 20, 33, 0.65);
+  background: rgba(10, 20, 33, 0.22);
+  backdrop-filter: blur(2px);
 }
 
 .race-unified-layout {
@@ -820,7 +852,8 @@ tr.row-timer-disabled td.alert-cell {
 .race-roster-item {
   border: 1px solid rgba(82, 124, 179, 0.48);
   border-radius: 11px;
-  background: linear-gradient(180deg, rgba(14, 27, 43, 0.92), rgba(10, 21, 35, 0.96));
+  background: linear-gradient(180deg, rgba(14, 27, 43, 0.26), rgba(10, 21, 35, 0.34));
+  backdrop-filter: blur(2px);
   padding: 6px 8px;
   min-height: 66px;
   display: flex;
@@ -904,7 +937,7 @@ tr.row-timer-disabled td.alert-cell {
   border: 1px solid rgba(77, 120, 176, 0.58);
   border-radius: 9px;
   padding: 2px 4px;
-  background: rgba(13, 26, 43, 0.82);
+  background: rgba(13, 26, 43, 0.34);
   color: #d6e8ff;
   display: inline-flex;
   align-items: center;
@@ -916,7 +949,7 @@ tr.row-timer-disabled td.alert-cell {
 
 .pet-option.active {
   border-color: #6bc2ff;
-  background: rgba(27, 63, 96, 0.78);
+  background: rgba(27, 63, 96, 0.38);
   color: #f0f8ff;
   box-shadow: 0 0 0 1px rgba(107, 194, 255, 0.16);
 }
@@ -925,16 +958,46 @@ tr.row-timer-disabled td.alert-cell {
   border-color: rgba(130, 190, 249, 0.84);
 }
 
+.race-unified-track-scroll {
+  min-width: 0;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(110, 162, 225, 0.55) rgba(8, 20, 34, 0.34);
+}
+
+.race-unified-track-scroll::-webkit-scrollbar {
+  height: 9px;
+}
+
+.race-unified-track-scroll::-webkit-scrollbar-track {
+  background: rgba(8, 20, 34, 0.34);
+  border-radius: 999px;
+}
+
+.race-unified-track-scroll::-webkit-scrollbar-thumb {
+  background: rgba(110, 162, 225, 0.55);
+  border-radius: 999px;
+}
+
 .race-unified-track {
   position: relative;
-  border: 1px solid rgba(80, 120, 172, 0.52);
+  border: 1px solid var(--track-border-color, rgba(80, 120, 172, 0.52));
   border-radius: 12px;
-  background: linear-gradient(180deg, rgba(17, 31, 50, 0.96), rgba(11, 20, 33, 0.98));
+  background: linear-gradient(
+    180deg,
+    var(--track-shell-top, rgba(17, 31, 50, 0.54)),
+    var(--track-shell-bottom, rgba(11, 20, 33, 0.62))
+  );
   overflow: hidden;
   padding: 8px 10px;
   display: grid;
   gap: 8px;
   height: 100%;
+  width: var(--track-world-width, 100%);
+  min-width: 100%;
 }
 
 .race-unified-layout:not(.is-running) .race-unified-track {
@@ -944,10 +1007,88 @@ tr.row-timer-disabled td.alert-cell {
 .race-unified-lane {
   position: relative;
   height: var(--race-row-height);
-  border: 1px solid rgba(72, 109, 159, 0.35);
+  border: 1px solid var(--lane-border-color, rgba(72, 109, 159, 0.35));
   border-radius: 10px;
-  background: rgba(13, 24, 38, 0.78);
+  background-image:
+    linear-gradient(
+      180deg,
+      var(--lane-scene-overlay-top, rgba(20, 38, 27, 0.16)),
+      var(--lane-scene-overlay-bottom, rgba(16, 31, 22, 0.28))
+    ),
+    var(--lane-track-pattern-image),
+    var(--racing-bg-image),
+    linear-gradient(
+      180deg,
+      var(--lane-base-top, rgba(10, 26, 43, 0.82)),
+      var(--lane-base-bottom, rgba(8, 18, 31, 0.86))
+    );
+  background-repeat: no-repeat, repeat-x, no-repeat, no-repeat;
+  background-size: 100% 100%, 220px 56px, cover, 100% 100%;
+  background-position:
+    left top,
+    calc(-1 * var(--lane-pattern-shift, 0px)) center,
+    calc(50% + var(--lane-scene-x-shift, 0px)) calc(50% + var(--lane-scene-y-shift, 0px)),
+    left top;
+  box-shadow: inset 0 0 0 1px var(--lane-inner-line-color, rgba(111, 160, 217, 0.24));
   overflow: hidden;
+  z-index: 0;
+}
+
+.race-lane-scenery {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  overflow: hidden;
+  opacity: var(--lane-scenery-opacity, 0.58);
+}
+
+.race-lane-scenery::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--lane-scenery-strip-image);
+  background-repeat: repeat-x;
+  background-size: 220px 56px;
+  background-position: left center;
+  opacity: var(--lane-scenery-strip-opacity, 0.3);
+}
+
+.race-lane-scenery-item {
+  position: absolute;
+  top: 50%;
+  width: 56px;
+  height: 40px;
+  transform: translate(-50%, calc(-50% + var(--scene-y, 0px))) scale(var(--scene-scale, 1));
+  opacity: var(--scene-opacity, 0.56);
+  z-index: 1;
+}
+
+.race-lane-scenery-item:nth-child(2n) {
+  top: 54%;
+}
+
+.race-lane-scenery-item:nth-child(3n) {
+  top: 46%;
+}
+
+.race-lane-scenery-mark {
+  width: 100%;
+  height: 100%;
+  display: block;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+.race-lane-scenery-item.is-back {
+  filter: saturate(0.9);
+}
+
+.race-lane-scenery-item.is-mid {
+  filter: saturate(0.95);
+}
+
+.race-lane-scenery-item.is-front {
+  filter: saturate(1.02);
 }
 
 .race-unified-layout:not(.is-running) .race-unified-lane {
@@ -961,7 +1102,8 @@ tr.row-timer-disabled td.alert-cell {
   left: 0;
   right: 0;
   top: 50%;
-  border-top: 1px dashed rgba(146, 181, 227, 0.34);
+  border-top: 1px dashed var(--lane-center-line-color, rgba(146, 181, 227, 0.34));
+  z-index: 2;
 }
 
 .race-unified-index {
@@ -969,9 +1111,9 @@ tr.row-timer-disabled td.alert-cell {
   left: 8px;
   top: 6px;
   font-size: 0.68rem;
-  color: #8eb6df;
+  color: var(--lane-index-color, #8eb6df);
   font-weight: 700;
-  z-index: 1;
+  z-index: 2;
 }
 
 .race-lane-finish {
@@ -1201,7 +1343,8 @@ tr.row-timer-disabled td.alert-cell {
   margin-top: 4px;
   border: 1px solid rgba(94, 142, 201, 0.55);
   border-radius: 12px;
-  background: rgba(13, 24, 38, 0.8);
+  background: rgba(13, 24, 38, 0.28);
+  backdrop-filter: blur(2px);
   padding: 12px;
 }
 
@@ -1232,7 +1375,8 @@ tr.row-timer-disabled td.alert-cell {
 .race-log-card {
   border: 1px solid rgba(92, 136, 193, 0.55);
   border-radius: 12px;
-  background: linear-gradient(180deg, rgba(12, 24, 40, 0.88), rgba(11, 19, 31, 0.92));
+  background: linear-gradient(180deg, rgba(12, 24, 40, 0.28), rgba(11, 19, 31, 0.36));
+  backdrop-filter: blur(2px);
   padding: 12px;
   display: grid;
   gap: 8px;
@@ -1246,7 +1390,8 @@ tr.row-timer-disabled td.alert-cell {
 .race-log-list {
   border: 1px solid rgba(79, 114, 165, 0.4);
   border-radius: 10px;
-  background: rgba(8, 15, 25, 0.72);
+  background: rgba(8, 15, 25, 0.2);
+  backdrop-filter: blur(2px);
   max-height: 190px;
   overflow: auto;
   padding: 8px;

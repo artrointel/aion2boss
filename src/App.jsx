@@ -1315,7 +1315,14 @@ export default function App() {
   }, [applyMapTransform, constrainMap])
 
   useEffect(() => {
-    const handleEscape = (e) => {
+    const handleDialogKeydown = (e) => {
+      if (activeView === VIEW_BOSS && timeDialog.open && e.key === 'Enter' && !e.repeat) {
+        e.preventDefault()
+        e.stopPropagation()
+        saveRemainingTime()
+        return
+      }
+
       if (e.key !== 'Escape') return
 
       if (showForm) {
@@ -1335,9 +1342,16 @@ export default function App() {
       }
     }
 
-    window.addEventListener('keydown', handleEscape)
-    return () => window.removeEventListener('keydown', handleEscape)
-  }, [showForm, timeDialog.open, ttsNoticeDialogOpen, syncNoticeDialog.open])
+    window.addEventListener('keydown', handleDialogKeydown)
+    return () => window.removeEventListener('keydown', handleDialogKeydown)
+  }, [
+    activeView,
+    saveRemainingTime,
+    showForm,
+    timeDialog.open,
+    ttsNoticeDialogOpen,
+    syncNoticeDialog.open
+  ])
 
   useEffect(() => {
     if (!resizingColumn) return undefined

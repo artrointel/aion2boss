@@ -91,6 +91,11 @@ body {
   gap: 16px;
 }
 
+.app-shell-racing {
+  width: 100%;
+  max-width: none;
+}
+
 .topbar {
   display: flex;
   justify-content: space-between;
@@ -677,6 +682,14 @@ tr.row-timer-disabled td.alert-cell {
 }
 
 .racing-card {
+  --race-text-glow-soft:
+    0 0 7px rgba(6, 16, 30, 0.85),
+    0 0 14px rgba(20, 68, 117, 0.62),
+    0 0 22px rgba(49, 139, 230, 0.42);
+  --race-text-glow-strong:
+    0 0 8px rgba(7, 19, 35, 0.9),
+    0 0 16px rgba(23, 80, 136, 0.72),
+    0 0 28px rgba(67, 162, 255, 0.52);
   display: grid;
   gap: 12px;
   background-image:
@@ -691,12 +704,78 @@ tr.row-timer-disabled td.alert-cell {
   background-repeat: no-repeat;
 }
 
+.racing-card :is(
+  .racing-title,
+  .racing-subtitle,
+  .pet-name-input-wrap label,
+  .race-config-field label,
+  .racing-meta,
+  .race-state,
+  .race-auto-scroll-toggle,
+  .race-empty-state,
+  .race-roster-head,
+  .race-roster-head strong,
+  .race-roster-head span,
+  .race-roster-stats,
+  .pet-type-text,
+  .race-status,
+  .race-unified-index,
+  .race-lane-finish,
+  .race-event,
+  .race-ranking h3,
+  .race-ranking li,
+  .race-ranking li strong,
+  .race-log-card h3,
+  .race-log-item,
+  .race-log-time,
+  .race-log-empty,
+  .race-result-list li,
+  .race-result-list li strong,
+  .race-skill-table th,
+  .race-skill-table td
+) {
+  text-shadow: var(--race-text-glow-soft);
+}
+
+.racing-card :is(
+  .racing-title,
+  .race-state,
+  .race-status,
+  .race-unified-index,
+  .race-lane-finish,
+  .race-event,
+  .race-ranking li strong,
+  .race-result-list li strong
+) {
+  text-shadow: var(--race-text-glow-strong);
+}
+
 .racing-head {
+  display: grid;
+  grid-template-columns: minmax(340px, 500px) 1fr;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.racing-config-panel {
+  border: 1px solid rgba(94, 136, 191, 0.52);
+  border-radius: 13px;
+  background: linear-gradient(180deg, rgba(13, 29, 47, 0.3), rgba(10, 22, 36, 0.4));
+  backdrop-filter: blur(1px);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.racing-actions-panel {
+  border: 1px solid rgba(94, 136, 191, 0.52);
+  border-radius: 13px;
+  background: linear-gradient(180deg, rgba(12, 27, 44, 0.26), rgba(9, 20, 33, 0.36));
+  backdrop-filter: blur(1px);
+  padding: 10px;
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: flex-start;
-  gap: 10px;
-  flex-wrap: wrap;
 }
 
 .racing-title {
@@ -706,15 +785,14 @@ tr.row-timer-disabled td.alert-cell {
 }
 
 .racing-subtitle {
-  margin: 4px 0 0;
+  margin: 2px 0 0;
   color: var(--muted);
 }
 
 .pet-name-input-wrap {
-  margin-top: 10px;
   display: grid;
-  gap: 5px;
-  max-width: 430px;
+  gap: 8px;
+  max-width: 100%;
 }
 
 .pet-name-input-wrap label {
@@ -730,27 +808,27 @@ tr.row-timer-disabled td.alert-cell {
 
 .pet-name-input-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
 }
 
 .pet-name-shuffle-btn {
   white-space: nowrap;
-  min-width: 72px;
+  min-width: 92px;
   padding-left: 12px;
   padding-right: 12px;
 }
 
 .skill-info-btn {
-  margin-top: 6px;
+  margin-top: 2px;
   width: 100%;
 }
 
 .race-config-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
 .race-config-field {
@@ -762,6 +840,8 @@ tr.row-timer-disabled td.alert-cell {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  align-content: flex-start;
 }
 
 .racing-meta {
@@ -1738,6 +1818,18 @@ tr.row-timer-disabled td.alert-cell {
 @media (max-width: 1080px) {
   .boss-grid {
     grid-template-columns: 1fr;
+  }
+
+  .racing-head {
+    grid-template-columns: 1fr;
+  }
+
+  .racing-actions-panel {
+    justify-content: flex-start;
+  }
+
+  .racing-actions {
+    justify-content: flex-start;
   }
 
   .pet-name-input-wrap {

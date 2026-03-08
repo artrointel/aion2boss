@@ -967,6 +967,11 @@ export default function App() {
     closeRemainingDialog()
   }
 
+  const submitRemainingTime = (e) => {
+    e.preventDefault()
+    saveRemainingTime()
+  }
+
   const resetForm = () => {
     setForm(emptyForm)
     setEditingKey(null)
@@ -1372,7 +1377,7 @@ export default function App() {
       {!roomId ? (
         <section className='login-wrap'>
           <div className='login-card'>
-            <h1>마족 보스 관리</h1>
+            <h1>필드 보스 타이머</h1>
             <p>방 이름을 입력하고 역할을 선택하세요.</p>
 
             <input
@@ -1398,7 +1403,7 @@ export default function App() {
           </div>
         </section>
       ) : (
-        <main className='app-shell'>
+        <main className={`app-shell ${activeView === VIEW_RACING ? 'app-shell-racing' : ''}`}>
           <header className='topbar'>
             <div className='room-pill'>ROOM: {roomId} / {role === 'admin' ? '관리자' : '손님'}</div>
             <div className='topbar-actions'>
@@ -1741,42 +1746,44 @@ export default function App() {
           <div className='dialog' onClick={(e) => e.stopPropagation()}>
             <h4>남은 시간 수정</h4>
             <p>시/분/초를 입력하면 [{timeDialog.name || '보스'}]의 다음 젠까지 남은 시간을 바로 반영합니다.</p>
-            <div className='time-grid'>
-              <label>
-                시
-                <input
-                  type='number'
-                  min='0'
-                  max='24'
-                  value={timeDialog.h}
-                  onChange={(e) => setTimeDialog((prev) => ({ ...prev, h: e.target.value }))}
-                />
-              </label>
-              <label>
-                분
-                <input
-                  type='number'
-                  min='0'
-                  max='59'
-                  value={timeDialog.m}
-                  onChange={(e) => setTimeDialog((prev) => ({ ...prev, m: e.target.value }))}
-                />
-              </label>
-              <label>
-                초
-                <input
-                  type='number'
-                  min='0'
-                  max='59'
-                  value={timeDialog.s}
-                  onChange={(e) => setTimeDialog((prev) => ({ ...prev, s: e.target.value }))}
-                />
-              </label>
-            </div>
-            <div className='dialog-actions'>
-              <button className='btn ghost' onClick={closeRemainingDialog}>취소</button>
-              <button className='btn primary' onClick={saveRemainingTime}>적용</button>
-            </div>
+            <form onSubmit={submitRemainingTime}>
+              <div className='time-grid'>
+                <label>
+                  시
+                  <input
+                    type='number'
+                    min='0'
+                    max='24'
+                    value={timeDialog.h}
+                    onChange={(e) => setTimeDialog((prev) => ({ ...prev, h: e.target.value }))}
+                  />
+                </label>
+                <label>
+                  분
+                  <input
+                    type='number'
+                    min='0'
+                    max='59'
+                    value={timeDialog.m}
+                    onChange={(e) => setTimeDialog((prev) => ({ ...prev, m: e.target.value }))}
+                  />
+                </label>
+                <label>
+                  초
+                  <input
+                    type='number'
+                    min='0'
+                    max='59'
+                    value={timeDialog.s}
+                    onChange={(e) => setTimeDialog((prev) => ({ ...prev, s: e.target.value }))}
+                  />
+                </label>
+              </div>
+              <div className='dialog-actions'>
+                <button type='button' className='btn ghost' onClick={closeRemainingDialog}>취소</button>
+                <button type='submit' className='btn primary'>적용</button>
+              </div>
+            </form>
           </div>
         </div>
       ) : null}
@@ -2851,7 +2858,7 @@ function RacingGamePage() {
     <>
       <section className='card racing-card' style={racingCardBackgroundStyle}>
       <div className='racing-head'>
-        <div>
+        <div className='racing-config-panel'>
           <h2 className='racing-title'>달려달려</h2>
           <p className='racing-subtitle'>토끼 펫들이 스킬을 쓰며 경쟁하는 자동 레이스</p>
           <div className='pet-name-input-wrap'>
@@ -2870,7 +2877,7 @@ function RacingGamePage() {
                 onClick={shufflePetNamesInput}
                 disabled={isRunning || parsedPetNames.length < 2}
               >
-                섞기
+                {`섞기(${parsedPetNames.length})`}
               </button>
             </div>
             <div className='race-config-row'>
@@ -2903,15 +2910,17 @@ function RacingGamePage() {
             </button>
           </div>
         </div>
-        <div className='racing-actions'>
-          <button className='btn primary' onClick={startRace} disabled={isRunning || !racers.length}>경주 시작</button>
-          <button className='btn ghost' onClick={resetRace}>초기화</button>
-          <button className='btn ghost' onClick={toggleRacingBgm}>
-            {bgmEnabled ? '브금 끄기' : '브금 켜기'}
-          </button>
-          <button className='btn ghost' onClick={toggleRacingSfx}>
-            {sfxEnabled ? '효과음 끄기' : '효과음 켜기'}
-          </button>
+        <div className='racing-actions-panel'>
+          <div className='racing-actions'>
+            <button className='btn primary' onClick={startRace} disabled={isRunning || !racers.length}>경주 시작</button>
+            <button className='btn ghost' onClick={resetRace}>초기화</button>
+            <button className='btn ghost' onClick={toggleRacingBgm}>
+              {bgmEnabled ? '브금 끄기' : '브금 켜기'}
+            </button>
+            <button className='btn ghost' onClick={toggleRacingSfx}>
+              {sfxEnabled ? '효과음 끄기' : '효과음 켜기'}
+            </button>
+          </div>
         </div>
       </div>
 

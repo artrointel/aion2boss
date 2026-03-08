@@ -704,6 +704,19 @@ tr.row-timer-disabled td.alert-cell {
   background-repeat: no-repeat;
 }
 
+.racing-top-toggle {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.racing-collapse-btn {
+  min-width: 86px;
+}
+
+.racing-head-wrap.collapsed {
+  display: none;
+}
+
 .racing-card :is(
   .racing-title,
   .racing-subtitle,
@@ -719,6 +732,7 @@ tr.row-timer-disabled td.alert-cell {
   .race-roster-stats,
   .pet-type-text,
   .race-status,
+  .race-cooldown-text,
   .race-unified-index,
   .race-lane-finish,
   .race-event,
@@ -928,7 +942,7 @@ tr.row-timer-disabled td.alert-cell {
 }
 
 .race-unified-layout {
-  --race-row-height: 56px;
+  --race-row-height: 73px;
   display: grid;
   grid-template-columns: minmax(200px, 280px) 1fr;
   gap: 12px;
@@ -941,7 +955,7 @@ tr.row-timer-disabled td.alert-cell {
 
 .race-roster {
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .race-unified-layout.is-running .race-roster {
@@ -955,7 +969,7 @@ tr.row-timer-disabled td.alert-cell {
   background: linear-gradient(180deg, rgba(14, 27, 43, 0.26), rgba(10, 21, 35, 0.34));
   backdrop-filter: blur(2px);
   padding: 6px 8px;
-  min-height: 66px;
+  min-height: var(--race-row-height);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1192,8 +1206,8 @@ tr.row-timer-disabled td.alert-cell {
 }
 
 .race-unified-layout:not(.is-running) .race-unified-lane {
-  height: auto;
-  min-height: 0;
+  height: var(--race-row-height);
+  min-height: var(--race-row-height);
 }
 
 .race-unified-lane::before {
@@ -1250,12 +1264,90 @@ tr.row-timer-disabled td.alert-cell {
   will-change: left;
 }
 
+.race-runner-name {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% - 14px);
+  transform: translateX(-50%);
+  display: block;
+  max-width: 128px;
+  color: #0b0f14;
+  font-size: 0.83rem;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: center;
+  text-shadow:
+    0 0 2px rgba(255, 255, 255, 1),
+    0 0 4px rgba(255, 255, 255, 0.98),
+    0 0 7px rgba(255, 255, 255, 0.9),
+    0 0 11px rgba(255, 255, 255, 0.78),
+    0 0 16px rgba(255, 255, 255, 0.62),
+    0 1px 0 rgba(255, 255, 255, 0.9);
+  pointer-events: none;
+  z-index: 5;
+}
+
 .race-pet-visual {
+  --race-pet-anim-speed: 1;
   width: 62px;
   height: 52px;
   display: grid;
   place-items: center;
   position: relative;
+}
+
+.race-pet-visual.boosted {
+  --race-pet-anim-speed: 2;
+}
+
+.race-pet-visual.running {
+  --race-pet-anim-speed: 1.3;
+}
+
+.race-pet-visual.running.boosted {
+  --race-pet-anim-speed: 2;
+}
+
+.race-cooldown-wrap {
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  transform: translate(-50%, -2px);
+  width: 56px;
+  height: 9px;
+  border: 1px solid rgba(111, 154, 210, 0.66);
+  border-radius: 999px;
+  background: rgba(8, 20, 35, 0.84);
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.race-cooldown-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0%;
+  background: linear-gradient(90deg, rgba(58, 214, 152, 0.86), rgba(80, 172, 255, 0.88));
+  transition: width 120ms linear;
+}
+
+.race-cooldown-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.46rem;
+  font-weight: 700;
+  color: #e9f6ff;
+  letter-spacing: 0.01em;
+  line-height: 1;
 }
 
 .race-pet-visual.shielded::after {
@@ -1277,7 +1369,7 @@ tr.row-timer-disabled td.alert-cell {
   display: grid;
   place-items: center;
   transform-origin: 50% 90%;
-  animation: rabbit-hop 0.65s ease-in-out infinite;
+  animation: rabbit-hop calc(0.65s / var(--race-pet-anim-speed, 1)) ease-in-out infinite;
   filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
 }
 
@@ -1299,8 +1391,13 @@ tr.row-timer-disabled td.alert-cell {
   display: grid;
   place-items: center;
   transform-origin: 50% 90%;
-  animation: horse-trot 0.56s ease-in-out infinite;
+  animation: horse-trot calc(0.56s / var(--race-pet-anim-speed, 1)) ease-in-out infinite;
   filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
+}
+
+.race-pet-visual.stunned .rabbit-racer,
+.race-pet-visual.stunned .horse-racer {
+  animation-play-state: paused;
 }
 
 .horse-racer-svg {
@@ -1331,9 +1428,11 @@ tr.row-timer-disabled td.alert-cell {
   position: absolute;
   right: calc(100% + 6px);
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) scale(1);
+  transform-origin: 100% 50%;
   z-index: 4;
   pointer-events: none;
+  animation: race-event-pop 1040ms cubic-bezier(0.2, 1.25, 0.32, 1) both;
 }
 
 .race-event.is-attack {
@@ -1352,6 +1451,12 @@ tr.row-timer-disabled td.alert-cell {
   border-color: rgba(96, 211, 149, 0.8);
   background: rgba(35, 91, 65, 0.85);
   color: #d8ffe7;
+}
+
+.race-event.is-run {
+  border-color: rgba(112, 212, 255, 0.84);
+  background: rgba(24, 69, 102, 0.86);
+  color: #def4ff;
 }
 
 .race-event.is-stun {
@@ -1588,6 +1693,15 @@ tr.row-timer-disabled td.alert-cell {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+}
+
+.race-skill-range-grid {
+  display: grid;
+  gap: 6px;
+}
+
+.race-skill-range-wrap {
+  gap: 5px;
 }
 
 .race-skill-prob-input {
@@ -1835,6 +1949,21 @@ tr.row-timer-disabled td.alert-cell {
   }
 }
 
+@keyframes race-event-pop {
+  0% {
+    transform: translateY(-50%) scale(0.62);
+    opacity: 0;
+  }
+  58% {
+    transform: translateY(-50%) scale(1.16);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-50%) scale(1);
+    opacity: 1;
+  }
+}
+
 @media (max-width: 1080px) {
   .boss-grid {
     grid-template-columns: 1fr;
@@ -1928,11 +2057,11 @@ tr.row-timer-disabled td.alert-cell {
   }
 
   .race-unified-layout {
-    --race-row-height: 50px;
+    --race-row-height: 65px;
   }
 
   .race-unified-lane {
-    height: 50px;
+    height: var(--race-row-height);
   }
 
   .race-lane-finish {
@@ -1964,6 +2093,16 @@ tr.row-timer-disabled td.alert-cell {
     height: 46px;
   }
 
+  .race-cooldown-wrap {
+    width: 48px;
+    height: 8px;
+    transform: translate(-50%, -1px);
+  }
+
+  .race-cooldown-text {
+    font-size: 0.42rem;
+  }
+
   .pet-option {
     padding: 2px 4px;
     font-size: 0.66rem;
@@ -1977,6 +2116,12 @@ tr.row-timer-disabled td.alert-cell {
 
   .race-status {
     font-size: 0.68rem;
+  }
+
+  .race-runner-name {
+    max-width: 108px;
+    font-size: 0.75rem;
+    bottom: calc(100% - 12px);
   }
 
   .carrot-shot {

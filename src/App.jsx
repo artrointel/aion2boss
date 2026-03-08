@@ -322,13 +322,17 @@ const TRACK_WORLD_PX_PER_DISTANCE = 1.55
 const MIN_TRACK_WORLD_WIDTH_PX = 1400
 const MAX_TRACK_WORLD_WIDTH_PX = 9600
 const RACE_TICK_MS = 120
-const SKILL_CHECK_MS = 1000
+const INITIAL_SKILL_OFFSET_MAX_MS = 1000
 const MAP_EVENT_TICK_MS = 1000
 const STUN_DURATION_MS = 2000
 const SHIELD_DURATION_MS = 3000
 const BOULDER_STUN_DURATION_MS = 3000
 const MUD_SLOW_DURATION_MS = 3000
 const MUD_LIFETIME_MS = 9000
+const DEFAULT_SKILL_TICK_MIN_SEC = 1
+const DEFAULT_SKILL_TICK_MAX_SEC = 2
+const MIN_SKILL_TICK_SEC = 0.2
+const MAX_SKILL_TICK_SEC = 10
 const DEFAULT_SKILL_CHANCE_PERCENT = {
   attack: 20,
   shield: 10,
@@ -393,18 +397,26 @@ function createInitialRacers(names, previousRacers = []) {
       status: '대기',
       finished: false,
       finishTime: null,
-      baseSpeed: 55 + Math.random() * 12,
+      baseSpeed: (55 + Math.random() * 12) * 0.7,
       stunUntil: 0,
       shieldUntil: 0,
       shieldCharges: 0,
       isShieldActive: false,
       boostUntil: 0,
+      boostPendingCycle: false,
+      runUntil: 0,
       slowUntil: 0,
       isSlowed: false,
-      skillTickOffsetMs: Math.random() * SKILL_CHECK_MS,
+      skillTickOffsetMs: Math.random() * INITIAL_SKILL_OFFSET_MAX_MS,
       nextSkillRollAt: 0,
+      skillCooldownStartAt: 0,
+      skillCooldownDurationMs: 0,
+      cooldownPaused: false,
+      cooldownPauseRemainingMs: 0,
+      lastAilmentUntil: 0,
       eventText: '',
-      eventTicks: 0
+      eventTicks: 0,
+      eventSeq: 0
     }
   })
 }
@@ -419,6 +431,12 @@ function formatRaceClock(ms) {
   const m = String(Math.floor(safe / 60)).padStart(2, '0')
   const s = String(safe % 60).padStart(2, '0')
   return `${m}:${s}`
+}
+
+function applyRacerEvent(racer, text, ticks = 10) {
+  racer.eventText = text
+  racer.eventTicks = ticks
+  racer.eventSeq = (racer.eventSeq || 0) + 1
 }
 
 function getMapLabel(mapId) {
@@ -1890,6 +1908,7 @@ function RacingGamePage() {
   const [skillLogs, setSkillLogs] = useState([])
   const [resultPopup, setResultPopup] = useState({ open: false, entries: [] })
   const [skillInfoPopupOpen, setSkillInfoPopupOpen] = useState(false)
+  const [isTopPanelsCollapsed, setIsTopPanelsCollapsed] = useState(false)
   const [bgmEnabled, setBgmEnabled] = useState(() => {
     if (typeof window === 'undefined') return true
     return window.localStorage.getItem(RACING_BGM_STORAGE_KEY) !== 'false'
@@ -1903,6 +1922,10 @@ function RacingGamePage() {
     return window.localStorage.getItem(RACING_AUTO_SCROLL_STORAGE_KEY) !== 'false'
   })
   const [skillChancePercent, setSkillChancePercent] = useState(() => ({ ...DEFAULT_SKILL_CHANCE_PERCENT }))
+  const [skillTickRangeSec, setSkillTickRangeSec] = useState(() => ({
+    min: DEFAULT_SKILL_TICK_MIN_SEC,
+    max: DEFAULT_SKILL_TICK_MAX_SEC
+  }))
 
   const trackScrollRef = useRef(null)
   const autoScrollTargetRef = useRef(0)
@@ -1939,6 +1962,24 @@ function RacingGamePage() {
     boulder: Math.max(0, Math.min(1, Number(skillChancePercent.boulder) / 100)),
     mud: Math.max(0, Math.min(1, Number(skillChancePercent.mud) / 100))
   }), [skillChancePercent])
+  const effectiveSkillTickRange = useMemo(() => {
+    const rawMin = Number(skillTickRangeSec.min)
+    const rawMax = Number(skillTickRangeSec.max)
+    const clampedMin = Number.isFinite(rawMin)
+      ? Math.max(MIN_SKILL_TICK_SEC, Math.min(MAX_SKILL_TICK_SEC, rawMin))
+      : DEFAULT_SKILL_TICK_MIN_SEC
+    const clampedMax = Number.isFinite(rawMax)
+      ? Math.max(MIN_SKILL_TICK_SEC, Math.min(MAX_SKILL_TICK_SEC, rawMax))
+      : DEFAULT_SKILL_TICK_MAX_SEC
+    const minSec = Math.min(clampedMin, clampedMax)
+    const maxSec = Math.max(clampedMin, clampedMax)
+    return {
+      minSec,
+      maxSec,
+      minMs: minSec * 1000,
+      maxMs: maxSec * 1000
+    }
+  }, [skillTickRangeSec.max, skillTickRangeSec.min])
   const raceDistance = useMemo(() => {
     const parsed = Number(trackLengthInput.trim())
     if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_RACE_DISTANCE
@@ -2171,6 +2212,27 @@ function RacingGamePage() {
     }))
   }, [])
 
+  const updateSkillTickRangeSec = useCallback((key, rawValue) => {
+    const parsed = Number(rawValue)
+    const nextValue = Number.isFinite(parsed)
+      ? Math.max(MIN_SKILL_TICK_SEC, Math.min(MAX_SKILL_TICK_SEC, parsed))
+      : MIN_SKILL_TICK_SEC
+    setSkillTickRangeSec((prev) => {
+      const next = { ...prev, [key]: nextValue }
+      if (next.min > next.max) {
+        if (key === 'min') next.max = next.min
+        else next.min = next.max
+      }
+      return next
+    })
+  }, [])
+
+  const getRandomSkillTickMs = useCallback(() => {
+    const { minMs, maxMs } = effectiveSkillTickRange
+    if (maxMs <= minMs) return minMs
+    return minMs + Math.random() * (maxMs - minMs)
+  }, [effectiveSkillTickRange])
+
   const closeResultPopup = useCallback(() => {
     setResultPopup((prev) => ({ ...prev, open: false }))
   }, [])
@@ -2216,10 +2278,26 @@ function RacingGamePage() {
   }, [rankingIds, racers])
 
   const racerRows = useMemo(() => {
+    const nowTick = typeof window !== 'undefined' && window.performance?.now
+      ? window.performance.now()
+      : Date.now()
     return racers.map((racer, idx) => {
       const progressRaw = raceDistance > 0 ? (racer.position / raceDistance) * 100 : 0
       const progress = Math.max(0, Math.min(100, progressRaw))
       const visualProgress = Math.max(RUNNER_MIN_PROGRESS_PERCENT, progress)
+      const isStunned = racer.stunUntil > nowTick && !racer.finished
+      const isBoosted = racer.boostUntil > nowTick && !racer.finished
+      const isRunningState = racer.runUntil > nowTick && !racer.finished
+      const cooldownDurationMs = Math.max(1, Number(racer.skillCooldownDurationMs) || 1)
+      const cooldownRemainingMs = isRunning && !racer.finished
+        ? racer.cooldownPaused
+          ? Math.max(0, Number(racer.cooldownPauseRemainingMs) || cooldownDurationMs)
+          : Math.max(0, (Number(racer.nextSkillRollAt) || 0) - nowTick)
+        : 0
+      const cooldownElapsedMs = racer.cooldownPaused
+        ? 0
+        : Math.max(0, cooldownDurationMs - cooldownRemainingMs)
+      const cooldownProgress = Math.max(0, Math.min(1, cooldownElapsedMs / cooldownDurationMs))
       const eventClass =
         racer.eventText === '공격'
           ? 'is-attack'
@@ -2227,6 +2305,8 @@ function RacingGamePage() {
             ? 'is-shield'
             : racer.eventText === '부스트'
               ? 'is-boost'
+              : racer.eventText === '달려!'
+                ? 'is-run'
               : racer.eventText === '기절'
                 ? 'is-stun'
                 : racer.eventText === '완주' || /\d+등$/.test(racer.eventText)
@@ -2241,11 +2321,16 @@ function RacingGamePage() {
         idx,
         racer,
         progress,
+        isStunned,
+        isBoosted,
+        isRunningState,
+        cooldownProgressPercent: cooldownProgress * 100,
+        cooldownText: isRunning && !racer.finished ? `${(cooldownRemainingMs / 1000).toFixed(1)}s` : '',
         eventClass,
         runnerLeft: `clamp(${RUNNER_EDGE_PADDING_PX}px, ${visualProgress}%, calc(100% - ${RUNNER_EDGE_PADDING_PX}px))`
       }
     })
-  }, [racers, raceDistance])
+  }, [isRunning, racers, raceDistance])
 
   const appendSkillLogs = useCallback((messages, now) => {
     if (!messages.length) return
@@ -2304,8 +2389,7 @@ function RacingGamePage() {
       } else {
         pendingLogs.push(`${attackerName}의 당근을 ${target.name}이(가) 회피했습니다.`)
       }
-      target.eventText = '회피!'
-      target.eventTicks = 12
+      applyRacerEvent(target, '회피!', 12)
       return
     }
 
@@ -2313,16 +2397,14 @@ function RacingGamePage() {
       target.shieldCharges = 0
       target.shieldUntil = now
       target.isShieldActive = false
-      target.eventText = '방어'
-      target.eventTicks = 10
+      applyRacerEvent(target, '방어', 10)
       playSfx(shieldBreakSfxRef, 0.72)
       pendingLogs.push(`${attackerName}의 당근이 ${target.name}에게 도착! 실드가 공격을 막았습니다.`)
       return
     }
 
     target.stunUntil = now + STUN_DURATION_MS
-    target.eventText = '기절'
-    target.eventTicks = 10
+    applyRacerEvent(target, '기절', 10)
     target.status = '기절'
     playSfx(stunSfxRef, 0.8)
     pendingLogs.push(`${attackerName}의 당근이 ${target.name}에게 적중! 2초 동안 기절합니다.`)
@@ -2488,13 +2570,11 @@ function RacingGamePage() {
             laneRacer.shieldCharges = 0
             laneRacer.shieldUntil = now
             laneRacer.isShieldActive = false
-            laneRacer.eventText = '방어'
-            laneRacer.eventTicks = 12
+            applyRacerEvent(laneRacer, '방어', 12)
             pendingLogs.push(`${laneRacer.name}이(가) 낙석을 실드로 막아냈습니다.`)
           } else {
             laneRacer.stunUntil = now + BOULDER_STUN_DURATION_MS
-            laneRacer.eventText = '기절'
-            laneRacer.eventTicks = 12
+            applyRacerEvent(laneRacer, '기절', 12)
             laneRacer.status = '기절'
             playSfx(stunSfxRef, 0.8)
             pendingLogs.push(`${laneRacer.name}이(가) 낙석에 맞아 3초 기절했습니다.`)
@@ -2517,8 +2597,7 @@ function RacingGamePage() {
         if (Math.abs(laneRacer.position - hazard.position) <= triggerRange) {
           laneRacer.slowUntil = Math.max(laneRacer.slowUntil, now + MUD_SLOW_DURATION_MS)
           laneRacer.isSlowed = true
-          laneRacer.eventText = '감속'
-          laneRacer.eventTicks = 12
+          applyRacerEvent(laneRacer, '감속', 12)
           pendingLogs.push(`${laneRacer.name}이(가) 진흙탕에 빠져 3초간 50% 감속됩니다.`)
           return
         }
@@ -2531,8 +2610,9 @@ function RacingGamePage() {
   }, [playSfx, raceDistance])
 
   const runSkillRollForRacer = useCallback((racer, mutableRacers, now, pendingLogs, pendingShots) => {
-    if (racer.finished) return
-    if (racer.stunUntil > now) return
+    if (racer.finished) return 'skipped'
+    if (racer.stunUntil > now) return 'skipped'
+    let usedSkill = false
 
     if (Math.random() < effectiveSkillChance.attack) {
       const targets = mutableRacers.filter((candidate) => {
@@ -2549,9 +2629,9 @@ function RacingGamePage() {
           fromProgress: (racer.position / raceDistance) * 100,
           toProgress: (target.position / raceDistance) * 100
         })
-        racer.eventText = '공격'
-        racer.eventTicks = 10
+        applyRacerEvent(racer, '공격', 10)
         pendingLogs.push(`${racer.name}이(가) ${target.name}에게 당근을 던졌습니다.`)
+        usedSkill = true
       }
     }
 
@@ -2559,19 +2639,20 @@ function RacingGamePage() {
       racer.shieldUntil = now + SHIELD_DURATION_MS
       racer.shieldCharges = 1
       racer.isShieldActive = true
-      racer.eventText = '실드'
-      racer.eventTicks = 10
+      applyRacerEvent(racer, '실드', 10)
       pendingLogs.push(`${racer.name}이(가) 3초 실드를 사용했습니다.`)
+      usedSkill = true
     }
 
     if (Math.random() < effectiveSkillChance.boost) {
-      const boostMs = 500 + Math.random() * 500
-      racer.boostUntil = Math.max(racer.boostUntil, now + boostMs)
-      racer.eventText = '부스트'
-      racer.eventTicks = 10
+      racer.boostPendingCycle = true
+      applyRacerEvent(racer, '부스트', 10)
       playSfx(boostSfxRef, 0.78)
-      pendingLogs.push(`${racer.name}이(가) ${(boostMs / 1000).toFixed(2)}초 부스트를 사용했습니다.`)
+      pendingLogs.push(`${racer.name}이(가) 다음 스킬 시도까지 부스트를 사용합니다.`)
+      usedSkill = true
     }
+
+    return usedSkill ? 'used' : 'none'
   }, [effectiveSkillChance.attack, effectiveSkillChance.boost, effectiveSkillChance.shield, playSfx, raceDistance])
 
   const resetRace = useCallback(() => {
@@ -2627,11 +2708,17 @@ function RacingGamePage() {
     const nextRacers = createInitialRacers(parsedPetNames, racersRef.current).map((racer) => ({
         ...racer,
         nextSkillRollAt: now + racer.skillTickOffsetMs,
+        skillCooldownStartAt: now,
+        skillCooldownDurationMs: Math.max(1, racer.skillTickOffsetMs),
+        cooldownPaused: false,
+        cooldownPauseRemainingMs: 0,
+        lastAilmentUntil: 0,
         status: '질주'
       }))
     racersRef.current = nextRacers
     setRacers(nextRacers)
     restartPlayingBgmRef.current = true
+    setIsTopPanelsCollapsed(true)
     setIsRunning(true)
   }, [clearProjectileTimers, isRunning, parsedPetNames])
 
@@ -2644,20 +2731,83 @@ function RacingGamePage() {
     const pendingLogs = []
     const pendingShots = []
 
-    const next = racersRef.current.map((racer) => ({
-      ...racer,
-      eventTicks: Math.max(0, racer.eventTicks - eventTickDecay),
-      eventText: racer.eventTicks > eventTickDecay ? racer.eventText : ''
-    }))
+    const next = racersRef.current.map((racer) => {
+      const keepFinishRankLabel = racer.finished && /\d+등$/.test(racer.eventText || '')
+      if (keepFinishRankLabel) {
+        return { ...racer }
+      }
+      return {
+        ...racer,
+        eventTicks: Math.max(0, racer.eventTicks - eventTickDecay),
+        eventText: racer.eventTicks > eventTickDecay ? racer.eventText : ''
+      }
+    })
 
     next.forEach((racer) => {
       if (racer.finished) return
+
+      const ailmentUntil = Math.max(racer.stunUntil || 0, racer.slowUntil || 0)
+      const ailmentActive = ailmentUntil > now
+      if (ailmentActive) {
+        const isNewAilment = ailmentUntil > (racer.lastAilmentUntil || 0) + 1
+        if (isNewAilment) {
+          const resetCooldownMs = getRandomSkillTickMs()
+          racer.skillCooldownDurationMs = resetCooldownMs
+          racer.skillCooldownStartAt = now
+          racer.nextSkillRollAt = now + resetCooldownMs
+          racer.cooldownPauseRemainingMs = resetCooldownMs
+          racer.cooldownPaused = true
+          racer.runUntil = 0
+        } else if (!racer.cooldownPaused) {
+          racer.cooldownPauseRemainingMs = Math.max(
+            1,
+            (Number(racer.nextSkillRollAt) || now) - now
+          )
+          racer.cooldownPaused = true
+        }
+        racer.lastAilmentUntil = ailmentUntil
+      } else {
+        if (racer.cooldownPaused) {
+          const resumeRemainingMs = Math.max(
+            1,
+            Number(racer.cooldownPauseRemainingMs) || Number(racer.skillCooldownDurationMs) || getRandomSkillTickMs()
+          )
+          racer.cooldownPaused = false
+          racer.cooldownPauseRemainingMs = 0
+          racer.skillCooldownStartAt = now
+          racer.skillCooldownDurationMs = resumeRemainingMs
+          racer.nextSkillRollAt = now + resumeRemainingMs
+        }
+        racer.lastAilmentUntil = 0
+      }
+
+      if (racer.cooldownPaused) return
+
       if (!Number.isFinite(racer.nextSkillRollAt) || racer.nextSkillRollAt <= 0) {
-        racer.nextSkillRollAt = now + racer.skillTickOffsetMs
+        const initialDelay = Math.max(1, racer.skillTickOffsetMs || getRandomSkillTickMs())
+        racer.skillCooldownStartAt = now
+        racer.skillCooldownDurationMs = initialDelay
+        racer.cooldownPauseRemainingMs = 0
+        racer.nextSkillRollAt = now + initialDelay
       }
       while (!racer.finished && now >= racer.nextSkillRollAt) {
-        runSkillRollForRacer(racer, next, now, pendingLogs, pendingShots)
-        racer.nextSkillRollAt += SKILL_CHECK_MS
+        const rollAt = racer.nextSkillRollAt
+        const rollResult = runSkillRollForRacer(racer, next, now, pendingLogs, pendingShots)
+        const nextTickMs = getRandomSkillTickMs()
+        racer.skillCooldownStartAt = rollAt
+        racer.skillCooldownDurationMs = nextTickMs
+        racer.nextSkillRollAt = rollAt + nextTickMs
+        if (racer.boostPendingCycle) {
+          racer.boostUntil = rollAt + nextTickMs
+          racer.boostPendingCycle = false
+        }
+        if (rollResult === 'none') {
+          racer.runUntil = rollAt + nextTickMs
+          applyRacerEvent(racer, '달려!', Math.max(8, Math.round(nextTickMs / RACE_TICK_MS)))
+          pendingLogs.push(`${racer.name}이(가) 달려 상태로 질주합니다.`)
+        } else {
+          racer.runUntil = 0
+        }
       }
     })
 
@@ -2681,6 +2831,7 @@ function RacingGamePage() {
       const stunned = racer.stunUntil > now
       const boosted = racer.boostUntil > now
       const slowed = racer.slowUntil > now
+      const running = racer.runUntil > now
       const shielded = racer.shieldUntil > now && racer.shieldCharges > 0
       if (racer.shieldUntil <= now) {
         racer.shieldCharges = 0
@@ -2696,7 +2847,7 @@ function RacingGamePage() {
 
       if (!stunned) {
         const pace = 0.86 + Math.random() * 0.32
-        speed = racer.baseSpeed * pace * (boosted ? 2 : 1) * (slowed ? 0.5 : 1)
+        speed = racer.baseSpeed * pace * (boosted ? 2 : (running ? 1.3 : 1)) * (slowed ? 0.5 : 1)
         nextPosition = Math.min(raceDistance, racer.position + speed * tickSeconds)
       }
 
@@ -2705,8 +2856,7 @@ function RacingGamePage() {
       if (finished && !racer.finished) {
         finishTime = now - startTimeRef.current
         finishOrderRef.current.push(racer.id)
-        racer.eventText = `${finishOrderRef.current.length}등`
-        racer.eventTicks = 12
+        applyRacerEvent(racer, `${finishOrderRef.current.length}등`, 12)
         pendingLogs.push(`${racer.name}이(가) 완주했습니다. (${formatRaceDuration(finishTime)})`)
       }
 
@@ -2716,6 +2866,7 @@ function RacingGamePage() {
       else if (boosted) status = '부스트'
       else if (slowed) status = '감속'
       else if (shielded) status = '실드'
+      else if (running) status = '달려!'
 
       racer.position = nextPosition
       racer.speed = speed
@@ -2759,7 +2910,7 @@ function RacingGamePage() {
       setRankingIds(finalRanking)
       setResultPopup({ open: true, entries: popupEntries })
     }
-  }, [appendSkillLogs, clearProjectileTimers, emitProjectiles, raceDistance, runSkillRollForRacer, selectedMap, spawnDizzyCliffEvents, updateMapHazards, updateProjectiles])
+  }, [appendSkillLogs, clearProjectileTimers, emitProjectiles, getRandomSkillTickMs, raceDistance, runSkillRollForRacer, selectedMap, spawnDizzyCliffEvents, updateMapHazards, updateProjectiles])
 
   useEffect(() => {
     if (!isRunning) return undefined
@@ -2871,72 +3022,82 @@ function RacingGamePage() {
   return (
     <>
       <section className='card racing-card' style={racingCardBackgroundStyle}>
-      <div className='racing-head'>
-        <div className='racing-config-panel'>
-          <h2 className='racing-title'>달려달려</h2>
-          <p className='racing-subtitle'>토끼 펫들이 스킬을 쓰며 경쟁하는 자동 레이스</p>
-          <div className='pet-name-input-wrap'>
-            <label htmlFor='pet-name-input'>참가 펫 이름 (콤마 구분)</label>
-            <div className='pet-name-input-row'>
-              <input
-                id='pet-name-input'
-                className='input-text pet-name-input'
-                placeholder='예: A, B, C, D'
-                value={petNamesInput}
-                onChange={(e) => setPetNamesInput(e.target.value)}
-                disabled={isRunning}
-              />
-              <button
-                className='btn ghost pet-name-shuffle-btn'
-                onClick={shufflePetNamesInput}
-                disabled={isRunning || parsedPetNames.length < 2}
-              >
-                {`섞기(${parsedPetNames.length})`}
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className='racing-actions-panel'>
-          <div className='racing-actions'>
-            <button className='btn primary' onClick={startRace} disabled={isRunning || !racers.length}>경주 시작</button>
-            <button className='btn ghost' onClick={resetRace}>초기화</button>
-            <button className='btn ghost' onClick={toggleRacingBgm}>
-              {bgmEnabled ? '브금 끄기' : '브금 켜기'}
-            </button>
-            <button className='btn ghost' onClick={toggleRacingSfx}>
-              {sfxEnabled ? '효과음 끄기' : '효과음 켜기'}
-            </button>
-          </div>
-          <div className='racing-track-options'>
-            <div className='racing-track-options-title'>트랙 옵션</div>
-            <div className='race-config-row'>
-              <div className='race-config-field'>
-                <label htmlFor='track-length-input'>트랙 길이</label>
+      <div className='racing-top-toggle'>
+        <button
+          className='btn ghost tiny racing-collapse-btn'
+          onClick={() => setIsTopPanelsCollapsed((prev) => !prev)}
+        >
+          {isTopPanelsCollapsed ? '메뉴 펼치기' : '메뉴 접기'}
+        </button>
+      </div>
+      <div className={`racing-head-wrap ${isTopPanelsCollapsed ? 'collapsed' : ''}`}>
+        <div className='racing-head'>
+          <div className='racing-config-panel'>
+            <h2 className='racing-title'>달려달려</h2>
+            <p className='racing-subtitle'>토끼 펫들이 스킬을 쓰며 경쟁하는 자동 레이스</p>
+            <div className='pet-name-input-wrap'>
+              <label htmlFor='pet-name-input'>참가 펫 이름 (콤마 구분)</label>
+              <div className='pet-name-input-row'>
                 <input
-                  id='track-length-input'
+                  id='pet-name-input'
                   className='input-text pet-name-input'
-                  value={trackLengthInput}
-                  onChange={(e) => setTrackLengthInput(e.target.value)}
+                  placeholder='예: A, B, C, D'
+                  value={petNamesInput}
+                  onChange={(e) => setPetNamesInput(e.target.value)}
                   disabled={isRunning}
                 />
-              </div>
-              <div className='race-config-field'>
-                <label htmlFor='map-select-input'>맵 선택</label>
-                <select
-                  id='map-select-input'
-                  className='input-text pet-name-input'
-                  value={selectedMap}
-                  onChange={(e) => setSelectedMap(e.target.value)}
-                  disabled={isRunning}
+                <button
+                  className='btn ghost pet-name-shuffle-btn'
+                  onClick={shufflePetNamesInput}
+                  disabled={isRunning || parsedPetNames.length < 2}
                 >
-                  <option value={MAP_DEFAULT}>기본</option>
-                  <option value={MAP_DIZZY_CLIFF}>어질어질한 절벽</option>
-                </select>
+                  {`섞기(${parsedPetNames.length})`}
+                </button>
               </div>
             </div>
-            <button className='btn ghost skill-info-btn' onClick={openSkillInfoPopup}>
-              스킬 설정
-            </button>
+          </div>
+          <div className='racing-actions-panel'>
+            <div className='racing-actions'>
+              <button className='btn primary' onClick={startRace} disabled={isRunning || !racers.length}>경주 시작</button>
+              <button className='btn ghost' onClick={resetRace}>초기화</button>
+              <button className='btn ghost' onClick={toggleRacingBgm}>
+                {bgmEnabled ? '브금 끄기' : '브금 켜기'}
+              </button>
+              <button className='btn ghost' onClick={toggleRacingSfx}>
+                {sfxEnabled ? '효과음 끄기' : '효과음 켜기'}
+              </button>
+            </div>
+            <div className='racing-track-options'>
+              <div className='racing-track-options-title'>트랙 옵션</div>
+              <div className='race-config-row'>
+                <div className='race-config-field'>
+                  <label htmlFor='track-length-input'>트랙 길이</label>
+                  <input
+                    id='track-length-input'
+                    className='input-text pet-name-input'
+                    value={trackLengthInput}
+                    onChange={(e) => setTrackLengthInput(e.target.value)}
+                    disabled={isRunning}
+                  />
+                </div>
+                <div className='race-config-field'>
+                  <label htmlFor='map-select-input'>맵 선택</label>
+                  <select
+                    id='map-select-input'
+                    className='input-text pet-name-input'
+                    value={selectedMap}
+                    onChange={(e) => setSelectedMap(e.target.value)}
+                    disabled={isRunning}
+                  >
+                    <option value={MAP_DEFAULT}>기본</option>
+                    <option value={MAP_DIZZY_CLIFF}>어질어질한 절벽</option>
+                  </select>
+                </div>
+              </div>
+              <button className='btn ghost skill-info-btn' onClick={openSkillInfoPopup}>
+                스킬 설정
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -3007,8 +3168,15 @@ function RacingGamePage() {
             <div className='race-unified-track-scroll' ref={trackScrollRef}>
               <div className='race-unified-track' ref={trackWrapRef}>
                 <div className='race-lane-finish race-unified-finish'>도착</div>
-                {racerRows.map(({ racer, idx, eventClass, runnerLeft }) => {
+                {racerRows.map(({ racer, idx, eventClass, runnerLeft, cooldownProgressPercent, cooldownText, isStunned, isBoosted, isRunningState }) => {
                   const laneHazards = mapHazards.filter((hazard) => hazard.laneId === racer.id)
+                  const petVisualClassName = [
+                    'race-pet-visual',
+                    racer.isShieldActive ? 'shielded' : '',
+                    isStunned ? 'stunned' : '',
+                    isBoosted ? 'boosted' : '',
+                    isRunningState ? 'running' : ''
+                  ].filter(Boolean).join(' ')
                   const laneSceneryOffset = (idx * LANE_SCENERY_LANE_OFFSET_PERCENT) % 18
                   const laneSceneryBase = -laneSceneryOffset
                   return (
@@ -3076,14 +3244,25 @@ function RacingGamePage() {
                         )
                       })}
                       <div className='race-unified-runner' style={{ left: runnerLeft }}>
-                        {racer.eventText ? <span className={`race-event ${eventClass}`}>{racer.eventText}</span> : null}
-                        <div className={`race-pet-visual ${racer.isShieldActive ? 'shielded' : ''}`}>
+                        {isRunning ? <span className='race-runner-name'>{racer.name}</span> : null}
+                        {racer.eventText ? (
+                          <span key={`${racer.id}-${racer.eventSeq || 0}`} className={`race-event ${eventClass}`}>
+                            {racer.eventText}
+                          </span>
+                        ) : null}
+                        <div className={petVisualClassName}>
                           {racer.petType === PET_TYPE_HORSE ? (
                             <HorseRacerIcon accentColor={racer.color} />
                           ) : (
                             <RabbitRacerIcon accentColor={racer.color} />
                           )}
                         </div>
+                        {isRunning && !racer.finished ? (
+                          <span className='race-cooldown-wrap'>
+                            <span className='race-cooldown-fill' style={{ width: `${cooldownProgressPercent}%` }} />
+                            <span className='race-cooldown-text'>{cooldownText}</span>
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                   )
@@ -3182,6 +3361,42 @@ function RacingGamePage() {
               </thead>
               <tbody>
                 <tr>
+                  <td>스킬 사용 빈도</td>
+                  <td>각 펫이 스킬 판정을 시도하는 간격</td>
+                  <td>
+                    <div className='race-skill-range-grid'>
+                      <div className='race-skill-prob-wrap race-skill-range-wrap'>
+                        <span>최소</span>
+                        <input
+                          className='input-text compact race-skill-prob-input'
+                          type='number'
+                          min={MIN_SKILL_TICK_SEC}
+                          max={MAX_SKILL_TICK_SEC}
+                          step='0.1'
+                          value={skillTickRangeSec.min}
+                          onChange={(e) => updateSkillTickRangeSec('min', e.target.value)}
+                        />
+                        <span>초</span>
+                      </div>
+                      <div className='race-skill-prob-wrap race-skill-range-wrap'>
+                        <span>최대</span>
+                        <input
+                          className='input-text compact race-skill-prob-input'
+                          type='number'
+                          min={MIN_SKILL_TICK_SEC}
+                          max={MAX_SKILL_TICK_SEC}
+                          step='0.1'
+                          value={skillTickRangeSec.max}
+                          onChange={(e) => updateSkillTickRangeSec('max', e.target.value)}
+                        />
+                        <span>초</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>{`${effectiveSkillTickRange.minSec.toFixed(1)}~${effectiveSkillTickRange.maxSec.toFixed(1)}초`}</td>
+                  <td>매 판정 이후 설정 범위에서 랜덤 재설정</td>
+                </tr>
+                <tr>
                   <td>공격</td>
                   <td>앞선 대상 1명에게 당근 투척</td>
                   <td>
@@ -3238,8 +3453,8 @@ function RacingGamePage() {
                       <span>%</span>
                     </div>
                   </td>
-                  <td>0.5~1초</td>
-                  <td>피격 시 50% 확률 회피</td>
+                  <td>다음 스킬 시도까지</td>
+                  <td>피격 시 50% 확률 회피 (빈도 설정값 영향)</td>
                 </tr>
                 <tr>
                   <td>맵: 낙석</td>

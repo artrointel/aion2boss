@@ -773,9 +773,9 @@ tr.row-timer-disabled td.alert-cell {
   background: linear-gradient(180deg, rgba(12, 27, 44, 0.26), rgba(9, 20, 33, 0.36));
   backdrop-filter: blur(1px);
   padding: 10px;
-  display: flex;
-  justify-content: flex-end;
-  align-items: flex-start;
+  display: grid;
+  gap: 10px;
+  align-content: start;
 }
 
 .racing-title {
@@ -825,6 +825,22 @@ tr.row-timer-disabled td.alert-cell {
   width: 100%;
 }
 
+.racing-track-options {
+  border: 1px solid rgba(91, 132, 188, 0.42);
+  border-radius: 11px;
+  background: linear-gradient(180deg, rgba(10, 24, 40, 0.35), rgba(8, 18, 31, 0.44));
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.racing-track-options-title {
+  font-size: 0.78rem;
+  color: #9fc6f1;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
 .race-config-row {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -842,6 +858,10 @@ tr.row-timer-disabled td.alert-cell {
   flex-wrap: wrap;
   justify-content: flex-end;
   align-content: flex-start;
+}
+
+.racing-actions-panel .skill-info-btn {
+  margin-top: 0;
 }
 
 .racing-meta {
@@ -1830,6 +1850,10 @@ tr.row-timer-disabled td.alert-cell {
 
   .racing-actions {
     justify-content: flex-start;
+  }
+
+  .racing-track-options {
+    padding: 9px;
   }
 
   .pet-name-input-wrap {

@@ -2880,6 +2880,21 @@ function RacingGamePage() {
                 {`섞기(${parsedPetNames.length})`}
               </button>
             </div>
+          </div>
+        </div>
+        <div className='racing-actions-panel'>
+          <div className='racing-actions'>
+            <button className='btn primary' onClick={startRace} disabled={isRunning || !racers.length}>경주 시작</button>
+            <button className='btn ghost' onClick={resetRace}>초기화</button>
+            <button className='btn ghost' onClick={toggleRacingBgm}>
+              {bgmEnabled ? '브금 끄기' : '브금 켜기'}
+            </button>
+            <button className='btn ghost' onClick={toggleRacingSfx}>
+              {sfxEnabled ? '효과음 끄기' : '효과음 켜기'}
+            </button>
+          </div>
+          <div className='racing-track-options'>
+            <div className='racing-track-options-title'>트랙 옵션</div>
             <div className='race-config-row'>
               <div className='race-config-field'>
                 <label htmlFor='track-length-input'>트랙 길이</label>
@@ -2907,18 +2922,6 @@ function RacingGamePage() {
             </div>
             <button className='btn ghost skill-info-btn' onClick={openSkillInfoPopup}>
               스킬 설정
-            </button>
-          </div>
-        </div>
-        <div className='racing-actions-panel'>
-          <div className='racing-actions'>
-            <button className='btn primary' onClick={startRace} disabled={isRunning || !racers.length}>경주 시작</button>
-            <button className='btn ghost' onClick={resetRace}>초기화</button>
-            <button className='btn ghost' onClick={toggleRacingBgm}>
-              {bgmEnabled ? '브금 끄기' : '브금 켜기'}
-            </button>
-            <button className='btn ghost' onClick={toggleRacingSfx}>
-              {sfxEnabled ? '효과음 끄기' : '효과음 켜기'}
             </button>
           </div>
         </div>

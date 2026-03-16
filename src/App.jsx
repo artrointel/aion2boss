@@ -74,14 +74,25 @@ const RACE_FILTER_COOKIE_KEY = 'aion2boss_race_filter'
 const DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC = 40
 const ADJACENT_BOSS_THRESHOLD_MIN_SEC = 1
 const ADJACENT_BOSS_THRESHOLD_MAX_SEC = 600
-const BASE_COLUMN_ORDER = ['alert', 'name', 'info', 'location', 'remaining', 'next']
+const DEFAULT_CHASE_COLUMN_WIDTH = 118
+const MIN_CHASE_COLUMN_WIDTH = DEFAULT_CHASE_COLUMN_WIDTH
+const LEGACY_CHASE_COLUMN_WIDTHS = new Set([148, 164])
+const CHASE_TEAM_OPTIONS = [
+  { value: 1, label: '1팀', emoji: '1️⃣' },
+  { value: 2, label: '2팀', emoji: '2️⃣' },
+  { value: 3, label: '3팀', emoji: '3️⃣' },
+  { value: 4, label: '4팀', emoji: '4️⃣' }
+]
+const CHASE_TEAM_SET = new Set(CHASE_TEAM_OPTIONS.map((team) => team.value))
+const BASE_COLUMN_ORDER = ['alert', 'name', 'info', 'location', 'remaining', 'next', 'chase']
 const COLUMN_LABELS = {
   alert: '알림',
   name: '보스명',
   info: '정보',
   location: '위치',
   remaining: '남은 시간',
-  next: '다음 젠 시간'
+  next: '다음 젠 시간',
+  chase: '추격팀'
 }
 const DEFAULT_COLUMN_PREFS = {
   alert: true,
@@ -98,6 +109,7 @@ const DEFAULT_COLUMN_WIDTHS = {
   location: 190,
   remaining: 140,
   next: 140,
+  chase: DEFAULT_CHASE_COLUMN_WIDTH,
   manage: 110
 }
 
@@ -203,6 +215,7 @@ function loadColumnWidthsFromCookie() {
       location: Number.isFinite(parsed?.location) ? parsed.location : DEFAULT_COLUMN_WIDTHS.location,
       remaining: Number.isFinite(parsed?.remaining) ? parsed.remaining : DEFAULT_COLUMN_WIDTHS.remaining,
       next: Number.isFinite(parsed?.next) ? parsed.next : DEFAULT_COLUMN_WIDTHS.next,
+      chase: normalizeChaseColumnWidth(parsed?.chase),
       manage: Number.isFinite(parsed?.manage) ? parsed.manage : DEFAULT_COLUMN_WIDTHS.manage
     }
   } catch {
@@ -304,6 +317,228 @@ function normalizeAdjacentBossThresholdSec(value) {
   )
 }
 
+function normalizeChaseTeams(value) {
+  if (!Array.isArray(value)) return []
+
+  return [...new Set(
+    value
+      .map((team) => Number(team))
+      .filter((team) => CHASE_TEAM_SET.has(team))
+  )].sort((a, b) => a - b)
+}
+
+function normalizeChaseColumnWidth(value) {
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed)) return DEFAULT_CHASE_COLUMN_WIDTH
+  if (LEGACY_CHASE_COLUMN_WIDTHS.has(parsed)) return DEFAULT_CHASE_COLUMN_WIDTH
+  return Math.max(Math.round(parsed), MIN_CHASE_COLUMN_WIDTH)
+}
+
+function hslToRgb(hue, saturation, lightness) {
+  const s = saturation / 100
+  const l = lightness / 100
+  const c = (1 - Math.abs(2 * l - 1)) * s
+  const hh = hue / 60
+  const x = c * (1 - Math.abs((hh % 2) - 1))
+  let r1 = 0
+  let g1 = 0
+  let b1 = 0
+
+  if (hh >= 0 && hh < 1) {
+    r1 = c
+    g1 = x
+  } else if (hh >= 1 && hh < 2) {
+    r1 = x
+    g1 = c
+  } else if (hh >= 2 && hh < 3) {
+    g1 = c
+    b1 = x
+  } else if (hh >= 3 && hh < 4) {
+    g1 = x
+    b1 = c
+  } else if (hh >= 4 && hh < 5) {
+    r1 = x
+    b1 = c
+  } else {
+    r1 = c
+    b1 = x
+  }
+
+  const m = lightness / 100 - c / 2
+  return {
+    r: Math.round((r1 + m) * 255),
+    g: Math.round((g1 + m) * 255),
+    b: Math.round((b1 + m) * 255)
+  }
+}
+
+function getRelativeLuminance(rgb) {
+  const toLinear = (channel) => {
+    const value = channel / 255
+    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
+  }
+
+  return 0.2126 * toLinear(rgb.r) + 0.7152 * toLinear(rgb.g) + 0.0722 * toLinear(rgb.b)
+}
+
+function getContrastRatio(rgbA, rgbB) {
+  const luminanceA = getRelativeLuminance(rgbA)
+  const luminanceB = getRelativeLuminance(rgbB)
+  const lighter = Math.max(luminanceA, luminanceB)
+  const darker = Math.min(luminanceA, luminanceB)
+  return (lighter + 0.05) / (darker + 0.05)
+}
+
+function getColorDistance(rgbA, rgbB) {
+  return Math.sqrt(
+    (rgbA.r - rgbB.r) ** 2 +
+    (rgbA.g - rgbB.g) ** 2 +
+    (rgbA.b - rgbB.b) ** 2
+  )
+}
+
+function rgbToCss(rgb) {
+  return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
+}
+
+function buildChaseRowPalette() {
+  const white = { r: 255, g: 255, b: 255 }
+  const usedColors = []
+  const palette = []
+
+  for (let idx = 0; idx < 15; idx += 1) {
+    let hue = (idx * 137.508) % 360
+    let saturation = 58 + (idx % 3) * 6
+    let lightness = 28 - (idx % 4)
+    let rgb = hslToRgb(hue, saturation, lightness)
+
+    for (let attempt = 0; attempt < 36; attempt += 1) {
+      const contrastOk = getContrastRatio(rgb, white) >= 4.8
+      const distinctEnough = usedColors.every((usedColor) => getColorDistance(usedColor, rgb) >= 52)
+      if (contrastOk && distinctEnough) break
+
+      if (!contrastOk) {
+        lightness = Math.max(18, lightness - 2)
+      } else {
+        hue = (hue + 23) % 360
+        saturation = Math.min(78, saturation + 1)
+      }
+
+      rgb = hslToRgb(hue, saturation, lightness)
+    }
+
+    usedColors.push(rgb)
+    palette.push(rgbToCss(rgb))
+  }
+
+  return palette
+}
+
+const CHASE_ROW_COLOR_PALETTE = buildChaseRowPalette()
+
+function formatChaseTeams(teams) {
+  const normalized = normalizeChaseTeams(teams)
+  if (!normalized.length) return '추격팀'
+  return normalized
+    .map((team) => CHASE_TEAM_OPTIONS.find((option) => option.value === team)?.emoji || `${team}`)
+    .join(' ')
+}
+
+function getChaseTeamEmoji(team) {
+  return CHASE_TEAM_OPTIONS.find((option) => option.value === team)?.emoji || `${team}`
+}
+
+function describeChaseTeams(teams) {
+  const normalized = normalizeChaseTeams(teams)
+  if (!normalized.length) return '추격팀 미설정'
+  return normalized.map((team) => `${team}팀`).join(', ')
+}
+
+function getChaseRowBackground(teams) {
+  const normalized = normalizeChaseTeams(teams)
+  if (!normalized.length) return ''
+
+  const mask = normalized.reduce((bits, team) => bits | (1 << (team - 1)), 0)
+  return CHASE_ROW_COLOR_PALETTE[(mask - 1) % CHASE_ROW_COLOR_PALETTE.length]
+}
+
+function sanitizeSharedMemoHtml(html) {
+  if (!html) return ''
+
+  if (typeof window === 'undefined' || typeof window.DOMParser === 'undefined') {
+    return String(html).trim()
+  }
+
+  const parser = new window.DOMParser()
+  const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html')
+  const source = doc.body.firstElementChild
+  if (!source) return ''
+
+  const sanitizeNode = (node) => {
+    if (node.nodeType === 3) {
+      return doc.createTextNode(node.textContent || '')
+    }
+
+    if (node.nodeType !== 1) {
+      return null
+    }
+
+    const tag = node.tagName.toUpperCase()
+    const fragment = doc.createDocumentFragment()
+    Array.from(node.childNodes).forEach((child) => {
+      const sanitizedChild = sanitizeNode(child)
+      if (sanitizedChild) fragment.appendChild(sanitizedChild)
+    })
+
+    if (tag === 'BR') {
+      return doc.createElement('br')
+    }
+
+    const normalizedTag = tag === 'STRONG'
+      ? 'b'
+      : tag === 'EM'
+        ? 'i'
+        : tag === 'DIV'
+          ? 'p'
+          : tag.toLowerCase()
+
+    if (!['p', 'b', 'i', 'u', 's', 'ul', 'ol', 'li'].includes(normalizedTag)) {
+      return fragment
+    }
+
+    const el = doc.createElement(normalizedTag)
+    el.appendChild(fragment)
+    return el
+  }
+
+  const clean = doc.createElement('div')
+  Array.from(source.childNodes).forEach((child) => {
+    const sanitizedChild = sanitizeNode(child)
+    if (sanitizedChild) clean.appendChild(sanitizedChild)
+  })
+
+  return clean.innerHTML
+    .replace(/<p>\s*<\/p>/gi, '')
+    .replace(/<li>\s*<\/li>/gi, '')
+    .replace(/<p><br><\/p>/gi, '')
+    .replace(/\u200b/gi, '')
+    .trim()
+}
+
+function getSharedMemoPlainText(html) {
+  const sanitized = sanitizeSharedMemoHtml(html)
+  return sanitized
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|li|ul|ol)>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/\u200b/gi, '')
+}
+
+function hasSharedMemoContent(html) {
+  return getSharedMemoPlainText(html).trim().length > 0
+}
+
 const VIEW_BOSS = 'boss'
 const VIEW_RACING = 'racing'
 const TOPBAR_LABEL_MINI_GAME = '미니게임'
@@ -333,6 +568,19 @@ const MINI_GAME_ITEMS = [
     url: 'https://lazygyu.github.io/roulette/'
   }
 ]
+const EMPTY_CHASE_TEAM_DIALOG = {
+  open: false,
+  key: '',
+  name: '',
+  selectedTeams: []
+}
+const SHARED_MEMO_MAX_LENGTH = 3000
+const SHARED_MEMO_TOOLS = [
+  { command: 'bold', label: 'B', title: '굵게' },
+  { command: 'italic', label: 'I', title: '기울임' },
+  { command: 'underline', label: 'U', title: '밑줄' },
+  { command: 'clearAll', label: '전체 지우기', title: '내용 전체 지우기' }
+]
 export default function App() {
   const [roomInput, setRoomInput] = useState('')
   const [roomId, setRoomId] = useState('')
@@ -343,6 +591,7 @@ export default function App() {
   const [editingKey, setEditingKey] = useState(null)
   const [showForm, setShowForm] = useState(false)
   const [showManagePanel, setShowManagePanel] = useState(false)
+  const [chaseModeEnabled, setChaseModeEnabled] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [raceFilter, setRaceFilter] = useState(() => loadRaceFilterFromCookie())
   const [columnPrefs, setColumnPrefs] = useState(() => loadColumnPrefsFromCookie())
@@ -357,6 +606,9 @@ export default function App() {
   const [now, setNow] = useState(Date.now())
   const [dragKey, setDragKey] = useState(null)
   const [isMapOpen, setIsMapOpen] = useState(false)
+  const [sharedMemoOpen, setSharedMemoOpen] = useState(false)
+  const [sharedMemoHtml, setSharedMemoHtml] = useState('')
+  const [sharedMemoSaveStatus, setSharedMemoSaveStatus] = useState('saved')
   const [ttsEnabled, setTtsEnabled] = useState(() => loadTtsEnabledFromCookie())
   const [alertPrefs, setAlertPrefs] = useState(() => loadAlertPrefsFromCookie())
   const [ttsNoticeDialogOpen, setTtsNoticeDialogOpen] = useState(false)
@@ -379,9 +631,11 @@ export default function App() {
     open: false,
     bosses: []
   })
+  const [chaseTeamDialog, setChaseTeamDialog] = useState(EMPTY_CHASE_TEAM_DIALOG)
 
   const mapViewportRef = useRef(null)
   const mapImgRef = useRef(null)
+  const sharedMemoEditorRef = useRef(null)
   const tableWrapRef = useRef(null)
   const mapRef = useRef({
     scale: 1,
@@ -404,6 +658,11 @@ export default function App() {
   })
   const syncNoticeShownRef = useRef(false)
   const syncNoticeCheckedOnEntryRef = useRef(false)
+  const sharedMemoLoadedRef = useRef(false)
+  const sharedMemoHtmlRef = useRef('')
+  const sharedMemoSaveTimerRef = useRef(null)
+  const sharedMemoPendingHtmlRef = useRef('')
+  const sharedMemoDirtyRef = useRef(false)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -456,9 +715,31 @@ export default function App() {
 
     const roomSettingsRef = ref(db, `${roomId}/settings`)
     const unsubscribe = onValue(roomSettingsRef, (snapshot) => {
-      const sec = normalizeAdjacentBossThresholdSec(snapshot.val()?.adjacentBossThresholdSec)
+      const settings = snapshot.val() || {}
+      const sec = normalizeAdjacentBossThresholdSec(settings.adjacentBossThresholdSec)
+      const nextSharedMemoHtml = sanitizeSharedMemoHtml(settings.sharedMemoHtml || '')
+      const hadSharedMemoLoaded = sharedMemoLoadedRef.current
+      const prevSharedMemoHtml = sharedMemoHtmlRef.current
+      const matchesPendingSharedMemo = nextSharedMemoHtml === sharedMemoPendingHtmlRef.current
       setAdjacentBossThresholdSec(sec)
       setAdjacentBossThresholdInput(String(sec))
+      setChaseModeEnabled(settings.chaseModeEnabled === true)
+      if (!sharedMemoDirtyRef.current || matchesPendingSharedMemo) {
+        sharedMemoLoadedRef.current = true
+        sharedMemoHtmlRef.current = nextSharedMemoHtml
+        sharedMemoPendingHtmlRef.current = nextSharedMemoHtml
+        setSharedMemoHtml(nextSharedMemoHtml)
+        if (!hadSharedMemoLoaded) {
+          setSharedMemoOpen(hasSharedMemoContent(nextSharedMemoHtml))
+        } else if (nextSharedMemoHtml !== prevSharedMemoHtml && hasSharedMemoContent(nextSharedMemoHtml)) {
+          setSharedMemoOpen(true)
+        }
+      }
+
+      if (matchesPendingSharedMemo || !sharedMemoDirtyRef.current) {
+        sharedMemoDirtyRef.current = false
+        setSharedMemoSaveStatus('saved')
+      }
     })
 
     return () => unsubscribe()
@@ -477,7 +758,12 @@ export default function App() {
   const orderedBosses = useMemo(() => {
     return Object.entries(bosses)
       .sort((a, b) => (a[1]?.order ?? 0) - (b[1]?.order ?? 0))
-      .map(([key, value]) => ({ key, ...value, alertEnabled: value?.alertEnabled !== false }))
+      .map(([key, value]) => ({
+        key,
+        ...value,
+        alertEnabled: value?.alertEnabled !== false,
+        chaseTeams: normalizeChaseTeams(value?.chaseTeams)
+      }))
   }, [bosses])
   const filteredOrderedBosses = useMemo(() => {
     if (raceFilter === '모두') {
@@ -544,9 +830,10 @@ export default function App() {
   }, [orderedBosses, now])
   const mapImageSrc = `${import.meta.env.BASE_URL}aion2boss.png`
   const shouldShowColumn = useCallback((key) => {
+    if (key === 'chase') return chaseModeEnabled
     if (showManagePanel) return true
     return columnPrefs[key]
-  }, [showManagePanel, columnPrefs])
+  }, [chaseModeEnabled, showManagePanel, columnPrefs])
   const orderedVisibleColumnKeys = useMemo(() => {
     return columnOrder.filter((key) => shouldShowColumn(key))
   }, [columnOrder, shouldShowColumn])
@@ -677,6 +964,41 @@ export default function App() {
     ttsStateRef.current = { ...prevState, prevRemainingMs: remainingMs }
   }, [ttsEnabled, mainBoss, now, alertPrefs, enabledBossList])
 
+  useEffect(() => {
+    if (chaseModeEnabled) return
+    setChaseTeamDialog(EMPTY_CHASE_TEAM_DIALOG)
+  }, [chaseModeEnabled])
+
+  useEffect(() => {
+    if (!chaseModeEnabled) return
+
+    setColumnWidths((prev) => {
+      const nextChaseWidth = normalizeChaseColumnWidth(prev.chase)
+      if (prev.chase === nextChaseWidth) return prev
+      return {
+        ...prev,
+        chase: nextChaseWidth
+      }
+    })
+  }, [chaseModeEnabled])
+
+  useEffect(() => {
+    const editor = sharedMemoEditorRef.current
+    if (!sharedMemoOpen || !editor) return
+
+    if (editor.innerHTML !== sharedMemoHtml) {
+      editor.innerHTML = sharedMemoHtml
+    }
+  }, [sharedMemoOpen, sharedMemoHtml])
+
+  useEffect(() => {
+    return () => {
+      if (sharedMemoSaveTimerRef.current) {
+        window.clearTimeout(sharedMemoSaveTimerRef.current)
+      }
+    }
+  }, [])
+
   const applyMapTransform = useCallback(() => {
     const img = mapImgRef.current
     if (!img) return
@@ -772,9 +1094,106 @@ export default function App() {
   const saveOrder = useCallback((updates) => {
     return update(ref(db), updates)
   }, [])
+  const updateRoot = useCallback((updates) => {
+    return update(ref(db), updates)
+  }, [])
   const updateRoomSettings = useCallback((payload) => {
     return update(ref(db, `${roomId}/settings`), payload)
   }, [roomId])
+
+  const queueSharedMemoSave = useCallback((html) => {
+    if (!roomId) return
+
+    const sanitized = sanitizeSharedMemoHtml(html)
+    sharedMemoHtmlRef.current = sanitized
+    sharedMemoPendingHtmlRef.current = sanitized
+    sharedMemoDirtyRef.current = true
+    setSharedMemoHtml(sanitized)
+    setSharedMemoSaveStatus('saving')
+
+    if (sharedMemoSaveTimerRef.current) {
+      window.clearTimeout(sharedMemoSaveTimerRef.current)
+    }
+
+    sharedMemoSaveTimerRef.current = window.setTimeout(async () => {
+      const htmlToSave = sharedMemoPendingHtmlRef.current
+      sharedMemoSaveTimerRef.current = null
+      try {
+        await updateRoomSettings({ sharedMemoHtml: htmlToSave || null })
+        if (sharedMemoPendingHtmlRef.current === htmlToSave) {
+          sharedMemoDirtyRef.current = false
+          setSharedMemoSaveStatus('saved')
+        }
+      } catch {
+        sharedMemoDirtyRef.current = true
+      }
+    }, 350)
+  }, [roomId, updateRoomSettings])
+
+  const flushSharedMemoSave = useCallback(async () => {
+    if (!roomId) return
+
+    const sanitized = sanitizeSharedMemoHtml(sharedMemoEditorRef.current?.innerHTML || sharedMemoPendingHtmlRef.current || '')
+    sharedMemoHtmlRef.current = sanitized
+    sharedMemoPendingHtmlRef.current = sanitized
+    sharedMemoDirtyRef.current = true
+    setSharedMemoHtml(sanitized)
+    setSharedMemoSaveStatus('saving')
+
+    if (sharedMemoSaveTimerRef.current) {
+      window.clearTimeout(sharedMemoSaveTimerRef.current)
+      sharedMemoSaveTimerRef.current = null
+    }
+
+    try {
+      await updateRoomSettings({ sharedMemoHtml: sanitized || null })
+      if (sharedMemoPendingHtmlRef.current === sanitized) {
+        sharedMemoDirtyRef.current = false
+        setSharedMemoSaveStatus('saved')
+      }
+    } catch {
+      sharedMemoDirtyRef.current = true
+    }
+  }, [roomId, updateRoomSettings])
+
+  const handleSharedMemoInput = useCallback(() => {
+    const editor = sharedMemoEditorRef.current
+    if (!editor) return
+
+    const nextHtml = editor.innerHTML || ''
+    if (getSharedMemoPlainText(nextHtml).length > SHARED_MEMO_MAX_LENGTH) {
+      editor.innerHTML = sharedMemoHtmlRef.current || ''
+      const selection = window.getSelection()
+      if (selection) {
+        const range = document.createRange()
+        range.selectNodeContents(editor)
+        range.collapse(false)
+        selection.removeAllRanges()
+        selection.addRange(range)
+      }
+      return
+    }
+
+    queueSharedMemoSave(nextHtml)
+  }, [queueSharedMemoSave])
+
+  const runSharedMemoCommand = useCallback((command) => {
+    const editor = sharedMemoEditorRef.current
+    if (!editor) return
+
+    editor.focus()
+    if (command === 'clearAll') {
+      editor.innerHTML = ''
+      queueSharedMemoSave('')
+      return
+    }
+
+    if (typeof document.execCommand === 'function') {
+      document.execCommand('styleWithCSS', false, false)
+      document.execCommand(command, false, null)
+      queueSharedMemoSave(editor.innerHTML || '')
+    }
+  }, [queueSharedMemoSave])
 
   const pushHistory = useCallback((key, data) => {
     setUndoStack((prev) => [...prev, { key, data: { ...data } }])
@@ -794,12 +1213,25 @@ export default function App() {
     setEditingKey(null)
     setShowForm(false)
     setShowManagePanel(false)
+    setChaseModeEnabled(false)
     setActiveView(VIEW_BOSS)
     setMiniGameDialogOpen(false)
+    setSharedMemoOpen(false)
+    setSharedMemoHtml('')
+    setSharedMemoSaveStatus('saved')
     setRoomDataLoaded(false)
     setAdjacentBossThresholdSec(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC)
     setAdjacentBossThresholdInput(String(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC))
     setSyncNoticeDialog({ open: false, bosses: [] })
+    setChaseTeamDialog(EMPTY_CHASE_TEAM_DIALOG)
+    sharedMemoLoadedRef.current = false
+    sharedMemoHtmlRef.current = ''
+    sharedMemoPendingHtmlRef.current = ''
+    sharedMemoDirtyRef.current = false
+    if (sharedMemoSaveTimerRef.current) {
+      window.clearTimeout(sharedMemoSaveTimerRef.current)
+      sharedMemoSaveTimerRef.current = null
+    }
     syncNoticeShownRef.current = false
     syncNoticeCheckedOnEntryRef.current = false
 
@@ -893,6 +1325,50 @@ export default function App() {
     setTimeDialog({ open: false, key: '', name: '', h: 0, m: 0, s: 0 })
   }
 
+  const openChaseTeamDialog = (boss) => {
+    if (role !== 'admin' || !chaseModeEnabled) return
+    setChaseTeamDialog({
+      open: true,
+      key: boss.key,
+      name: boss.name || '',
+      selectedTeams: normalizeChaseTeams(boss.chaseTeams)
+    })
+  }
+
+  const closeChaseTeamDialog = () => {
+    setChaseTeamDialog(EMPTY_CHASE_TEAM_DIALOG)
+  }
+
+  const toggleChaseTeamSelection = (teamValue) => {
+    setChaseTeamDialog((prev) => {
+      if (!prev.open) return prev
+
+      const selectedTeams = prev.selectedTeams.includes(teamValue)
+        ? prev.selectedTeams.filter((team) => team !== teamValue)
+        : [...prev.selectedTeams, teamValue]
+
+      return {
+        ...prev,
+        selectedTeams: normalizeChaseTeams(selectedTeams)
+      }
+    })
+  }
+
+  const saveChaseTeams = async () => {
+    if (role !== 'admin' || !chaseModeEnabled) return
+    const key = chaseTeamDialog.key
+    if (!key || !bosses[key]) {
+      closeChaseTeamDialog()
+      return
+    }
+
+    const selectedTeams = normalizeChaseTeams(chaseTeamDialog.selectedTeams)
+    await updateBoss(key, {
+      chaseTeams: selectedTeams.length ? selectedTeams : null
+    })
+    closeChaseTeamDialog()
+  }
+
   const saveRemainingTime = async () => {
     const boss = bosses[timeDialog.key]
     if (!boss) return closeRemainingDialog()
@@ -921,6 +1397,11 @@ export default function App() {
   const submitRemainingTime = (e) => {
     e.preventDefault()
     saveRemainingTime()
+  }
+
+  const submitChaseTeams = (e) => {
+    e.preventDefault()
+    saveChaseTeams()
   }
 
   const resetForm = () => {
@@ -979,6 +1460,11 @@ export default function App() {
       alertEnabled: editingKey ? bosses[editingKey]?.alertEnabled !== false : true,
       mapX: form.mapX,
       mapY: form.mapY
+    }
+
+    const chaseTeams = editingKey ? normalizeChaseTeams(bosses[editingKey]?.chaseTeams) : []
+    if (chaseTeams.length) {
+      payload.chaseTeams = chaseTeams
     }
 
     if (editingKey) {
@@ -1080,6 +1566,24 @@ export default function App() {
     await updateBoss(boss.key, { alertEnabled: boss.alertEnabled === false })
   }
 
+  const toggleChaseMode = async () => {
+    if (role !== 'admin' || !roomId) return
+
+    if (!chaseModeEnabled) {
+      await updateRoomSettings({ chaseModeEnabled: true })
+      return
+    }
+
+    closeChaseTeamDialog()
+    const updates = {
+      [`${roomId}/settings/chaseModeEnabled`]: false
+    }
+    Object.keys(bosses).forEach((key) => {
+      updates[`${roomId}/bosses/${key}/chaseTeams`] = null
+    })
+    await updateRoot(updates)
+  }
+
   const handleColumnDragStart = (e, key) => {
     if (!(role === 'admin' && showManagePanel)) return
     if (resizingColumn) return
@@ -1125,6 +1629,9 @@ export default function App() {
   const handleDelete = async (key) => {
     if (!window.confirm(`정말로 [${key}] 보스를 삭제하시겠습니까?`)) return
     await removeBoss(key)
+    if (chaseTeamDialog.key === key) {
+      closeChaseTeamDialog()
+    }
     if (editingKey === key) {
       setShowForm(false)
       resetForm()
@@ -1284,6 +1791,10 @@ export default function App() {
         closeBossFormDialog()
         return
       }
+      if (chaseTeamDialog.open) {
+        closeChaseTeamDialog()
+        return
+      }
       if (timeDialog.open) {
         closeRemainingDialog()
         return
@@ -1303,6 +1814,7 @@ export default function App() {
     activeView,
     miniGameDialogOpen,
     saveRemainingTime,
+    chaseTeamDialog.open,
     showForm,
     timeDialog.open,
     ttsNoticeDialogOpen,
@@ -1438,9 +1950,14 @@ export default function App() {
                   ))}
                 </div>
               ) : null}
-              <button className='btn ghost' onClick={() => setIsMapOpen((v) => !v)}>
-                {isMapOpen ? '지도 닫기' : '지도 열기'}
-              </button>
+              <div className='map-action-row'>
+                <button className='btn ghost' onClick={() => setIsMapOpen((v) => !v)}>
+                  {isMapOpen ? '지도 닫기' : '지도 열기'}
+                </button>
+                <button className='btn ghost' onClick={() => setSharedMemoOpen((v) => !v)}>
+                  {sharedMemoOpen ? '공유메모 닫기' : '공유메모 열기'}
+                </button>
+              </div>
               {isMapOpen ? (
                 <div
                   className='map-viewport'
@@ -1451,6 +1968,44 @@ export default function App() {
                 >
                   <img ref={mapImgRef} src={mapImageSrc} alt='보스 지도' draggable='false' onLoad={handleMapImageLoad} />
                 </div>
+              ) : null}
+              {sharedMemoOpen ? (
+                <section className='shared-memo-card'>
+                  <div className='shared-memo-head'>
+                    <strong>공유 메모</strong>
+                    <span className={`shared-memo-status ${sharedMemoSaveStatus}`}>
+                      {sharedMemoSaveStatus === 'saving' ? '자동 저장중..' : '자동 저장됨'}
+                    </span>
+                  </div>
+                  <div className='shared-memo-toolbar'>
+                    {SHARED_MEMO_TOOLS.map((tool) => (
+                      <button
+                        key={tool.command}
+                        type='button'
+                        className='shared-memo-tool'
+                        title={tool.title}
+                        onMouseDown={(e) => {
+                          e.preventDefault()
+                          runSharedMemoCommand(tool.command)
+                        }}
+                      >
+                        {tool.label}
+                      </button>
+                    ))}
+                  </div>
+                  <div
+                    ref={sharedMemoEditorRef}
+                    className='shared-memo-editor'
+                    contentEditable
+                    suppressContentEditableWarning
+                    data-placeholder='함께 확인할 메모를 적어주세요. (최대 3000자)'
+                    role='textbox'
+                    aria-label='공유 메모 편집기'
+                    aria-multiline='true'
+                    onInput={handleSharedMemoInput}
+                    onBlur={flushSharedMemoSave}
+                  />
+                </section>
               ) : null}
             </div>
           </section>
@@ -1475,6 +2030,13 @@ export default function App() {
                     title={ttsEnabled ? '음성 알림 켜짐' : '음성 알림 꺼짐'}
                   >
                     🔔
+                  </button>
+                  <button
+                    className={`btn ghost chase-toggle-btn ${chaseModeEnabled ? 'active' : ''}`}
+                    onClick={toggleChaseMode}
+                    title={chaseModeEnabled ? '추격 모드를 종료하고 모든 추격팀을 초기화합니다.' : '공유 추격팀 설정을 시작합니다.'}
+                  >
+                    {chaseModeEnabled ? '추격 종료' : '추격팀 설정'}
                   </button>
                   <button className='btn ghost' onClick={openCreateForm}>{showForm ? '폼 닫기' : '보스 추가'}</button>
                   <button className='btn ghost' onClick={toggleManagePanel}>{showManagePanel ? '수정 닫기' : '수정'}</button>
@@ -1584,6 +2146,12 @@ export default function App() {
                     const nextText = spawn.time ? formatDateTime(spawn.time) : '-'
                     const mapReady = hasMapPoint(boss)
                     const syncNeeded = !isTimerExcluded && isSyncNeeded(boss, now)
+                    const chaseTeams = normalizeChaseTeams(boss.chaseTeams)
+                    const chaseBackground = chaseModeEnabled ? getChaseRowBackground(chaseTeams) : ''
+                    const buildCellStyle = (key) => ({
+                      width: `${columnWidths[key]}px`,
+                      ...(chaseBackground ? { background: chaseBackground } : {})
+                    })
 
                     const rowClassName = [
                       dragKey === boss.key ? 'dragging' : '',
@@ -1606,7 +2174,7 @@ export default function App() {
                         {orderedVisibleColumnKeys.map((key) => {
                           if (key === 'alert') {
                             return (
-                              <td key={key} className='alert-cell' style={{ width: `${columnWidths[key]}px` }}>
+                              <td key={key} className='alert-cell' style={buildCellStyle(key)}>
                                 <input
                                   type='checkbox'
                                   className='boss-alert-checkbox'
@@ -1623,7 +2191,7 @@ export default function App() {
                           }
                           if (key === 'name') {
                             return (
-                              <td key={key} style={{ width: `${columnWidths[key]}px` }}>
+                              <td key={key} style={buildCellStyle(key)}>
                                 <div className='name-cell'>
                                   {nearSpawnBossKeySet.has(boss.key) ? <span className='name-near-icon' title={`스폰 시간이 ${adjacentBossThresholdSec}초 이내로 인접한 보스`}>👉</span> : null}
                                   <span className='boss-name-text' style={{ color: boss.color || '#ffadad' }}>{boss.name}</span>
@@ -1633,14 +2201,14 @@ export default function App() {
                           }
                           if (key === 'info') {
                             return (
-                              <td key={key} style={{ width: `${columnWidths[key]}px` }}>
+                              <td key={key} style={buildCellStyle(key)}>
                                 <span className='info-cell-text'>{boss.drop || '-'}</span>
                               </td>
                             )
                           }
                           if (key === 'location') {
                             return (
-                              <td key={key} style={{ width: `${columnWidths[key]}px` }} className='location-cell'>
+                              <td key={key} style={buildCellStyle(key)} className='location-cell'>
                                 <span className='location-text'>{boss.location || '-'}</span>
                                 {mapReady ? (
                                   <button
@@ -1657,7 +2225,7 @@ export default function App() {
                           }
                           if (key === 'remaining') {
                             return (
-                              <td key={key} style={{ width: `${columnWidths[key]}px` }}>
+                              <td key={key} style={buildCellStyle(key)}>
                                 <button
                                   className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''}`}
                                   disabled={role !== 'admin' || isTimerExcluded}
@@ -1675,8 +2243,30 @@ export default function App() {
                           }
                           if (key === 'next') {
                             return (
-                              <td key={key} style={{ width: `${columnWidths[key]}px` }}>
+                              <td key={key} style={buildCellStyle(key)}>
                                 <span className='next-time-text'>{nextText}</span>
+                              </td>
+                            )
+                          }
+                          if (key === 'chase') {
+                            return (
+                              <td key={key} style={buildCellStyle(key)} className='chase-cell'>
+                                <button
+                                  className={`btn tiny ghost chase-cell-btn ${chaseTeams.length ? 'has-selection' : ''}`}
+                                  disabled={role !== 'admin'}
+                                  onMouseDown={(e) => e.stopPropagation()}
+                                  onClick={() => openChaseTeamDialog(boss)}
+                                  title={describeChaseTeams(chaseTeams)}
+                                  aria-label={`${boss.name} ${describeChaseTeams(chaseTeams)}`}
+                                >
+                                  {chaseTeams.length ? (
+                                    <span className='chase-cell-emoji-group'>
+                                      {chaseTeams.map((team) => (
+                                        <span key={`${boss.key}-chase-${team}`} className='chase-cell-emoji'>{getChaseTeamEmoji(team)}</span>
+                                      ))}
+                                    </span>
+                                  ) : formatChaseTeams(chaseTeams)}
+                                </button>
                               </td>
                             )
                           }
@@ -1781,6 +2371,36 @@ export default function App() {
               </div>
               <div className='dialog-actions'>
                 <button type='button' className='btn ghost' onClick={closeRemainingDialog}>취소</button>
+                <button type='submit' className='btn primary'>적용</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+      {activeView === VIEW_BOSS && chaseTeamDialog.open ? (
+        <div className='dialog-backdrop' onClick={closeChaseTeamDialog}>
+          <div className='dialog chase-team-dialog' onClick={(e) => e.stopPropagation()}>
+            <h4>추격팀 선택</h4>
+            <p>[{chaseTeamDialog.name || '보스'}]에 들어갈 추격팀을 골라주세요. 여러 팀을 동시에 선택할 수 있습니다.</p>
+            <form onSubmit={submitChaseTeams}>
+              <div className='chase-team-grid'>
+                {CHASE_TEAM_OPTIONS.map((team) => {
+                  const isSelected = chaseTeamDialog.selectedTeams.includes(team.value)
+                  return (
+                    <button
+                      key={team.value}
+                      type='button'
+                      className={`chase-team-option ${isSelected ? 'active' : ''}`}
+                      onClick={() => toggleChaseTeamSelection(team.value)}
+                    >
+                      <span className='chase-team-option-emoji'>{team.emoji}</span>
+                      <span className='chase-team-option-label'>{team.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <div className='dialog-actions'>
+                <button type='button' className='btn ghost' onClick={closeChaseTeamDialog}>취소</button>
                 <button type='submit' className='btn primary'>적용</button>
               </div>
             </form>

@@ -306,13 +306,39 @@ function normalizeAdjacentBossThresholdSec(value) {
 
 const VIEW_BOSS = 'boss'
 const VIEW_RACING = 'racing'
-const TOPBAR_LABEL_TO_RACING = '달려달려'
+const TOPBAR_LABEL_MINI_GAME = '미니게임'
 const TOPBAR_LABEL_TO_BOSS = '필보관리'
+const MINI_GAME_TARGET_INTERNAL = 'internal'
+const MINI_GAME_TARGET_EXTERNAL = 'external'
+const MINI_GAME_ITEMS = [
+  {
+    id: 'racing',
+    label: '달려달려',
+    description: '기존 달려달려 미니게임으로 현재 페이지에서 이동합니다.',
+    target: MINI_GAME_TARGET_INTERNAL,
+    view: VIEW_RACING
+  },
+  {
+    id: 'horse-coffee',
+    label: 'horse.coffee',
+    description: 'horse.coffee 페이지를 새 탭에서 엽니다.',
+    target: MINI_GAME_TARGET_EXTERNAL,
+    url: 'https://horsecoffee.synology.me/'
+  },
+  {
+    id: 'roulette',
+    label: 'roulette',
+    description: 'roulette 페이지를 새 탭에서 엽니다.',
+    target: MINI_GAME_TARGET_EXTERNAL,
+    url: 'https://lazygyu.github.io/roulette/'
+  }
+]
 export default function App() {
   const [roomInput, setRoomInput] = useState('')
   const [roomId, setRoomId] = useState('')
   const [role, setRole] = useState('admin')
   const [activeView, setActiveView] = useState(VIEW_BOSS)
+  const [miniGameDialogOpen, setMiniGameDialogOpen] = useState(false)
   const [bosses, setBosses] = useState({})
   const [editingKey, setEditingKey] = useState(null)
   const [showForm, setShowForm] = useState(false)
@@ -769,6 +795,7 @@ export default function App() {
     setShowForm(false)
     setShowManagePanel(false)
     setActiveView(VIEW_BOSS)
+    setMiniGameDialogOpen(false)
     setRoomDataLoaded(false)
     setAdjacentBossThresholdSec(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC)
     setAdjacentBossThresholdInput(String(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC))
@@ -791,11 +818,21 @@ export default function App() {
 
   const handleLeave = () => {
     if (!window.confirm('정말 나가시겠습니까?')) return
+    setMiniGameDialogOpen(false)
     setActiveView(VIEW_BOSS)
     window.location.href = window.location.pathname
   }
 
+  const openMiniGameDialog = () => {
+    setMiniGameDialogOpen(true)
+  }
+
+  const closeMiniGameDialog = () => {
+    setMiniGameDialogOpen(false)
+  }
+
   const openRacingView = () => {
+    setMiniGameDialogOpen(false)
     setShowForm(false)
     setTimeDialog({ open: false, key: '', name: '', h: 0, m: 0, s: 0 })
     setSyncNoticeDialog({ open: false, bosses: [] })
@@ -803,7 +840,39 @@ export default function App() {
   }
 
   const openBossView = () => {
+    setMiniGameDialogOpen(false)
     setActiveView(VIEW_BOSS)
+  }
+
+  const handleMiniGameSelect = (miniGame) => {
+    if (!miniGame) return
+
+    if (miniGame.target === MINI_GAME_TARGET_INTERNAL) {
+      if (miniGame.view === VIEW_RACING) {
+        openRacingView()
+        return
+      }
+      if (miniGame.view === VIEW_BOSS) {
+        openBossView()
+        return
+      }
+    }
+
+    closeMiniGameDialog()
+    const newWindow = window.open('', '_blank')
+    if (!newWindow) {
+      window.alert('새 탭을 열지 못했습니다. 브라우저 팝업 차단 설정을 확인해주세요.')
+      return
+    }
+
+    try {
+      newWindow.opener = null
+      newWindow.location.replace(miniGame.url)
+      newWindow.focus()
+    } catch {
+      newWindow.close()
+      window.alert('새 탭을 열지 못했습니다. 브라우저 팝업 차단 설정을 확인해주세요.')
+    }
   }
 
   const openRemainingDialog = (boss) => {
@@ -1207,6 +1276,10 @@ export default function App() {
 
       if (e.key !== 'Escape') return
 
+      if (miniGameDialogOpen) {
+        closeMiniGameDialog()
+        return
+      }
       if (showForm) {
         closeBossFormDialog()
         return
@@ -1228,6 +1301,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleDialogKeydown)
   }, [
     activeView,
+    miniGameDialogOpen,
     saveRemainingTime,
     showForm,
     timeDialog.open,
@@ -1303,9 +1377,10 @@ export default function App() {
           <header className='topbar'>
             <div className='room-pill'>ROOM: {roomId} / {role === 'admin' ? '관리자' : '손님'}</div>
             <div className='topbar-actions'>
-              <button className='btn ghost' onClick={activeView === VIEW_BOSS ? openRacingView : openBossView}>
-                {activeView === VIEW_BOSS ? TOPBAR_LABEL_TO_RACING : TOPBAR_LABEL_TO_BOSS}
-              </button>
+              <button className='btn ghost' onClick={openMiniGameDialog}>{TOPBAR_LABEL_MINI_GAME}</button>
+              {activeView !== VIEW_BOSS ? (
+                <button className='btn ghost' onClick={openBossView}>{TOPBAR_LABEL_TO_BOSS}</button>
+              ) : null}
               <button className='btn ghost' onClick={handleShare}>주소복사</button>
               {role === 'admin' ? <button className='btn danger ghost' onClick={handleLeave}>방 나가기</button> : null}
             </div>
@@ -1637,6 +1712,35 @@ export default function App() {
           )}
         </main>
       )}
+      {miniGameDialogOpen ? (
+        <div className='dialog-backdrop' onClick={closeMiniGameDialog}>
+          <div className='dialog minigame-dialog' onClick={(e) => e.stopPropagation()}>
+            <h4>미니게임 선택</h4>
+            <p>원하는 미니게임을 선택하세요. 외부 미니게임은 새 탭에서 열립니다.</p>
+            <div className='minigame-list'>
+              {MINI_GAME_ITEMS.map((miniGame) => (
+                <button
+                  key={miniGame.id}
+                  type='button'
+                  className='minigame-item'
+                  onClick={() => handleMiniGameSelect(miniGame)}
+                >
+                  <span className='minigame-item-head'>
+                    <strong className='minigame-item-title'>{miniGame.label}</strong>
+                    <span className={`minigame-item-badge ${miniGame.target}`}>
+                      {miniGame.target === MINI_GAME_TARGET_EXTERNAL ? '새 탭' : '현재 탭'}
+                    </span>
+                  </span>
+                  <span className='minigame-item-desc'>{miniGame.description}</span>
+                </button>
+              ))}
+            </div>
+            <div className='dialog-actions'>
+              <button className='btn ghost' onClick={closeMiniGameDialog}>닫기</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {activeView === VIEW_BOSS && timeDialog.open ? (
         <div className='dialog-backdrop' onClick={closeRemainingDialog}>
           <div className='dialog' onClick={(e) => e.stopPropagation()}>

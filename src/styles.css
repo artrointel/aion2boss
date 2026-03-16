@@ -116,6 +116,8 @@ body {
 .topbar-actions {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .card {
@@ -1814,6 +1816,10 @@ tr.row-timer-disabled td.alert-cell {
   padding: 16px;
 }
 
+.dialog.minigame-dialog {
+  width: min(620px, 100%);
+}
+
 .form-dialog {
   width: min(980px, 100%);
 }
@@ -1864,6 +1870,67 @@ tr.row-timer-disabled td.alert-cell {
   gap: 8px;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.minigame-list {
+  display: grid;
+  gap: 12px;
+}
+
+.minigame-item {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(24, 38, 59, 0.9), rgba(18, 31, 49, 0.96));
+  color: var(--text);
+  padding: 14px 16px;
+  display: grid;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.minigame-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(115, 196, 154, 0.9);
+  background: linear-gradient(180deg, rgba(28, 47, 72, 0.96), rgba(20, 36, 56, 1));
+}
+
+.minigame-item-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.minigame-item-title {
+  font-size: 1rem;
+}
+
+.minigame-item-desc {
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.minigame-item-badge {
+  flex: none;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.minigame-item-badge.internal {
+  background: rgba(47, 179, 125, 0.18);
+  color: #b8f4d8;
+}
+
+.minigame-item-badge.external {
+  background: rgba(242, 170, 72, 0.18);
+  color: #ffd8a0;
 }
 
 .info-dialog pre {

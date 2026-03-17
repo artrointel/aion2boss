@@ -265,16 +265,43 @@ body {
   user-select: none;
 }
 
+.shared-memo-legacy-toggle {
+  display: none !important;
+}
+
+.shared-memo-floating {
+  position: fixed;
+  right: max(20px, env(safe-area-inset-right));
+  bottom: max(20px, env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.shared-memo-floating > * {
+  pointer-events: auto;
+}
+
 .shared-memo-card {
-  width: 100%;
-  max-width: 940px;
   display: grid;
   gap: 10px;
   border: 1px solid rgba(86, 120, 171, 0.45);
-  border-radius: 14px;
+  border-radius: 16px;
   padding: 12px;
-  background: linear-gradient(180deg, rgba(15, 27, 42, 0.96), rgba(11, 21, 35, 0.98));
-  box-shadow: inset 0 1px 0 rgba(137, 168, 211, 0.08);
+  background: linear-gradient(180deg, rgba(15, 27, 42, 0.98), rgba(11, 21, 35, 1));
+  box-shadow: 0 26px 46px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(137, 168, 211, 0.08);
+}
+
+.shared-memo-flyout {
+  position: relative;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  width: min(620px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 140px);
+  overflow: hidden;
 }
 
 .shared-memo-head {
@@ -330,7 +357,7 @@ body {
 }
 
 .shared-memo-editor {
-  min-height: 168px;
+  min-height: 0;
   border: 1px solid rgba(77, 113, 163, 0.46);
   border-radius: 12px;
   background: rgba(7, 14, 24, 0.72);
@@ -339,7 +366,10 @@ body {
   line-height: 1.7;
   text-align: left;
   outline: none;
+  height: 100%;
+  overflow-y: auto;
   overflow-wrap: anywhere;
+  overscroll-behavior: contain;
 }
 
 .shared-memo-editor:focus {
@@ -367,6 +397,119 @@ body {
 .shared-memo-editor ul,
 .shared-memo-editor ol {
   padding-left: 1.4em;
+}
+
+.shared-memo-resize-handle {
+  position: absolute;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  appearance: none;
+  opacity: 1;
+  z-index: 2;
+  touch-action: none;
+}
+
+.shared-memo-resize-handle::after {
+  content: '';
+  position: absolute;
+  border-radius: 999px;
+  background: rgba(130, 171, 224, 0.28);
+  transition: background 0.16s ease;
+}
+
+.shared-memo-resize-handle:hover::after {
+  background: rgba(160, 203, 255, 0.46);
+}
+
+.shared-memo-resize-handle-top {
+  top: -8px;
+  left: 20px;
+  right: 20px;
+  height: 16px;
+  cursor: ns-resize;
+}
+
+.shared-memo-resize-handle-top::after {
+  top: 6px;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+.shared-memo-resize-handle-left {
+  top: 20px;
+  bottom: 20px;
+  left: -8px;
+  width: 16px;
+  cursor: ew-resize;
+}
+
+.shared-memo-resize-handle-left::after {
+  top: 0;
+  bottom: 0;
+  left: 6px;
+  width: 2px;
+}
+
+.shared-memo-resize-handle-corner {
+  top: -10px;
+  left: -10px;
+  width: 22px;
+  height: 22px;
+  cursor: nwse-resize;
+}
+
+.shared-memo-resize-handle-corner::after {
+  top: 6px;
+  left: 6px;
+  width: 10px;
+  height: 10px;
+  border-top: 2px solid rgba(130, 171, 224, 0.32);
+  border-left: 2px solid rgba(130, 171, 224, 0.32);
+  border-radius: 8px 0 0 0;
+  background: transparent;
+}
+
+.shared-memo-resize-handle-corner:hover::after {
+  border-top-color: rgba(160, 203, 255, 0.52);
+  border-left-color: rgba(160, 203, 255, 0.52);
+}
+
+.shared-memo-fab {
+  width: 62px;
+  height: 62px;
+  border: 2px solid rgba(125, 157, 203, 0.7);
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(23, 41, 64, 0.96), rgba(13, 23, 37, 1));
+  color: #f4f8ff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  cursor: pointer;
+  box-shadow: 0 20px 34px rgba(0, 0, 0, 0.28);
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.shared-memo-fab:hover {
+  transform: translateY(-2px);
+  border-color: rgba(171, 206, 255, 0.92);
+  background: linear-gradient(180deg, rgba(30, 53, 82, 0.98), rgba(16, 30, 47, 1));
+}
+
+.shared-memo-fab.active {
+  border-color: rgba(171, 206, 255, 0.96);
+}
+
+.shared-memo-fab.has-update {
+  border-color: #e14b4b;
+  box-shadow: 0 0 0 3px rgba(225, 75, 75, 0.14), 0 20px 34px rgba(0, 0, 0, 0.28);
+}
+
+.shared-memo-fab span {
+  line-height: 1;
+  transform: translateY(-1px);
 }
 
 .fly-animation {
@@ -2451,6 +2594,16 @@ tr.row-timer-disabled td.alert-cell {
     grid-template-columns: 1fr;
   }
 
+  .shared-memo-floating {
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .shared-memo-flyout {
+    max-width: calc(100vw - 24px);
+    max-height: calc(100vh - 118px);
+  }
+
   .shared-memo-head {
     align-items: flex-start;
     flex-direction: column;
@@ -2463,6 +2616,13 @@ tr.row-timer-disabled td.alert-cell {
   .shared-memo-tool {
     flex: 1 1 calc(50% - 6px);
     justify-content: center;
+  }
+
+  .shared-memo-fab {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    font-size: 1.8rem;
   }
 
   .chase-team-grid {

@@ -47,6 +47,7 @@ const pad2 = (num) => String(num).padStart(2, '0')
 const TTS_STORAGE_KEY = 'aion2boss_tts_enabled'
 const TTS_NOTICE_DISMISS_KEY = 'aion2boss_tts_notice_dismissed'
 const ALERT_PREF_COOKIE_KEY = 'aion2boss_alert_prefs'
+const SHARED_MEMO_SIZE_COOKIE_KEY = 'aion2boss_shared_memo_size'
 const ALERT_MARKS = [
   { id: 'm20', ms: 20 * 60000, label: '20분 전', notice: '20분 남았습니다.' },
   { id: 'm10', ms: 10 * 60000, label: '10분 전', notice: '10분 남았습니다.' },
@@ -299,6 +300,59 @@ function loadAlertPrefsFromCookie() {
 function saveAlertPrefsToCookie(prefs) {
   const expires = 60 * 60 * 24 * 365
   document.cookie = `${ALERT_PREF_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(prefs))}; path=/; max-age=${expires}; SameSite=Lax`
+}
+
+function getSharedMemoSizeBounds() {
+  if (typeof window === 'undefined') {
+    return {
+      minWidth: MIN_SHARED_MEMO_WIDTH,
+      maxWidth: MAX_SHARED_MEMO_WIDTH,
+      minHeight: MIN_SHARED_MEMO_HEIGHT,
+      maxHeight: MAX_SHARED_MEMO_HEIGHT
+    }
+  }
+
+  return {
+    minWidth: MIN_SHARED_MEMO_WIDTH,
+    maxWidth: Math.max(MIN_SHARED_MEMO_WIDTH, Math.min(MAX_SHARED_MEMO_WIDTH, window.innerWidth - 32)),
+    minHeight: MIN_SHARED_MEMO_HEIGHT,
+    maxHeight: Math.max(MIN_SHARED_MEMO_HEIGHT, Math.min(MAX_SHARED_MEMO_HEIGHT, window.innerHeight - 140))
+  }
+}
+
+function normalizeSharedMemoSize(value) {
+  const bounds = getSharedMemoSizeBounds()
+  const width = Number(value?.width)
+  const height = Number(value?.height)
+  const nextWidth = Number.isFinite(width) ? Math.round(width) : DEFAULT_SHARED_MEMO_SIZE.width
+  const nextHeight = Number.isFinite(height) ? Math.round(height) : DEFAULT_SHARED_MEMO_SIZE.height
+
+  return {
+    width: Math.min(bounds.maxWidth, Math.max(bounds.minWidth, nextWidth)),
+    height: Math.min(bounds.maxHeight, Math.max(bounds.minHeight, nextHeight))
+  }
+}
+
+function loadSharedMemoSizeFromCookie() {
+  try {
+    const raw = readCookie(SHARED_MEMO_SIZE_COOKIE_KEY)
+    if (!raw) return normalizeSharedMemoSize(DEFAULT_SHARED_MEMO_SIZE)
+    return normalizeSharedMemoSize(JSON.parse(raw))
+  } catch {
+    return normalizeSharedMemoSize(DEFAULT_SHARED_MEMO_SIZE)
+  }
+}
+
+function saveSharedMemoSizeToCookie(size) {
+  const expires = 60 * 60 * 24 * 365
+  const normalized = normalizeSharedMemoSize(size)
+  document.cookie = `${SHARED_MEMO_SIZE_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(normalized))}; path=/; max-age=${expires}; SameSite=Lax`
+}
+
+function getSharedMemoResizeCursor(direction) {
+  if (direction === 'top') return 'ns-resize'
+  if (direction === 'left') return 'ew-resize'
+  return 'nwse-resize'
 }
 
 function getPointerClientX(event) {
@@ -574,6 +628,14 @@ const EMPTY_CHASE_TEAM_DIALOG = {
   name: '',
   selectedTeams: []
 }
+const DEFAULT_SHARED_MEMO_SIZE = {
+  width: 380,
+  height: 320
+}
+const MIN_SHARED_MEMO_WIDTH = 280
+const MIN_SHARED_MEMO_HEIGHT = 220
+const MAX_SHARED_MEMO_WIDTH = 620
+const MAX_SHARED_MEMO_HEIGHT = 520
 const SHARED_MEMO_MAX_LENGTH = 3000
 const SHARED_MEMO_TOOLS = [
   { command: 'bold', label: 'B', title: '굵게' },
@@ -608,6 +670,9 @@ export default function App() {
   const [isMapOpen, setIsMapOpen] = useState(false)
   const [sharedMemoOpen, setSharedMemoOpen] = useState(false)
   const [sharedMemoHtml, setSharedMemoHtml] = useState('')
+  const [sharedMemoSize, setSharedMemoSize] = useState(() => loadSharedMemoSizeFromCookie())
+  const [sharedMemoHasUpdate, setSharedMemoHasUpdate] = useState(false)
+  const [sharedMemoResizing, setSharedMemoResizing] = useState('')
   const [sharedMemoSaveStatus, setSharedMemoSaveStatus] = useState('saved')
   const [ttsEnabled, setTtsEnabled] = useState(() => loadTtsEnabledFromCookie())
   const [alertPrefs, setAlertPrefs] = useState(() => loadAlertPrefsFromCookie())
@@ -663,6 +728,13 @@ export default function App() {
   const sharedMemoSaveTimerRef = useRef(null)
   const sharedMemoPendingHtmlRef = useRef('')
   const sharedMemoDirtyRef = useRef(false)
+  const sharedMemoResizeRef = useRef({
+    direction: '',
+    startX: 0,
+    startY: 0,
+    startWidth: DEFAULT_SHARED_MEMO_SIZE.width,
+    startHeight: DEFAULT_SHARED_MEMO_SIZE.height
+  })
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -680,6 +752,10 @@ export default function App() {
   useEffect(() => {
     window.localStorage.setItem(TTS_NOTICE_DISMISS_KEY, ttsNoticeDontShow ? 'true' : 'false')
   }, [ttsNoticeDontShow])
+
+  useEffect(() => {
+    saveSharedMemoSizeToCookie(sharedMemoSize)
+  }, [sharedMemoSize])
 
   useEffect(() => {
     const offsetRef = ref(db, '.info/serverTimeOffset')
@@ -721,6 +797,7 @@ export default function App() {
       const hadSharedMemoLoaded = sharedMemoLoadedRef.current
       const prevSharedMemoHtml = sharedMemoHtmlRef.current
       const matchesPendingSharedMemo = nextSharedMemoHtml === sharedMemoPendingHtmlRef.current
+      const sharedMemoChanged = hadSharedMemoLoaded && nextSharedMemoHtml !== prevSharedMemoHtml
       setAdjacentBossThresholdSec(sec)
       setAdjacentBossThresholdInput(String(sec))
       setChaseModeEnabled(settings.chaseModeEnabled === true)
@@ -729,10 +806,8 @@ export default function App() {
         sharedMemoHtmlRef.current = nextSharedMemoHtml
         sharedMemoPendingHtmlRef.current = nextSharedMemoHtml
         setSharedMemoHtml(nextSharedMemoHtml)
-        if (!hadSharedMemoLoaded) {
-          setSharedMemoOpen(hasSharedMemoContent(nextSharedMemoHtml))
-        } else if (nextSharedMemoHtml !== prevSharedMemoHtml && hasSharedMemoContent(nextSharedMemoHtml)) {
-          setSharedMemoOpen(true)
+        if (sharedMemoChanged && !matchesPendingSharedMemo) {
+          setSharedMemoHasUpdate(true)
         }
       }
 
@@ -999,6 +1074,78 @@ export default function App() {
     }
   }, [])
 
+  useEffect(() => {
+    const handleWindowResize = () => {
+      setSharedMemoSize((prev) => {
+        const next = normalizeSharedMemoSize(prev)
+        if (next.width === prev.width && next.height === prev.height) {
+          return prev
+        }
+        return next
+      })
+    }
+
+    window.addEventListener('resize', handleWindowResize)
+    return () => window.removeEventListener('resize', handleWindowResize)
+  }, [])
+
+  useEffect(() => {
+    if (!sharedMemoResizing) return undefined
+
+    const cursor = getSharedMemoResizeCursor(sharedMemoResizing)
+    const prevCursor = document.body.style.cursor
+    const prevUserSelect = document.body.style.userSelect
+    document.body.style.cursor = cursor
+    document.body.style.userSelect = 'none'
+
+    const handleMove = (e) => {
+      const { direction, startX, startY, startWidth, startHeight } = sharedMemoResizeRef.current
+      if (!direction) return
+      e.preventDefault()
+
+      const bounds = getSharedMemoSizeBounds()
+      const deltaX = startX - e.clientX
+      const deltaY = startY - e.clientY
+      let nextWidth = startWidth
+      let nextHeight = startHeight
+
+      if (direction.includes('left')) {
+        nextWidth = startWidth + deltaX
+      }
+      if (direction.includes('top')) {
+        nextHeight = startHeight + deltaY
+      }
+
+      setSharedMemoSize({
+        width: Math.min(bounds.maxWidth, Math.max(bounds.minWidth, Math.round(nextWidth))),
+        height: Math.min(bounds.maxHeight, Math.max(bounds.minHeight, Math.round(nextHeight)))
+      })
+    }
+
+    const handleUp = () => {
+      setSharedMemoResizing('')
+      sharedMemoResizeRef.current = {
+        direction: '',
+        startX: 0,
+        startY: 0,
+        startWidth: DEFAULT_SHARED_MEMO_SIZE.width,
+        startHeight: DEFAULT_SHARED_MEMO_SIZE.height
+      }
+    }
+
+    window.addEventListener('pointermove', handleMove)
+    window.addEventListener('pointerup', handleUp)
+    window.addEventListener('pointercancel', handleUp)
+
+    return () => {
+      document.body.style.cursor = prevCursor
+      document.body.style.userSelect = prevUserSelect
+      window.removeEventListener('pointermove', handleMove)
+      window.removeEventListener('pointerup', handleUp)
+      window.removeEventListener('pointercancel', handleUp)
+    }
+  }, [sharedMemoResizing])
+
   const applyMapTransform = useCallback(() => {
     const img = mapImgRef.current
     if (!img) return
@@ -1195,6 +1342,28 @@ export default function App() {
     }
   }, [queueSharedMemoSave])
 
+  const toggleSharedMemo = useCallback(() => {
+    if (sharedMemoOpen) {
+      setSharedMemoOpen(false)
+      return
+    }
+
+    setSharedMemoHasUpdate(false)
+    setSharedMemoOpen(true)
+  }, [sharedMemoOpen])
+
+  const handleSharedMemoResizeStart = useCallback((direction, e) => {
+    e.preventDefault()
+    sharedMemoResizeRef.current = {
+      direction,
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth: sharedMemoSize.width,
+      startHeight: sharedMemoSize.height
+    }
+    setSharedMemoResizing(direction)
+  }, [sharedMemoSize.height, sharedMemoSize.width])
+
   const pushHistory = useCallback((key, data) => {
     setUndoStack((prev) => [...prev, { key, data: { ...data } }])
     setRedoStack([])
@@ -1218,6 +1387,8 @@ export default function App() {
     setMiniGameDialogOpen(false)
     setSharedMemoOpen(false)
     setSharedMemoHtml('')
+    setSharedMemoHasUpdate(false)
+    setSharedMemoResizing('')
     setSharedMemoSaveStatus('saved')
     setRoomDataLoaded(false)
     setAdjacentBossThresholdSec(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC)
@@ -1228,6 +1399,13 @@ export default function App() {
     sharedMemoHtmlRef.current = ''
     sharedMemoPendingHtmlRef.current = ''
     sharedMemoDirtyRef.current = false
+    sharedMemoResizeRef.current = {
+      direction: '',
+      startX: 0,
+      startY: 0,
+      startWidth: DEFAULT_SHARED_MEMO_SIZE.width,
+      startHeight: DEFAULT_SHARED_MEMO_SIZE.height
+    }
     if (sharedMemoSaveTimerRef.current) {
       window.clearTimeout(sharedMemoSaveTimerRef.current)
       sharedMemoSaveTimerRef.current = null
@@ -1954,7 +2132,7 @@ export default function App() {
                 <button className='btn ghost' onClick={() => setIsMapOpen((v) => !v)}>
                   {isMapOpen ? '지도 닫기' : '지도 열기'}
                 </button>
-                <button className='btn ghost' onClick={() => setSharedMemoOpen((v) => !v)}>
+                <button className='btn ghost shared-memo-legacy-toggle' onClick={toggleSharedMemo}>
                   {sharedMemoOpen ? '공유메모 닫기' : '공유메모 열기'}
                 </button>
               </div>
@@ -1969,7 +2147,7 @@ export default function App() {
                   <img ref={mapImgRef} src={mapImageSrc} alt='보스 지도' draggable='false' onLoad={handleMapImageLoad} />
                 </div>
               ) : null}
-              {sharedMemoOpen ? (
+              {false ? (
                 <section className='shared-memo-card'>
                   <div className='shared-memo-head'>
                     <strong>공유 메모</strong>
@@ -2009,6 +2187,81 @@ export default function App() {
               ) : null}
             </div>
           </section>
+
+          <div className='shared-memo-floating'>
+            {sharedMemoOpen ? (
+              <section
+                className='shared-memo-card shared-memo-flyout'
+                style={{
+                  width: `${sharedMemoSize.width}px`,
+                  height: `${sharedMemoSize.height}px`
+                }}
+              >
+                <button
+                  type='button'
+                  className='shared-memo-resize-handle shared-memo-resize-handle-top'
+                  aria-label='공유 메모 높이 조절'
+                  onPointerDown={(e) => handleSharedMemoResizeStart('top', e)}
+                />
+                <button
+                  type='button'
+                  className='shared-memo-resize-handle shared-memo-resize-handle-left'
+                  aria-label='공유 메모 너비 조절'
+                  onPointerDown={(e) => handleSharedMemoResizeStart('left', e)}
+                />
+                <button
+                  type='button'
+                  className='shared-memo-resize-handle shared-memo-resize-handle-corner'
+                  aria-label='공유 메모 크기 조절'
+                  onPointerDown={(e) => handleSharedMemoResizeStart('top-left', e)}
+                />
+                <div className='shared-memo-head'>
+                  <strong>공유 메모</strong>
+                  <span className={`shared-memo-status ${sharedMemoSaveStatus}`}>
+                    {sharedMemoSaveStatus === 'saving' ? '자동 저장중..' : '자동 저장됨'}
+                  </span>
+                </div>
+                <div className='shared-memo-toolbar'>
+                  {SHARED_MEMO_TOOLS.map((tool) => (
+                    <button
+                      key={tool.command}
+                      type='button'
+                      className='shared-memo-tool'
+                      title={tool.title}
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        runSharedMemoCommand(tool.command)
+                      }}
+                    >
+                      {tool.label}
+                    </button>
+                  ))}
+                </div>
+                <div
+                  ref={sharedMemoEditorRef}
+                  className='shared-memo-editor'
+                  contentEditable
+                  suppressContentEditableWarning
+                  data-placeholder='빠르게 확인할 공유 메모를 적어주세요. (최대 3000자)'
+                  role='textbox'
+                  aria-label='공유 메모 편집기'
+                  aria-multiline='true'
+                  onInput={handleSharedMemoInput}
+                  onBlur={flushSharedMemoSave}
+                />
+              </section>
+            ) : null}
+
+            <button
+              type='button'
+              className={`shared-memo-fab ${sharedMemoOpen ? 'active' : ''} ${sharedMemoHasUpdate ? 'has-update' : ''}`}
+              onClick={toggleSharedMemo}
+              aria-label={sharedMemoOpen ? '공유 메모 닫기' : '공유 메모 열기'}
+              title={sharedMemoOpen ? '공유 메모 닫기' : '공유 메모 열기'}
+            >
+              <span aria-hidden='true'>📝</span>
+            </button>
+          </div>
 
           <section className='card status-card'>
             <div className='section-head'>

@@ -672,6 +672,7 @@ export default function App() {
   const [sharedMemoHtml, setSharedMemoHtml] = useState('')
   const [sharedMemoSize, setSharedMemoSize] = useState(() => loadSharedMemoSizeFromCookie())
   const [sharedMemoHasUpdate, setSharedMemoHasUpdate] = useState(false)
+  const [sharedMemoUpdateAnimationKey, setSharedMemoUpdateAnimationKey] = useState(0)
   const [sharedMemoResizing, setSharedMemoResizing] = useState('')
   const [sharedMemoSaveStatus, setSharedMemoSaveStatus] = useState('saved')
   const [ttsEnabled, setTtsEnabled] = useState(() => loadTtsEnabledFromCookie())
@@ -728,6 +729,7 @@ export default function App() {
   const sharedMemoSaveTimerRef = useRef(null)
   const sharedMemoPendingHtmlRef = useRef('')
   const sharedMemoDirtyRef = useRef(false)
+  const sharedMemoUpdatedAtRef = useRef(0)
   const sharedMemoResizeRef = useRef({
     direction: '',
     startX: 0,
@@ -794,21 +796,27 @@ export default function App() {
       const settings = snapshot.val() || {}
       const sec = normalizeAdjacentBossThresholdSec(settings.adjacentBossThresholdSec)
       const nextSharedMemoHtml = sanitizeSharedMemoHtml(settings.sharedMemoHtml || '')
+      const nextSharedMemoUpdatedAt = Number(settings.sharedMemoUpdatedAt) || 0
       const hadSharedMemoLoaded = sharedMemoLoadedRef.current
       const prevSharedMemoHtml = sharedMemoHtmlRef.current
+      const prevSharedMemoUpdatedAt = sharedMemoUpdatedAtRef.current
       const matchesPendingSharedMemo = nextSharedMemoHtml === sharedMemoPendingHtmlRef.current
       const sharedMemoChanged = hadSharedMemoLoaded && nextSharedMemoHtml !== prevSharedMemoHtml
+      const sharedMemoUpdated = hadSharedMemoLoaded && nextSharedMemoUpdatedAt !== prevSharedMemoUpdatedAt
       setAdjacentBossThresholdSec(sec)
       setAdjacentBossThresholdInput(String(sec))
       setChaseModeEnabled(settings.chaseModeEnabled === true)
+      sharedMemoUpdatedAtRef.current = nextSharedMemoUpdatedAt
       if (!sharedMemoDirtyRef.current || matchesPendingSharedMemo) {
         sharedMemoLoadedRef.current = true
         sharedMemoHtmlRef.current = nextSharedMemoHtml
         sharedMemoPendingHtmlRef.current = nextSharedMemoHtml
         setSharedMemoHtml(nextSharedMemoHtml)
-        if (sharedMemoChanged && !matchesPendingSharedMemo) {
-          setSharedMemoHasUpdate(true)
-        }
+      }
+
+      if ((sharedMemoUpdated || (sharedMemoChanged && !matchesPendingSharedMemo)) && hadSharedMemoLoaded) {
+        setSharedMemoHasUpdate(true)
+        setSharedMemoUpdateAnimationKey((prev) => prev + 1)
       }
 
       if (matchesPendingSharedMemo || !sharedMemoDirtyRef.current) {
@@ -1264,9 +1272,13 @@ export default function App() {
 
     sharedMemoSaveTimerRef.current = window.setTimeout(async () => {
       const htmlToSave = sharedMemoPendingHtmlRef.current
+      const updatedAt = getServerNow()
       sharedMemoSaveTimerRef.current = null
       try {
-        await updateRoomSettings({ sharedMemoHtml: htmlToSave || null })
+        await updateRoomSettings({
+          sharedMemoHtml: htmlToSave || null,
+          sharedMemoUpdatedAt: updatedAt
+        })
         if (sharedMemoPendingHtmlRef.current === htmlToSave) {
           sharedMemoDirtyRef.current = false
           setSharedMemoSaveStatus('saved')
@@ -1275,7 +1287,7 @@ export default function App() {
         sharedMemoDirtyRef.current = true
       }
     }, 350)
-  }, [roomId, updateRoomSettings])
+  }, [getServerNow, roomId, updateRoomSettings])
 
   const flushSharedMemoSave = useCallback(async () => {
     if (!roomId) return
@@ -1293,7 +1305,10 @@ export default function App() {
     }
 
     try {
-      await updateRoomSettings({ sharedMemoHtml: sanitized || null })
+      await updateRoomSettings({
+        sharedMemoHtml: sanitized || null,
+        sharedMemoUpdatedAt: getServerNow()
+      })
       if (sharedMemoPendingHtmlRef.current === sanitized) {
         sharedMemoDirtyRef.current = false
         setSharedMemoSaveStatus('saved')
@@ -1301,7 +1316,7 @@ export default function App() {
     } catch {
       sharedMemoDirtyRef.current = true
     }
-  }, [roomId, updateRoomSettings])
+  }, [getServerNow, roomId, updateRoomSettings])
 
   const handleSharedMemoInput = useCallback(() => {
     const editor = sharedMemoEditorRef.current
@@ -1388,6 +1403,7 @@ export default function App() {
     setSharedMemoOpen(false)
     setSharedMemoHtml('')
     setSharedMemoHasUpdate(false)
+    setSharedMemoUpdateAnimationKey(0)
     setSharedMemoResizing('')
     setSharedMemoSaveStatus('saved')
     setRoomDataLoaded(false)
@@ -1399,6 +1415,7 @@ export default function App() {
     sharedMemoHtmlRef.current = ''
     sharedMemoPendingHtmlRef.current = ''
     sharedMemoDirtyRef.current = false
+    sharedMemoUpdatedAtRef.current = 0
     sharedMemoResizeRef.current = {
       direction: '',
       startX: 0,
@@ -2255,6 +2272,13 @@ export default function App() {
             <button
               type='button'
               className={`shared-memo-fab ${sharedMemoOpen ? 'active' : ''} ${sharedMemoHasUpdate ? 'has-update' : ''}`}
+              style={sharedMemoUpdateAnimationKey > 0
+                ? {
+                    '--shared-memo-emoji-animation': sharedMemoUpdateAnimationKey % 2 === 0
+                      ? 'sharedMemoFabBounceA'
+                      : 'sharedMemoFabBounceB'
+                  }
+                : undefined}
               onClick={toggleSharedMemo}
               aria-label={sharedMemoOpen ? '공유 메모 닫기' : '공유 메모 열기'}
               title={sharedMemoOpen ? '공유 메모 닫기' : '공유 메모 열기'}

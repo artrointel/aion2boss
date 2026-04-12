@@ -78,8 +78,8 @@ const RACE_FILTER_COOKIE_KEY = 'aion2boss_race_filter'
 const DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC = 40
 const ADJACENT_BOSS_THRESHOLD_MIN_SEC = 1
 const ADJACENT_BOSS_THRESHOLD_MAX_SEC = 600
-const ROOM_PASSWORD_LENGTH = 10
-const ROOM_PASSWORD_CHARACTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
+const ROOM_CREATION_ENABLED = false
+const ROOM_CREATION_DISABLED_MESSAGE = '현재 새 방 생성은 일시적으로 비활성화되어 있습니다. 기존 방만 입장할 수 있습니다.'
 const COPY_ORDER_WINDOW_MS = 30 * 60000
 const DEFAULT_CHASE_COLUMN_WIDTH = 118
 const MIN_CHASE_COLUMN_WIDTH = DEFAULT_CHASE_COLUMN_WIDTH
@@ -204,6 +204,84 @@ function getPresenceSessionId() {
   }
 }
 
+function getPresenceBrowserId() {
+  const storageKey = 'aion2boss_presence_browser_id'
+
+  try {
+    const existing = window.localStorage.getItem(storageKey)
+    if (existing) return existing
+
+    const nextId = window.crypto?.randomUUID
+      ? window.crypto.randomUUID()
+      : `presence-browser-${Date.now()}-${Math.random().toString(16).slice(2)}`
+
+    window.localStorage.setItem(storageKey, nextId)
+    return nextId
+  } catch {
+    return window.crypto?.randomUUID
+      ? window.crypto.randomUUID()
+      : `presence-browser-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  }
+}
+
+function isLegacyPresenceEntry(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
+  return ['role', 'nickname', 'joinedAt', 'updatedAt'].some((key) => Object.prototype.hasOwnProperty.call(value, key))
+}
+
+function normalizePresenceLeaf(id, value) {
+  return {
+    id,
+    nickname: normalizeParticipantNickname(value?.nickname || ''),
+    role: value?.role === 'admin' ? 'admin' : 'guest',
+    joinedAt: Number(value?.joinedAt) || 0,
+    updatedAt: Number(value?.updatedAt) || 0
+  }
+}
+
+function buildParticipantEntriesFromPresence(presence) {
+  return Object.entries(presence || {})
+    .map(([id, value]) => {
+      if (isLegacyPresenceEntry(value)) {
+        return normalizePresenceLeaf(id, value)
+      }
+
+      const tabEntries = Object.entries(value || {})
+        .map(([tabId, tabValue]) => normalizePresenceLeaf(tabId, tabValue))
+        .filter((entry) => entry.joinedAt || entry.updatedAt || entry.nickname)
+
+      if (!tabEntries.length) return null
+
+      const representative = tabEntries.reduce((best, entry) => {
+        if (!best) return entry
+        const bestStamp = best.updatedAt || best.joinedAt || 0
+        const entryStamp = entry.updatedAt || entry.joinedAt || 0
+        if (entryStamp > bestStamp) return entry
+        if (entryStamp === bestStamp && entry.joinedAt > best.joinedAt) return entry
+        return best
+      }, null)
+
+      const joinedAt = tabEntries.reduce((earliest, entry) => {
+        if (!entry.joinedAt) return earliest
+        return entry.joinedAt < earliest ? entry.joinedAt : earliest
+      }, Number.POSITIVE_INFINITY)
+
+      return {
+        id,
+        nickname: representative?.nickname || '',
+        role: representative?.role || 'guest',
+        joinedAt: Number.isFinite(joinedAt) ? joinedAt : 0,
+        updatedAt: representative?.updatedAt || representative?.joinedAt || 0,
+        tabCount: tabEntries.length
+      }
+    })
+    .filter(Boolean)
+    .sort((a, b) => {
+      if (a.joinedAt !== b.joinedAt) return a.joinedAt - b.joinedAt
+      return a.id.localeCompare(b.id)
+    })
+}
+
 function normalizeParticipantNickname(value) {
   return String(value ?? '').replace(/\r?\n/g, ' ').slice(0, PARTICIPANT_NICKNAME_MAX_LENGTH)
 }
@@ -219,13 +297,6 @@ function loadParticipantNickname() {
 function getParticipantDisplayName(participant) {
   const nickname = normalizeParticipantNickname(participant?.nickname || '').trim()
   return nickname || '별명 미설정'
-}
-
-function generateRoomPassword(length = ROOM_PASSWORD_LENGTH) {
-  const safeLength = Math.max(1, Math.round(length))
-  const bytes = new Uint32Array(safeLength)
-  window.crypto.getRandomValues(bytes)
-  return Array.from(bytes, (value) => ROOM_PASSWORD_CHARACTERS[value % ROOM_PASSWORD_CHARACTERS.length]).join('')
 }
 
 async function hashRoomPassword(password) {
@@ -863,7 +934,9 @@ export default function App() {
     startWidth: DEFAULT_SHARED_MEMO_SIZE.width,
     startHeight: DEFAULT_SHARED_MEMO_SIZE.height
   })
+  const presenceBrowserIdRef = useRef(getPresenceBrowserId())
   const presenceSessionIdRef = useRef(getPresenceSessionId())
+  const presenceJoinedAtRef = useRef(Date.now())
   const toastTimerRef = useRef(null)
 
   useEffect(() => {
@@ -987,18 +1060,7 @@ export default function App() {
 
     const presenceRef = ref(db, `${roomId}/presence`)
     const unsubscribe = onValue(presenceRef, (snapshot) => {
-      const presence = snapshot.val()
-      const entries = Object.entries(presence || {})
-        .map(([id, value]) => ({
-          id,
-          nickname: normalizeParticipantNickname(value?.nickname || ''),
-          role: value?.role === 'admin' ? 'admin' : 'guest',
-          joinedAt: Number(value?.joinedAt) || 0
-        }))
-        .sort((a, b) => {
-          if (a.joinedAt !== b.joinedAt) return a.joinedAt - b.joinedAt
-          return a.id.localeCompare(b.id)
-        })
+      const entries = buildParticipantEntriesFromPresence(snapshot.val())
 
       setParticipantEntries(entries)
       setParticipantCount(entries.length)
@@ -1015,7 +1077,7 @@ export default function App() {
     if (!roomId) return undefined
 
     const connectedRef = ref(db, '.info/connected')
-    const sessionRef = ref(db, `${roomId}/presence/${presenceSessionIdRef.current}`)
+    const sessionRef = ref(db, `${roomId}/presence/${presenceBrowserIdRef.current}/${presenceSessionIdRef.current}`)
     let disposed = false
 
     const unsubscribe = onValue(connectedRef, async (snapshot) => {
@@ -1028,7 +1090,8 @@ export default function App() {
         await set(sessionRef, {
           role: roleRef.current,
           nickname: myNicknameRef.current,
-          joinedAt: Date.now()
+          joinedAt: presenceJoinedAtRef.current,
+          updatedAt: Date.now()
         })
       } catch (error) {
         console.error('Failed to sync room presence.', error)
@@ -1046,10 +1109,12 @@ export default function App() {
   useEffect(() => {
     if (!roomId) return undefined
 
-    const sessionRef = ref(db, `${roomId}/presence/${presenceSessionIdRef.current}`)
+    const sessionRef = ref(db, `${roomId}/presence/${presenceBrowserIdRef.current}/${presenceSessionIdRef.current}`)
     update(sessionRef, {
       role,
-      nickname: myNickname
+      nickname: myNickname,
+      joinedAt: presenceJoinedAtRef.current,
+      updatedAt: Date.now()
     }).catch(() => {})
 
     return undefined
@@ -1628,6 +1693,7 @@ export default function App() {
   }, [])
 
   const enterRoom = useCallback((room) => {
+    presenceJoinedAtRef.current = Date.now()
     setRoomPasswordInput('')
     setShowRoomPassword(false)
     setParticipantListDialog(EMPTY_PARTICIPANT_LIST_DIALOG)
@@ -1674,11 +1740,6 @@ export default function App() {
     window.history.pushState({ path: newUrl }, '', newUrl)
   }, [])
 
-  const handleGenerateRoomPassword = useCallback(() => {
-    setRoomPasswordInput(generateRoomPassword())
-    setShowRoomPassword(true)
-  }, [])
-
   const handleLogin = useCallback(async () => {
     if (loginPending) return
 
@@ -1706,15 +1767,16 @@ export default function App() {
           window.alert('비밀번호가 올바르지 않습니다.')
           return
         }
-      } else if (!roomExists && role === 'admin') {
-        const passwordToSave = inputPassword || generateRoomPassword()
-        const passwordHash = await hashRoomPassword(passwordToSave)
-        await update(ref(db, `${room}/settings`), {
-          passwordHash,
-          passwordUpdatedAt: Date.now()
-        })
+      } else if (!roomExists && role === 'admin' && ROOM_CREATION_ENABLED) {
+        if (inputPassword) {
+          const passwordHash = await hashRoomPassword(inputPassword)
+          await update(ref(db, `${room}/settings`), {
+            passwordHash,
+            passwordUpdatedAt: Date.now()
+          })
+        }
 
-        if (!inputPassword) {
+        if (false) {
           let copied = false
           try {
             await navigator.clipboard.writeText(passwordToSave)
@@ -1729,6 +1791,14 @@ export default function App() {
               : `새 방 비밀번호가 생성되었습니다.\n${passwordToSave}`
           )
         }
+
+        enterRoom(room)
+        return
+      }
+
+      if (!roomExists) {
+        window.alert(ROOM_CREATION_ENABLED ? '존재하지 않는 방입니다.' : ROOM_CREATION_DISABLED_MESSAGE)
+        return
       }
 
       enterRoom(room)
@@ -1815,17 +1885,6 @@ export default function App() {
 
   const closeRoomSettingsDialog = useCallback(() => {
     setRoomSettingsDialog(EMPTY_ROOM_SETTINGS_DIALOG)
-  }, [])
-
-  const handleRoomSettingsGeneratePassword = useCallback(() => {
-    setRoomSettingsDialog((prev) => {
-      if (!prev.open) return prev
-      return {
-        ...prev,
-        password: generateRoomPassword(),
-        showPassword: true
-      }
-    })
   }, [])
 
   const saveRoomSettings = useCallback(async () => {
@@ -2557,8 +2616,8 @@ export default function App() {
                   value={roomPasswordInput}
                   onChange={(e) => setRoomPasswordInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                  placeholder={role === 'admin'
-                    ? '새 방 비밀번호를 입력하거나 랜덤 생성'
+                  placeholder={role === 'admin' && ROOM_CREATION_ENABLED
+                    ? '새 방 비밀번호를 입력하세요'
                     : '방 비밀번호가 있으면 입력'
                   }
                   className='input-text large'
@@ -2574,16 +2633,6 @@ export default function App() {
                   >
                     {showRoomPassword ? '숨기기' : '보기'}
                   </button>
-                  {role === 'admin' ? (
-                    <button
-                      type='button'
-                      className='btn ghost tiny'
-                      onClick={handleGenerateRoomPassword}
-                      disabled={loginPending}
-                    >
-                      랜덤 생성
-                    </button>
-                  ) : null}
                 </div>
               </div>
             </div>
@@ -2600,8 +2649,10 @@ export default function App() {
             </div>
 
             <p className='login-help'>
-              {role === 'admin'
-                ? '새 방을 만들면 입력한 비밀번호가 저장됩니다. 비워두고 입장하면 자동으로 생성됩니다.'
+              {!ROOM_CREATION_ENABLED
+                ? ROOM_CREATION_DISABLED_MESSAGE
+                : role === 'admin'
+                ? '새 방을 만들면 입력한 비밀번호가 저장됩니다. 비워두면 비밀번호 없이 생성됩니다.'
                 : '비밀번호가 설정된 방이면 입력 후 입장하세요. 비밀번호가 없는 방은 비워둬도 됩니다.'}
             </p>
 
@@ -3175,7 +3226,7 @@ export default function App() {
                 {participantEntries.map((participant) => (
                   <div key={participant.id} className='participant-list-item'>
                     <span className='participant-list-name'>{getParticipantDisplayName(participant)}</span>
-                    {participant.id === presenceSessionIdRef.current ? (
+                    {participant.id === presenceBrowserIdRef.current ? (
                       <span className='participant-list-badge'>나</span>
                     ) : null}
                   </div>
@@ -3327,14 +3378,6 @@ export default function App() {
                   disabled={roomSettingsDialog.saving}
                 >
                   {roomSettingsDialog.showPassword ? '숨기기' : '보기'}
-                </button>
-                <button
-                  type='button'
-                  className='btn ghost tiny'
-                  onClick={handleRoomSettingsGeneratePassword}
-                  disabled={roomSettingsDialog.saving}
-                >
-                  랜덤 생성
                 </button>
               </div>
 

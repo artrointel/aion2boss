@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { initializeApp } from 'firebase/app'
-import { getDatabase, onValue, ref, remove, update } from 'firebase/database'
+import { get, getDatabase, onDisconnect, onValue, ref, remove, set, update } from 'firebase/database'
 import RacingGamePage from './RacingGamePage'
 
 const CONFIG = {
@@ -37,6 +37,7 @@ const emptyForm = {
   color: '#ffadad',
   race: '마족',
   location: '',
+  kibelisk: '',
   drop: '',
   interval: '',
   mapX: '',
@@ -48,6 +49,8 @@ const TTS_STORAGE_KEY = 'aion2boss_tts_enabled'
 const TTS_NOTICE_DISMISS_KEY = 'aion2boss_tts_notice_dismissed'
 const ALERT_PREF_COOKIE_KEY = 'aion2boss_alert_prefs'
 const SHARED_MEMO_SIZE_COOKIE_KEY = 'aion2boss_shared_memo_size'
+const PARTICIPANT_NICKNAME_STORAGE_KEY = 'aion2boss_participant_nickname'
+const PARTICIPANT_NICKNAME_MAX_LENGTH = 8
 const ALERT_MARKS = [
   { id: 'm20', ms: 20 * 60000, label: '20분 전', notice: '20분 남았습니다.' },
   { id: 'm10', ms: 10 * 60000, label: '10분 전', notice: '10분 남았습니다.' },
@@ -75,6 +78,9 @@ const RACE_FILTER_COOKIE_KEY = 'aion2boss_race_filter'
 const DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC = 40
 const ADJACENT_BOSS_THRESHOLD_MIN_SEC = 1
 const ADJACENT_BOSS_THRESHOLD_MAX_SEC = 600
+const ROOM_PASSWORD_LENGTH = 10
+const ROOM_PASSWORD_CHARACTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789'
+const COPY_ORDER_WINDOW_MS = 30 * 60000
 const DEFAULT_CHASE_COLUMN_WIDTH = 118
 const MIN_CHASE_COLUMN_WIDTH = DEFAULT_CHASE_COLUMN_WIDTH
 const LEGACY_CHASE_COLUMN_WIDTHS = new Set([148, 164])
@@ -85,8 +91,9 @@ const CHASE_TEAM_OPTIONS = [
   { value: 4, label: '4팀', emoji: '4️⃣' }
 ]
 const CHASE_TEAM_SET = new Set(CHASE_TEAM_OPTIONS.map((team) => team.value))
-const BASE_COLUMN_ORDER = ['alert', 'name', 'info', 'location', 'remaining', 'next', 'chase']
+const BASE_COLUMN_ORDER = ['alert', 'name', 'info', 'location', 'kibelisk', 'remaining', 'next', 'chase']
 const COLUMN_LABELS = {
+  kibelisk: '키벨리스크',
   alert: '알림',
   name: '보스명',
   info: '정보',
@@ -96,6 +103,7 @@ const COLUMN_LABELS = {
   chase: '추격팀'
 }
 const DEFAULT_COLUMN_PREFS = {
+  kibelisk: false,
   alert: true,
   name: true,
   info: false,
@@ -104,6 +112,7 @@ const DEFAULT_COLUMN_PREFS = {
   next: true
 }
 const DEFAULT_COLUMN_WIDTHS = {
+  kibelisk: 110,
   alert: 96,
   name: 180,
   info: 240,
@@ -175,6 +184,65 @@ function hasMapPoint(boss) {
   return boss?.mapX !== '' && boss?.mapY !== '' && boss?.mapX != null && boss?.mapY != null
 }
 
+function getPresenceSessionId() {
+  const storageKey = 'aion2boss_presence_session_id'
+
+  try {
+    const existing = window.sessionStorage.getItem(storageKey)
+    if (existing) return existing
+
+    const nextId = window.crypto?.randomUUID
+      ? window.crypto.randomUUID()
+      : `presence-${Date.now()}-${Math.random().toString(16).slice(2)}`
+
+    window.sessionStorage.setItem(storageKey, nextId)
+    return nextId
+  } catch {
+    return window.crypto?.randomUUID
+      ? window.crypto.randomUUID()
+      : `presence-${Date.now()}-${Math.random().toString(16).slice(2)}`
+  }
+}
+
+function normalizeParticipantNickname(value) {
+  return String(value ?? '').replace(/\r?\n/g, ' ').slice(0, PARTICIPANT_NICKNAME_MAX_LENGTH)
+}
+
+function loadParticipantNickname() {
+  try {
+    return normalizeParticipantNickname(window.localStorage.getItem(PARTICIPANT_NICKNAME_STORAGE_KEY) || '')
+  } catch {
+    return ''
+  }
+}
+
+function getParticipantDisplayName(participant) {
+  const nickname = normalizeParticipantNickname(participant?.nickname || '').trim()
+  return nickname || '별명 미설정'
+}
+
+function generateRoomPassword(length = ROOM_PASSWORD_LENGTH) {
+  const safeLength = Math.max(1, Math.round(length))
+  const bytes = new Uint32Array(safeLength)
+  window.crypto.getRandomValues(bytes)
+  return Array.from(bytes, (value) => ROOM_PASSWORD_CHARACTERS[value % ROOM_PASSWORD_CHARACTERS.length]).join('')
+}
+
+async function hashRoomPassword(password) {
+  if (!window.crypto?.subtle) {
+    throw new Error('Room password hashing requires Web Crypto support.')
+  }
+
+  const normalized = String(password ?? '').trim()
+  const encoded = new TextEncoder().encode(normalized)
+  const digest = await window.crypto.subtle.digest('SHA-256', encoded)
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+function hasRoomPassword(settings) {
+  return typeof settings?.passwordHash === 'string' && settings.passwordHash.length > 0
+}
+
 function readCookie(name) {
   const key = `${name}=`
   const found = document.cookie.split(';').map((p) => p.trim()).find((p) => p.startsWith(key))
@@ -191,6 +259,7 @@ function loadColumnPrefsFromCookie() {
       name: parsed?.name !== false,
       info: parsed?.info !== false,
       location: parsed?.location !== false,
+      kibelisk: parsed?.kibelisk === true,
       remaining: parsed?.remaining !== false,
       next: parsed?.next !== false
     }
@@ -214,6 +283,7 @@ function loadColumnWidthsFromCookie() {
       name: Number.isFinite(parsed?.name) ? parsed.name : DEFAULT_COLUMN_WIDTHS.name,
       info: Number.isFinite(parsed?.info) ? parsed.info : DEFAULT_COLUMN_WIDTHS.info,
       location: Number.isFinite(parsed?.location) ? parsed.location : DEFAULT_COLUMN_WIDTHS.location,
+      kibelisk: Number.isFinite(parsed?.kibelisk) ? parsed.kibelisk : DEFAULT_COLUMN_WIDTHS.kibelisk,
       remaining: Number.isFinite(parsed?.remaining) ? parsed.remaining : DEFAULT_COLUMN_WIDTHS.remaining,
       next: Number.isFinite(parsed?.next) ? parsed.next : DEFAULT_COLUMN_WIDTHS.next,
       chase: normalizeChaseColumnWidth(parsed?.chase),
@@ -371,6 +441,10 @@ function normalizeAdjacentBossThresholdSec(value) {
   )
 }
 
+function normalizeKibeliskValue(value) {
+  return String(value ?? '').replace(/[^\d]/g, '')
+}
+
 function normalizeChaseTeams(value) {
   if (!Array.isArray(value)) return []
 
@@ -508,6 +582,37 @@ function describeChaseTeams(teams) {
   return normalized.map((team) => `${team}팀`).join(', ')
 }
 
+function buildChaseCopyText(items, getValue) {
+  const groups = new Map()
+  const groupOrder = []
+
+  items.forEach((item) => {
+    const value = String(getValue(item) ?? '').trim()
+    if (!value) return
+
+    const teams = normalizeChaseTeams(item?.chaseTeams)
+    const key = teams.join(',')
+    if (!groups.has(key)) {
+      groups.set(key, { teams, values: [] })
+      groupOrder.push(key)
+    }
+
+    groups.get(key).values.push(value)
+  })
+
+  return groupOrder
+    .map((key) => {
+      const group = groups.get(key)
+      if (!group || !group.values.length) return ''
+
+      const valuesText = group.values.join(',')
+      if (!group.teams.length) return valuesText
+      return `[${group.teams.join(',')}팀-${valuesText}]`
+    })
+    .filter(Boolean)
+    .join(' ')
+}
+
 function getChaseRowBackground(teams) {
   const normalized = normalizeChaseTeams(teams)
   if (!normalized.length) return ''
@@ -628,6 +733,16 @@ const EMPTY_CHASE_TEAM_DIALOG = {
   name: '',
   selectedTeams: []
 }
+const EMPTY_ROOM_SETTINGS_DIALOG = {
+  open: false,
+  roomName: '',
+  password: '',
+  showPassword: false,
+  saving: false
+}
+const EMPTY_PARTICIPANT_LIST_DIALOG = {
+  open: false
+}
 const DEFAULT_SHARED_MEMO_SIZE = {
   width: 380,
   height: 320
@@ -645,6 +760,12 @@ const SHARED_MEMO_TOOLS = [
 ]
 export default function App() {
   const [roomInput, setRoomInput] = useState('')
+  const [roomPasswordInput, setRoomPasswordInput] = useState('')
+  const [showRoomPassword, setShowRoomPassword] = useState(false)
+  const [loginPending, setLoginPending] = useState(false)
+  const [myNickname, setMyNickname] = useState(() => loadParticipantNickname())
+  const [participantCount, setParticipantCount] = useState(0)
+  const [participantEntries, setParticipantEntries] = useState([])
   const [roomId, setRoomId] = useState('')
   const [role, setRole] = useState('admin')
   const [activeView, setActiveView] = useState(VIEW_BOSS)
@@ -698,6 +819,9 @@ export default function App() {
     bosses: []
   })
   const [chaseTeamDialog, setChaseTeamDialog] = useState(EMPTY_CHASE_TEAM_DIALOG)
+  const [roomSettingsDialog, setRoomSettingsDialog] = useState(EMPTY_ROOM_SETTINGS_DIALOG)
+  const [participantListDialog, setParticipantListDialog] = useState(EMPTY_PARTICIPANT_LIST_DIALOG)
+  const [toastMessage, setToastMessage] = useState('')
 
   const mapViewportRef = useRef(null)
   const mapImgRef = useRef(null)
@@ -724,6 +848,8 @@ export default function App() {
   })
   const syncNoticeShownRef = useRef(false)
   const syncNoticeCheckedOnEntryRef = useRef(false)
+  const roleRef = useRef(role)
+  const myNicknameRef = useRef(myNickname)
   const sharedMemoLoadedRef = useRef(false)
   const sharedMemoHtmlRef = useRef('')
   const sharedMemoSaveTimerRef = useRef(null)
@@ -737,12 +863,36 @@ export default function App() {
     startWidth: DEFAULT_SHARED_MEMO_SIZE.width,
     startHeight: DEFAULT_SHARED_MEMO_SIZE.height
   })
+  const presenceSessionIdRef = useRef(getPresenceSessionId())
+  const toastTimerRef = useRef(null)
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const room = params.get('room')
     if (room) setRoomInput(room)
   }, [])
+
+  useEffect(() => {
+    roleRef.current = role
+  }, [role])
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        window.clearTimeout(toastTimerRef.current)
+        toastTimerRef.current = null
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    myNicknameRef.current = myNickname
+    try {
+      window.localStorage.setItem(PARTICIPANT_NICKNAME_STORAGE_KEY, myNickname)
+    } catch {
+      // Ignore storage sync failures and keep nickname in memory.
+    }
+  }, [myNickname])
 
   useEffect(() => {
     saveTtsEnabledToCookie(ttsEnabled)
@@ -828,6 +978,83 @@ export default function App() {
     return () => unsubscribe()
   }, [roomId])
 
+  useEffect(() => {
+    if (!roomId) {
+      setParticipantCount(0)
+      setParticipantEntries([])
+      return undefined
+    }
+
+    const presenceRef = ref(db, `${roomId}/presence`)
+    const unsubscribe = onValue(presenceRef, (snapshot) => {
+      const presence = snapshot.val()
+      const entries = Object.entries(presence || {})
+        .map(([id, value]) => ({
+          id,
+          nickname: normalizeParticipantNickname(value?.nickname || ''),
+          role: value?.role === 'admin' ? 'admin' : 'guest',
+          joinedAt: Number(value?.joinedAt) || 0
+        }))
+        .sort((a, b) => {
+          if (a.joinedAt !== b.joinedAt) return a.joinedAt - b.joinedAt
+          return a.id.localeCompare(b.id)
+        })
+
+      setParticipantEntries(entries)
+      setParticipantCount(entries.length)
+    })
+
+    return () => {
+      unsubscribe()
+      setParticipantCount(0)
+      setParticipantEntries([])
+    }
+  }, [roomId])
+
+  useEffect(() => {
+    if (!roomId) return undefined
+
+    const connectedRef = ref(db, '.info/connected')
+    const sessionRef = ref(db, `${roomId}/presence/${presenceSessionIdRef.current}`)
+    let disposed = false
+
+    const unsubscribe = onValue(connectedRef, async (snapshot) => {
+      if (snapshot.val() !== true) return
+
+      try {
+        await onDisconnect(sessionRef).remove()
+        if (disposed) return
+
+        await set(sessionRef, {
+          role: roleRef.current,
+          nickname: myNicknameRef.current,
+          joinedAt: Date.now()
+        })
+      } catch (error) {
+        console.error('Failed to sync room presence.', error)
+      }
+    })
+
+    return () => {
+      disposed = true
+      unsubscribe()
+      onDisconnect(sessionRef).cancel().catch(() => {})
+      remove(sessionRef).catch(() => {})
+    }
+  }, [roomId])
+
+  useEffect(() => {
+    if (!roomId) return undefined
+
+    const sessionRef = ref(db, `${roomId}/presence/${presenceSessionIdRef.current}`)
+    update(sessionRef, {
+      role,
+      nickname: myNickname
+    }).catch(() => {})
+
+    return undefined
+  }, [myNickname, role, roomId])
+
   const bossList = useMemo(() => getBossList(bosses, now), [bosses, now])
   const enabledBossList = useMemo(() => {
     return bossList.filter((boss) => boss.alertEnabled !== false)
@@ -844,6 +1071,7 @@ export default function App() {
       .map(([key, value]) => ({
         key,
         ...value,
+        kibelisk: normalizeKibeliskValue(value?.kibelisk),
         alertEnabled: value?.alertEnabled !== false,
         chaseTeams: normalizeChaseTeams(value?.chaseTeams)
       }))
@@ -854,6 +1082,21 @@ export default function App() {
     }
     return orderedBosses.filter((boss) => (boss.race || '마족') === raceFilter)
   }, [orderedBosses, raceFilter])
+  const copyEligibleFilteredOrderedBosses = useMemo(() => {
+    return filteredOrderedBosses.filter((boss) => {
+      if (boss.alertEnabled === false) return false
+      const spawn = getSpawnInfo(boss, now)
+      return Number.isFinite(spawn.time) && spawn.time - now <= COPY_ORDER_WINDOW_MS
+    })
+  }, [filteredOrderedBosses, now])
+  const activeFilteredOrderedBossCopyText = useMemo(() => {
+    return buildChaseCopyText(copyEligibleFilteredOrderedBosses, (boss) => String(boss.name || '').trim())
+  }, [copyEligibleFilteredOrderedBosses])
+  const activeFilteredOrderedKibeliskCopyText = useMemo(() => {
+    return buildChaseCopyText(copyEligibleFilteredOrderedBosses, (boss) => normalizeKibeliskValue(boss.kibelisk))
+  }, [copyEligibleFilteredOrderedBosses])
+  const canCopyBossOrder = activeFilteredOrderedBossCopyText.length > 0
+  const canCopyKibeliskOrder = activeFilteredOrderedKibeliskCopyText.length > 0
 
   const panelBosses = useMemo(() => {
     return filteredBossList.filter((boss) => Number.isFinite(boss.effectiveTime) && boss.effectiveTime < Number.MAX_SAFE_INTEGER)
@@ -1384,13 +1627,10 @@ export default function App() {
     setRedoStack([])
   }, [])
 
-  const handleLogin = () => {
-    const room = roomInput.trim()
-    if (!room) {
-      window.alert('방 이름을 입력해주세요.')
-      return
-    }
-
+  const enterRoom = useCallback((room) => {
+    setRoomPasswordInput('')
+    setShowRoomPassword(false)
+    setParticipantListDialog(EMPTY_PARTICIPANT_LIST_DIALOG)
     setRoomId(room)
     setUndoStack([])
     setRedoStack([])
@@ -1432,7 +1672,73 @@ export default function App() {
 
     const newUrl = `${window.location.pathname}?room=${encodeURIComponent(room)}`
     window.history.pushState({ path: newUrl }, '', newUrl)
-  }
+  }, [])
+
+  const handleGenerateRoomPassword = useCallback(() => {
+    setRoomPasswordInput(generateRoomPassword())
+    setShowRoomPassword(true)
+  }, [])
+
+  const handleLogin = useCallback(async () => {
+    if (loginPending) return
+
+    const room = roomInput.trim()
+    if (!room) {
+      window.alert('방 이름을 입력해주세요.')
+      return
+    }
+
+    setLoginPending(true)
+    try {
+      const roomSnapshot = await get(ref(db, room))
+      const roomExists = roomSnapshot.exists()
+      const settings = roomSnapshot.child('settings').val() || {}
+      const inputPassword = roomPasswordInput.trim()
+
+      if (hasRoomPassword(settings)) {
+        if (!inputPassword) {
+          window.alert('이 방은 비밀번호가 설정되어 있습니다. 비밀번호를 입력해주세요.')
+          return
+        }
+
+        const inputPasswordHash = await hashRoomPassword(inputPassword)
+        if (inputPasswordHash !== settings.passwordHash) {
+          window.alert('비밀번호가 올바르지 않습니다.')
+          return
+        }
+      } else if (!roomExists && role === 'admin') {
+        const passwordToSave = inputPassword || generateRoomPassword()
+        const passwordHash = await hashRoomPassword(passwordToSave)
+        await update(ref(db, `${room}/settings`), {
+          passwordHash,
+          passwordUpdatedAt: Date.now()
+        })
+
+        if (!inputPassword) {
+          let copied = false
+          try {
+            await navigator.clipboard.writeText(passwordToSave)
+            copied = true
+          } catch {
+            copied = false
+          }
+
+          window.alert(
+            copied
+              ? `새 방 비밀번호가 생성되었습니다.\n${passwordToSave}\n클립보드에 복사해두었습니다.`
+              : `새 방 비밀번호가 생성되었습니다.\n${passwordToSave}`
+          )
+        }
+      }
+
+      enterRoom(room)
+    } catch (error) {
+      console.error('Failed to enter room.', error)
+      window.alert('방 정보를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.')
+    } finally {
+      setLoginPending(false)
+    }
+  }, [enterRoom, loginPending, role, roomInput, roomPasswordInput])
 
   const handleShare = async () => {
     try {
@@ -1443,12 +1749,175 @@ export default function App() {
     }
   }
 
+  const handleNicknameChange = useCallback((e) => {
+    setMyNickname(normalizeParticipantNickname(e.target.value))
+  }, [])
+
+  const showToast = useCallback((message) => {
+    setToastMessage(message)
+    if (toastTimerRef.current) {
+      window.clearTimeout(toastTimerRef.current)
+    }
+    toastTimerRef.current = window.setTimeout(() => {
+      setToastMessage('')
+      toastTimerRef.current = null
+    }, 1600)
+  }, [])
+
+  const handleCopyBossOrder = useCallback(async () => {
+    if (!activeFilteredOrderedBossCopyText) return
+
+    try {
+      await navigator.clipboard.writeText(activeFilteredOrderedBossCopyText)
+      showToast('복사됨!')
+    } catch {
+      window.alert('보스 순서 복사에 실패했습니다.')
+    }
+  }, [activeFilteredOrderedBossCopyText, showToast])
+
+  const handleCopyKibeliskOrder = useCallback(async () => {
+    if (!activeFilteredOrderedKibeliskCopyText) return
+
+    try {
+      await navigator.clipboard.writeText(activeFilteredOrderedKibeliskCopyText)
+      showToast('복사됨!')
+    } catch {
+      window.alert('키벨리스크 순서 복사에 실패했습니다.')
+    }
+  }, [activeFilteredOrderedKibeliskCopyText, showToast])
+
+  const openParticipantListDialog = useCallback(() => {
+    setParticipantListDialog({ open: true })
+  }, [])
+
+  const closeParticipantListDialog = useCallback(() => {
+    setParticipantListDialog(EMPTY_PARTICIPANT_LIST_DIALOG)
+  }, [])
+
   const handleLeave = () => {
     if (!window.confirm('정말 나가시겠습니까?')) return
     setMiniGameDialogOpen(false)
     setActiveView(VIEW_BOSS)
     window.location.href = window.location.pathname
   }
+
+  const openRoomSettingsDialog = useCallback(() => {
+    if (role !== 'admin' || !roomId) return
+
+    setRoomSettingsDialog({
+      open: true,
+      roomName: roomId,
+      password: '',
+      showPassword: false,
+      saving: false
+    })
+  }, [role, roomId])
+
+  const closeRoomSettingsDialog = useCallback(() => {
+    setRoomSettingsDialog(EMPTY_ROOM_SETTINGS_DIALOG)
+  }, [])
+
+  const handleRoomSettingsGeneratePassword = useCallback(() => {
+    setRoomSettingsDialog((prev) => {
+      if (!prev.open) return prev
+      return {
+        ...prev,
+        password: generateRoomPassword(),
+        showPassword: true
+      }
+    })
+  }, [])
+
+  const saveRoomSettings = useCallback(async () => {
+    if (role !== 'admin' || !roomId) return
+
+    const nextRoomName = roomSettingsDialog.roomName.trim()
+    const nextPassword = roomSettingsDialog.password.trim()
+    const isRoomNameChanged = nextRoomName !== roomId
+
+    if (!nextRoomName) {
+      window.alert('방 이름을 입력해주세요.')
+      return
+    }
+
+    if (!isRoomNameChanged && !nextPassword) {
+      closeRoomSettingsDialog()
+      return
+    }
+
+    setRoomSettingsDialog((prev) => {
+      if (!prev.open) return prev
+      return { ...prev, saving: true }
+    })
+
+    try {
+      const currentRoomSnapshot = await get(ref(db, roomId))
+      if (!currentRoomSnapshot.exists()) {
+        window.alert('현재 방 정보를 찾지 못했습니다.')
+        return
+      }
+
+      const currentRoomData = currentRoomSnapshot.val() || {}
+      const nextSettings = {
+        ...(currentRoomData.settings || {})
+      }
+
+      if (nextPassword) {
+        nextSettings.passwordHash = await hashRoomPassword(nextPassword)
+        nextSettings.passwordUpdatedAt = Date.now()
+      }
+
+      if (isRoomNameChanged) {
+        const targetRoomSnapshot = await get(ref(db, nextRoomName))
+        if (targetRoomSnapshot.exists()) {
+          window.alert('이미 사용 중인 방 이름입니다. 다른 방 이름을 입력해주세요.')
+          return
+        }
+
+        const nextRoomData = {
+          ...currentRoomData,
+          settings: nextSettings
+        }
+
+        await updateRoot({
+          [roomId]: null,
+          [nextRoomName]: nextRoomData
+        })
+
+        setBosses(nextRoomData.bosses || {})
+        setRoomInput(nextRoomName)
+        setRoomId(nextRoomName)
+        setRoomDataLoaded(true)
+
+        const nextUrl = `${window.location.pathname}?room=${encodeURIComponent(nextRoomName)}`
+        window.history.replaceState({ path: nextUrl }, '', nextUrl)
+      } else {
+        await update(ref(db, `${roomId}/settings`), nextSettings)
+      }
+
+      closeRoomSettingsDialog()
+      window.alert(
+        isRoomNameChanged && nextPassword
+          ? '방 이름과 비밀번호가 변경되었습니다.'
+          : isRoomNameChanged
+            ? '방 이름이 변경되었습니다.'
+            : '비밀번호가 변경되었습니다.'
+      )
+    } catch (error) {
+      console.error('Failed to save room settings.', error)
+      window.alert('방 설정을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.')
+    } finally {
+      setRoomSettingsDialog((prev) => {
+        if (!prev.open) return prev
+        return { ...prev, saving: false }
+      })
+    }
+  }, [closeRoomSettingsDialog, role, roomId, roomSettingsDialog.password, roomSettingsDialog.roomName, updateRoot])
+
+  const submitRoomSettings = useCallback((e) => {
+    e.preventDefault()
+    saveRoomSettings()
+  }, [saveRoomSettings])
 
   const openMiniGameDialog = () => {
     setMiniGameDialogOpen(true)
@@ -1627,6 +2096,7 @@ export default function App() {
       color: boss.color ?? '#ffadad',
       race: boss.race || '마족',
       location: boss.location ?? '',
+      kibelisk: normalizeKibeliskValue(boss.kibelisk),
       drop: boss.drop ?? '',
       interval: String(boss.interval ?? ''),
       mapX: boss.mapX ?? '',
@@ -1638,6 +2108,7 @@ export default function App() {
   const handleFormSubmit = async () => {
     const name = form.name.trim()
     const interval = form.interval
+    const kibelisk = normalizeKibeliskValue(form.kibelisk)
 
     if (!name) return window.alert('보스명을 입력해주세요.')
     if (name.length > CONFIG.LIMITS.NAME) return window.alert(`보스명은 ${CONFIG.LIMITS.NAME}자 이내여야 합니다.`)
@@ -1650,6 +2121,7 @@ export default function App() {
       color: form.color,
       race: form.race || '마족',
       location: form.location.trim(),
+      kibelisk: kibelisk || null,
       drop: form.drop.trim(),
       interval,
       alertEnabled: editingKey ? bosses[editingKey]?.alertEnabled !== false : true,
@@ -1982,8 +2454,16 @@ export default function App() {
         closeMiniGameDialog()
         return
       }
+      if (participantListDialog.open) {
+        closeParticipantListDialog()
+        return
+      }
       if (showForm) {
         closeBossFormDialog()
+        return
+      }
+      if (roomSettingsDialog.open) {
+        closeRoomSettingsDialog()
         return
       }
       if (chaseTeamDialog.open) {
@@ -2010,7 +2490,11 @@ export default function App() {
     miniGameDialogOpen,
     saveRemainingTime,
     chaseTeamDialog.open,
+    closeParticipantListDialog,
+    closeRoomSettingsDialog,
+    participantListDialog.open,
     showForm,
+    roomSettingsDialog.open,
     timeDialog.open,
     ttsNoticeDialogOpen,
     syncNoticeDialog.open
@@ -2057,38 +2541,101 @@ export default function App() {
             <h1>필드 보스 타이머</h1>
             <p>방 이름을 입력하고 역할을 선택하세요.</p>
 
-            <input
-              value={roomInput}
-              onChange={(e) => setRoomInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-              placeholder='예: 1서버마족, A공대'
-              className='input-text large'
-            />
+            <div className='login-inputs'>
+              <input
+                value={roomInput}
+                onChange={(e) => setRoomInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                placeholder='예: 1서버마족, A공대'
+                className='input-text large'
+                disabled={loginPending}
+              />
+
+              <div className='login-password-field'>
+                <input
+                  type={showRoomPassword ? 'text' : 'password'}
+                  value={roomPasswordInput}
+                  onChange={(e) => setRoomPasswordInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                  placeholder={role === 'admin'
+                    ? '새 방 비밀번호를 입력하거나 랜덤 생성'
+                    : '방 비밀번호가 있으면 입력'
+                  }
+                  className='input-text large'
+                  autoComplete='current-password'
+                  disabled={loginPending}
+                />
+                <div className='login-password-actions'>
+                  <button
+                    type='button'
+                    className='btn ghost tiny'
+                    onClick={() => setShowRoomPassword((prev) => !prev)}
+                    disabled={loginPending}
+                  >
+                    {showRoomPassword ? '숨기기' : '보기'}
+                  </button>
+                  {role === 'admin' ? (
+                    <button
+                      type='button'
+                      className='btn ghost tiny'
+                      onClick={handleGenerateRoomPassword}
+                      disabled={loginPending}
+                    >
+                      랜덤 생성
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </div>
 
             <div className='role-switch'>
               <label className={role === 'admin' ? 'active' : ''}>
-                <input type='radio' checked={role === 'admin'} onChange={() => setRole('admin')} />
+                <input type='radio' checked={role === 'admin'} onChange={() => setRole('admin')} disabled={loginPending} />
                 관리자
               </label>
               <label className={role === 'guest' ? 'active' : ''}>
-                <input type='radio' checked={role === 'guest'} onChange={() => setRole('guest')} />
+                <input type='radio' checked={role === 'guest'} onChange={() => setRole('guest')} disabled={loginPending} />
                 손님
               </label>
             </div>
 
-            <button className='btn primary block' onClick={handleLogin}>입장하기</button>
+            <p className='login-help'>
+              {role === 'admin'
+                ? '새 방을 만들면 입력한 비밀번호가 저장됩니다. 비워두고 입장하면 자동으로 생성됩니다.'
+                : '비밀번호가 설정된 방이면 입력 후 입장하세요. 비밀번호가 없는 방은 비워둬도 됩니다.'}
+            </p>
+
+            <button className='btn primary block' onClick={handleLogin} disabled={loginPending}>
+              {loginPending ? '입장 중...' : '입장하기'}
+            </button>
           </div>
         </section>
       ) : (
         <main className={`app-shell ${activeView === VIEW_RACING ? 'app-shell-racing' : ''}`}>
           <header className='topbar'>
-            <div className='room-pill'>ROOM: {roomId} / {role === 'admin' ? '관리자' : '손님'}</div>
+            <div className='topbar-info'>
+              <div className='room-pill'>ROOM: {roomId} / {role === 'admin' ? '관리자' : '손님'}</div>
+              <button type='button' className='room-pill room-pill-button' onClick={openParticipantListDialog}>
+                입장한 인원 수: {participantCount}
+              </button>
+              <label className='room-pill room-pill-input'>
+                <span className='room-pill-label'>내 별명</span>
+                <input
+                  className='room-pill-text-input'
+                  value={myNickname}
+                  onChange={handleNicknameChange}
+                  placeholder='8글자 이내'
+                  maxLength={PARTICIPANT_NICKNAME_MAX_LENGTH}
+                />
+              </label>
+            </div>
             <div className='topbar-actions'>
               <button className='btn ghost' onClick={openMiniGameDialog}>{TOPBAR_LABEL_MINI_GAME}</button>
               {activeView !== VIEW_BOSS ? (
                 <button className='btn ghost' onClick={openBossView}>{TOPBAR_LABEL_TO_BOSS}</button>
               ) : null}
               <button className='btn ghost' onClick={handleShare}>주소복사</button>
+              {role === 'admin' ? <button className='btn ghost' onClick={openRoomSettingsDialog}>방 설정</button> : null}
               {role === 'admin' ? <button className='btn danger ghost' onClick={handleLeave}>방 나가기</button> : null}
             </div>
           </header>
@@ -2297,6 +2844,8 @@ export default function App() {
                   <option value='마족'>마족</option>
                   <option value='기타'>기타</option>
                 </select>
+                <button className='btn ghost copy-order-btn' onClick={handleCopyBossOrder} disabled={!canCopyBossOrder}>보스 순서 복사</button>
+                <button className='btn ghost copy-order-btn' onClick={handleCopyKibeliskOrder} disabled={!canCopyKibeliskOrder}>키벨리스크 순서 복사</button>
               </div>
               {role === 'admin' ? (
                 <div className='section-actions'>
@@ -2332,6 +2881,7 @@ export default function App() {
                       <label><input type='checkbox' checked={columnPrefs.name} onChange={() => toggleColumnPref('name')} /> 보스명</label>
                       <label><input type='checkbox' checked={columnPrefs.info} onChange={() => toggleColumnPref('info')} /> 정보</label>
                       <label><input type='checkbox' checked={columnPrefs.location} onChange={() => toggleColumnPref('location')} /> 위치</label>
+                      <label><input type='checkbox' checked={columnPrefs.kibelisk} onChange={() => toggleColumnPref('kibelisk')} /> 키벨리스크</label>
                       <label><input type='checkbox' checked={columnPrefs.remaining} onChange={() => toggleColumnPref('remaining')} /> 남은 시간</label>
                       <label><input type='checkbox' checked={columnPrefs.next} onChange={() => toggleColumnPref('next')} /> 다음 젠 시간</label>
                     </div>
@@ -2500,6 +3050,13 @@ export default function App() {
                               </td>
                             )
                           }
+                          if (key === 'kibelisk') {
+                            return (
+                              <td key={key} style={buildCellStyle(key)}>
+                                <span>{boss.kibelisk || '-'}</span>
+                              </td>
+                            )
+                          }
                           if (key === 'remaining') {
                             return (
                               <td key={key} style={buildCellStyle(key)}>
@@ -2570,7 +3127,7 @@ export default function App() {
                   <button className='btn' onClick={handleSort}>다음 젠 시간순 정렬</button>
                   <button className='btn' disabled={!undoStack.length} onClick={handleUndo}>실행 취소</button>
                   <button className='btn' disabled={!redoStack.length} onClick={handleRedo}>다시 실행</button>
-                  <span className='creator-credit'>제작자: 마족 브리트라, 마도성 뿌띠</span>
+                  <span className='creator-credit'>제작자: 화폭[브리]</span>
                 </section>
               ) : null}
             </>
@@ -2604,6 +3161,31 @@ export default function App() {
             </div>
             <div className='dialog-actions'>
               <button className='btn ghost' onClick={closeMiniGameDialog}>닫기</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {participantListDialog.open ? (
+        <div className='dialog-backdrop' onClick={closeParticipantListDialog}>
+          <div className='dialog participant-list-dialog' onClick={(e) => e.stopPropagation()}>
+            <h4>입장한 사람 목록</h4>
+            <p>현재 방에 접속 중인 사람들의 별명입니다.</p>
+            {participantEntries.length ? (
+              <div className='participant-list'>
+                {participantEntries.map((participant) => (
+                  <div key={participant.id} className='participant-list-item'>
+                    <span className='participant-list-name'>{getParticipantDisplayName(participant)}</span>
+                    {participant.id === presenceSessionIdRef.current ? (
+                      <span className='participant-list-badge'>나</span>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>현재 입장한 사람이 없습니다.</p>
+            )}
+            <div className='dialog-actions'>
+              <button className='btn primary' onClick={closeParticipantListDialog}>닫기</button>
             </div>
           </div>
         </div>
@@ -2699,6 +3281,73 @@ export default function App() {
           </div>
         </div>
       ) : null}
+      {role === 'admin' && roomSettingsDialog.open ? (
+        <div className='dialog-backdrop' onClick={closeRoomSettingsDialog}>
+          <div className='dialog room-settings-dialog' onClick={(e) => e.stopPropagation()}>
+            <h4>방 설정</h4>
+            <p>방 이름을 바꾸면 공유 링크와 현재 입장 중인 방 이름도 함께 변경됩니다.</p>
+            <form className='room-settings-grid' onSubmit={submitRoomSettings}>
+              <label className='room-settings-field'>
+                <span>방 이름</span>
+                <input
+                  className='input-text'
+                  value={roomSettingsDialog.roomName}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setRoomSettingsDialog((prev) => ({ ...prev, roomName: value }))
+                  }}
+                  placeholder='방 이름'
+                  disabled={roomSettingsDialog.saving}
+                />
+              </label>
+
+              <label className='room-settings-field'>
+                <span>새 비밀번호</span>
+                <input
+                  type={roomSettingsDialog.showPassword ? 'text' : 'password'}
+                  className='input-text'
+                  value={roomSettingsDialog.password}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setRoomSettingsDialog((prev) => ({ ...prev, password: value }))
+                  }}
+                  placeholder='비워두면 기존 비밀번호 유지'
+                  autoComplete='new-password'
+                  disabled={roomSettingsDialog.saving}
+                />
+              </label>
+
+              <div className='room-settings-inline-actions'>
+                <button
+                  type='button'
+                  className='btn ghost tiny'
+                  onClick={() => {
+                    setRoomSettingsDialog((prev) => ({ ...prev, showPassword: !prev.showPassword }))
+                  }}
+                  disabled={roomSettingsDialog.saving}
+                >
+                  {roomSettingsDialog.showPassword ? '숨기기' : '보기'}
+                </button>
+                <button
+                  type='button'
+                  className='btn ghost tiny'
+                  onClick={handleRoomSettingsGeneratePassword}
+                  disabled={roomSettingsDialog.saving}
+                >
+                  랜덤 생성
+                </button>
+              </div>
+
+              <div className='dialog-actions'>
+                <button type='button' className='btn ghost' onClick={closeRoomSettingsDialog} disabled={roomSettingsDialog.saving}>취소</button>
+                <button type='submit' className='btn primary' disabled={roomSettingsDialog.saving}>
+                  {roomSettingsDialog.saving ? '저장 중...' : '저장'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
       {activeView === VIEW_BOSS && role === 'admin' && showForm ? (
         <div className='dialog-backdrop' onClick={closeBossFormDialog}>
           <div className='dialog form-dialog' onClick={(e) => e.stopPropagation()}>
@@ -2712,6 +3361,13 @@ export default function App() {
                 <option value='기타'>기타</option>
               </select>
               <input className='input-text' placeholder='위치 정보' value={form.location} maxLength={100} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} />
+              <input
+                className='input-text'
+                placeholder='키벨리스크 번호'
+                inputMode='numeric'
+                value={form.kibelisk}
+                onChange={(e) => setForm((p) => ({ ...p, kibelisk: normalizeKibeliskValue(e.target.value) }))}
+              />
               <select className='input-text' value={form.interval} onChange={(e) => setForm((p) => ({ ...p, interval: e.target.value }))}>
                 <option value=''>젠 주기</option>
                 {Array.from({ length: 24 }, (_, idx) => idx + 1).map((n) => (
@@ -2755,6 +3411,11 @@ export default function App() {
               <button className='btn primary' onClick={closeSyncNoticeDialog}>확인</button>
             </div>
           </div>
+        </div>
+      ) : null}
+      {toastMessage ? (
+        <div className='app-toast' role='status' aria-live='polite'>
+          {toastMessage}
         </div>
       ) : null}
     </div>

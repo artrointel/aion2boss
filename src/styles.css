@@ -56,6 +56,29 @@ body {
   color: var(--muted);
 }
 
+.login-inputs {
+  display: grid;
+  gap: 12px;
+}
+
+.login-password-field {
+  display: grid;
+  gap: 8px;
+}
+
+.login-password-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.login-help {
+  margin: 0 0 18px;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
 .role-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -104,6 +127,13 @@ body {
   flex-wrap: wrap;
 }
 
+.topbar-info {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 .room-pill {
   padding: 10px 14px;
   border-radius: 999px;
@@ -111,6 +141,44 @@ body {
   background: rgba(26, 43, 67, 0.8);
   color: #b9d0f0;
   font-size: 0.9rem;
+}
+
+.room-pill-button {
+  appearance: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+.room-pill-button:hover {
+  border-color: rgba(137, 179, 235, 0.9);
+  background: rgba(32, 52, 81, 0.92);
+}
+
+.room-pill-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.room-pill-label {
+  color: #d7e6fb;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.room-pill-text-input {
+  width: 110px;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  padding: 0;
+  outline: none;
+}
+
+.room-pill-text-input::placeholder {
+  color: #8ea4c4;
 }
 
 .topbar-actions {
@@ -694,6 +762,15 @@ body {
   width: 96px;
   padding: 7px 9px;
   font-size: 0.9rem;
+}
+
+.copy-order-btn {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.copy-order-btn:disabled {
+  filter: grayscale(1);
 }
 
 .status-card {
@@ -2202,6 +2279,14 @@ tr.row-timer-disabled td.alert-cell {
   width: min(520px, 100%);
 }
 
+.dialog.room-settings-dialog {
+  width: min(520px, 100%);
+}
+
+.dialog.participant-list-dialog {
+  width: min(400px, 100%);
+}
+
 .dialog h4 {
   margin: 0 0 6px;
 }
@@ -2248,6 +2333,74 @@ tr.row-timer-disabled td.alert-cell {
   gap: 8px;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.room-settings-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.room-settings-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.room-settings-inline-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.participant-list {
+  display: grid;
+  gap: 8px;
+}
+
+.participant-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(96, 129, 176, 0.45);
+  border-radius: 12px;
+  background: rgba(17, 29, 45, 0.72);
+}
+
+.participant-list-name {
+  font-weight: 700;
+  color: #eef5ff;
+  word-break: break-word;
+}
+
+.participant-list-badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(73, 197, 144, 0.16);
+  color: #cffff0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.app-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(20px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 1200;
+  padding: 11px 16px;
+  border: 1px solid rgba(115, 196, 154, 0.55);
+  border-radius: 999px;
+  background: rgba(15, 30, 24, 0.94);
+  color: #dcffee;
+  font-size: 0.9rem;
+  font-weight: 700;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  white-space: nowrap;
 }
 
 .chase-team-grid {
@@ -2636,6 +2789,31 @@ tr.row-timer-disabled td.alert-cell {
 
   .login-card {
     padding: 20px;
+  }
+
+  .topbar-info {
+    width: 100%;
+  }
+
+  .room-pill-input {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .login-password-actions {
+    justify-content: stretch;
+  }
+
+  .login-password-actions .btn {
+    flex: 1;
+  }
+
+  .room-settings-inline-actions {
+    justify-content: stretch;
+  }
+
+  .room-settings-inline-actions .btn {
+    flex: 1;
   }
 
   .form-grid {

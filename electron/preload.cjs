@@ -3,7 +3,6 @@ const { contextBridge, ipcRenderer } = require('electron')
 contextBridge.exposeInMainWorld('aion2bossDesktop', {
   getRuntimeInfo: () => ipcRenderer.invoke('desktop:get-runtime-info'),
   setAlwaysOnTop: (enabled) => ipcRenderer.invoke('desktop:set-always-on-top', enabled),
-  setIgnoreMouseEvents: (enabled) => ipcRenderer.invoke('desktop:set-ignore-mouse-events', enabled),
   setOpacity: (value) => ipcRenderer.invoke('desktop:set-opacity', value),
   setWindowSize: (size) => ipcRenderer.invoke('desktop:set-window-size', size),
   beginWindowDrag: (point) => ipcRenderer.invoke('desktop:begin-window-drag', point),

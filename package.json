@@ -10,7 +10,8 @@
     "desktop:dev": "node scripts/electron-dev.mjs",
     "desktop:start": "electron .",
     "desktop:preview": "npm run build:desktop && electron .",
-    "build": "vite build --mode web",
+    "release:portable": "npm run build:desktop && electron-builder --win portable",
+    "build": "npm run build:web && npm run build:desktop",
     "build:web": "vite build --mode web",
     "build:desktop": "vite build --mode desktop",
     "preview": "vite preview"
@@ -23,6 +24,27 @@
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
     "electron": "^37.2.1",
+    "electron-builder": "^26.8.1",
     "vite": "^6.0.7"
+  },
+  "build": {
+    "appId": "io.github.artrointel.aion2boss",
+    "productName": "AION2BOSS",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "signAndEditExecutable": false,
+      "target": [
+        "portable"
+      ],
+      "artifactName": "AION2BOSS-Portable-${version}.${ext}"
+    }
   }
 }

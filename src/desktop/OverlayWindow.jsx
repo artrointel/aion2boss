@@ -121,7 +121,6 @@ export default function OverlayWindow({
     startScreenY: 0
   })
   const suppressBadgeClickRef = useRef(false)
-  const mousePassthroughRef = useRef(false)
   const loading = !roomDataLoaded && !mainBoss && !nextBoss && overlayBosses.length === 0
   const collapsedBossName = loading ? '불러오는 중...' : mainBoss?.name || '대기 중'
   const collapsedBossCountdown = loading ? '--:--:--' : mainCountdown
@@ -268,47 +267,6 @@ export default function OverlayWindow({
       resetBadgeDragState()
     }
   }, [desktopApi])
-
-  useEffect(() => {
-    if (!desktopApi?.setIgnoreMouseEvents) return undefined
-
-    const shouldIgnoreForTarget = (target) => {
-      if (collapsed) {
-        return !Boolean(target?.closest('.overlay-badge-button'))
-      }
-
-      return !settingsOpen &&
-        !editMode &&
-        Boolean(target?.closest('.overlay-pass-through-region'))
-    }
-
-    const updateMousePassthrough = (enabled) => {
-      if (mousePassthroughRef.current === enabled) return
-      mousePassthroughRef.current = enabled
-      desktopApi.setIgnoreMouseEvents(enabled).catch(() => {})
-    }
-
-    const handleMouseMove = (event) => {
-      const target = event.target instanceof Element ? event.target : null
-      updateMousePassthrough(shouldIgnoreForTarget(target))
-    }
-
-    const disableMousePassthrough = () => {
-      updateMousePassthrough(false)
-    }
-
-    disableMousePassthrough()
-    window.addEventListener('mousemove', handleMouseMove, true)
-    window.addEventListener('mouseleave', disableMousePassthrough)
-    window.addEventListener('blur', disableMousePassthrough)
-
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove, true)
-      window.removeEventListener('mouseleave', disableMousePassthrough)
-      window.removeEventListener('blur', disableMousePassthrough)
-      disableMousePassthrough()
-    }
-  }, [collapsed, desktopApi, editMode, settingsOpen])
 
   useEffect(() => {
     if (!editContextMenu) return undefined
@@ -581,7 +539,7 @@ export default function OverlayWindow({
                 )}
               </div>
             ) : (
-              <div className='overlay-body overlay-pass-through-region'>
+              <div className='overlay-body'>
                 <OverlayBossCard
                   label='현재'
                   boss={mainBoss}

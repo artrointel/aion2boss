@@ -8,6 +8,10 @@ const rendererDistPath = path.join(__dirname, '..', 'dist')
 const preloadPath = path.join(__dirname, 'preload.cjs')
 const devServerUrl = process.env.VITE_DEV_SERVER_URL
 const defaultOverlayOpacity = 0.94
+const MIN_OVERLAY_SIZE = {
+  width: 120,
+  height: 48
+}
 const OVERLAY_LOGIN_SIZE = {
   width: 460,
   height: 430
@@ -31,8 +35,8 @@ function createMainWindow() {
   const win = new BrowserWindow({
     width: OVERLAY_LOGIN_SIZE.width,
     height: OVERLAY_LOGIN_SIZE.height,
-    minWidth: 380,
-    minHeight: 220,
+    minWidth: MIN_OVERLAY_SIZE.width,
+    minHeight: MIN_OVERLAY_SIZE.height,
     autoHideMenuBar: true,
     backgroundColor: '#00000000',
     transparent: true,
@@ -68,8 +72,8 @@ function createMainWindow() {
 function setWindowSize(win, size) {
   if (!win || win.isDestroyed()) return null
 
-  const width = Math.max(360, Math.round(Number(size?.width) || OVERLAY_ACTIVE_SIZE.width))
-  const height = Math.max(220, Math.round(Number(size?.height) || OVERLAY_ACTIVE_SIZE.height))
+  const width = Math.max(MIN_OVERLAY_SIZE.width, Math.round(Number(size?.width) || OVERLAY_ACTIVE_SIZE.width))
+  const height = Math.max(MIN_OVERLAY_SIZE.height, Math.round(Number(size?.height) || OVERLAY_ACTIVE_SIZE.height))
   win.setContentSize(width, height)
   return { width, height }
 }
@@ -85,13 +89,6 @@ ipcMain.handle('desktop:set-always-on-top', (event) => {
   if (!win) return false
   applyOverlayState(win, true)
   return win.isAlwaysOnTop()
-})
-
-ipcMain.handle('desktop:set-ignore-mouse-events', (event, enabled) => {
-  const win = BrowserWindow.fromWebContents(event.sender)
-  if (!win) return false
-  win.setIgnoreMouseEvents(Boolean(enabled), { forward: true })
-  return Boolean(enabled)
 })
 
 ipcMain.handle('desktop:set-opacity', (event, value) => {

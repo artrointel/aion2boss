@@ -2974,14 +2974,28 @@ body.overlay-mode #root {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
+}
+
+.overlay-header-main {
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-wrap: nowrap;
+}
+
+.overlay-header-actions {
+  flex: 0 0 auto;
+  flex-wrap: nowrap;
 }
 
 .overlay-badge,
 .overlay-badge-button,
 .overlay-chip,
 .overlay-icon-btn,
-.overlay-sync-alert-btn,
+.overlay-edit-context-menu,
+.overlay-edit-context-menu *,
+.overlay-edit-list,
+.overlay-edit-list *,
+.overlay-edit-time-btn,
 .overlay-filter-select,
 .overlay-toolbar-btn,
 .overlay-party-menu,
@@ -2997,6 +3011,7 @@ body.overlay-mode #root {
 .overlay-badge {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
   padding: 6px 10px;
   border-radius: 999px;
   background: rgba(56, 173, 121, 0.18);
@@ -3042,6 +3057,10 @@ body.overlay-mode #root {
 }
 
 .overlay-room-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.95rem;
   color: #f2f7ff;
 }
@@ -3291,6 +3310,191 @@ body.overlay-mode #root {
   gap: 8px;
 }
 
+.overlay-edit-list {
+  --overlay-edit-row-height: 78px;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  max-height: calc(var(--overlay-edit-row-height) * 2 + 8px);
+  overflow-y: auto;
+  padding-right: 4px;
+  overscroll-behavior: contain;
+}
+
+.overlay-edit-empty {
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(121, 150, 192, 0.2);
+  background: linear-gradient(180deg, rgba(15, 24, 39, 0.82), rgba(12, 20, 33, 0.92));
+  color: #d7e6fb;
+  font-size: 0.88rem;
+}
+
+.overlay-edit-context-menu {
+  position: fixed;
+  z-index: 20;
+  min-width: 154px;
+  padding: 6px;
+  border: 1px solid rgba(121, 150, 192, 0.28);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(14, 23, 37, 0.98), rgba(11, 19, 31, 0.99));
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.36);
+}
+
+.overlay-edit-context-item {
+  width: 100%;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #e8f1ff;
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+
+.overlay-edit-context-item:hover:not(:disabled) {
+  background: rgba(30, 48, 74, 0.92);
+}
+
+.overlay-edit-context-item.active {
+  color: #ffe97a;
+}
+
+.overlay-edit-context-item:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.overlay-edit-context-check {
+  width: 14px;
+  flex: 0 0 14px;
+  text-align: center;
+  color: #ffe97a;
+}
+
+.overlay-edit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--overlay-edit-row-height);
+  padding: 10px 12px 10px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(121, 150, 192, 0.24);
+  background: linear-gradient(180deg, rgba(15, 24, 39, 0.86), rgba(12, 20, 33, 0.94));
+  position: relative;
+  overflow: hidden;
+}
+
+.overlay-edit-row::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--overlay-accent, #2fb37d);
+}
+
+.overlay-edit-row.sync-needed {
+  border-color: rgba(242, 170, 72, 0.54);
+}
+
+.overlay-edit-row.alert-disabled {
+  filter: grayscale(1);
+  opacity: 0.62;
+}
+
+.overlay-edit-main {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.overlay-edit-head {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.overlay-edit-kind {
+  flex: 0 0 auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(31, 53, 84, 0.78);
+  color: #8da4c5;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.overlay-edit-name {
+  min-width: 0;
+  font-size: 1rem;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #f8fbff;
+}
+
+.overlay-edit-location {
+  min-width: 0;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: #b8d3f6;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.overlay-edit-time-btn {
+  min-width: 126px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border: 1px solid rgba(121, 150, 192, 0.3);
+  border-radius: 12px;
+  background: rgba(17, 29, 46, 0.9);
+  color: var(--overlay-accent, #75d9ab);
+  font: inherit;
+  font-size: 1.02rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+}
+
+.overlay-edit-time-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(152, 188, 239, 0.52);
+  background: rgba(30, 48, 74, 0.92);
+}
+
+.overlay-edit-time-btn.sync-needed {
+  border-color: rgba(242, 201, 76, 0.68);
+  color: #ffe97a;
+}
+
+.overlay-edit-time-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.overlay-edit-alert {
+  color: #ffe55b;
+}
+
 .overlay-boss-card {
   display: grid;
   grid-template-columns: minmax(0, 1.05fr) auto minmax(0, 1fr);
@@ -3353,24 +3557,20 @@ body.overlay-mode #root {
   color: var(--overlay-accent, #75d9ab);
 }
 
-.overlay-sync-alert-btn {
-  width: 24px;
-  height: 24px;
+.overlay-sync-indicator {
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid rgba(242, 201, 76, 0.65);
   border-radius: 999px;
   background: rgba(106, 82, 16, 0.28);
   color: #ffe55b;
-  font: inherit;
+  font-size: 0.95rem;
   font-weight: 900;
   line-height: 1;
-  cursor: pointer;
-  transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease;
-}
-
-.overlay-sync-alert-btn:hover {
-  transform: translateY(-1px);
-  border-color: rgba(255, 226, 120, 0.82);
-  background: rgba(128, 98, 19, 0.38);
 }
 
 .overlay-boss-location {
@@ -3407,6 +3607,21 @@ body.overlay-mode #root {
 
   .overlay-edit-btn {
     margin-left: auto;
+  }
+
+  .overlay-edit-row {
+    gap: 10px;
+    padding: 10px 10px 10px 15px;
+  }
+
+  .overlay-edit-list {
+    --overlay-edit-row-height: 78px;
+  }
+
+  .overlay-edit-time-btn {
+    min-width: 98px;
+    padding: 7px 10px;
+    font-size: 0.94rem;
   }
 
   .overlay-boss-card {

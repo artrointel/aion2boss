@@ -227,6 +227,18 @@ export default function App() {
   const toastTimerRef = useRef(null)
   const skipTtsDisableCancelRef = useRef(false)
 
+  const getPreferredTtsVoice = useCallback(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null
+
+    const voices = window.speechSynthesis.getVoices()
+    if (!Array.isArray(voices) || !voices.length) return null
+
+    return voices.find((voice) => String(voice?.lang || '').toLowerCase().startsWith('ko'))
+      || voices.find((voice) => voice?.default)
+      || voices[0]
+      || null
+  }, [])
+
   const speakTtsMessage = useCallback((text, options = {}) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return false
 
@@ -243,12 +255,35 @@ export default function App() {
     }
 
     const utter = new SpeechSynthesisUtterance(text)
+    const preferredVoice = getPreferredTtsVoice()
+    if (preferredVoice) {
+      utter.voice = preferredVoice
+    }
     utter.lang = lang
     utter.rate = rate
     utter.pitch = pitch
     utter.volume = volume
     window.speechSynthesis.speak(utter)
     return true
+  }, [getPreferredTtsVoice])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined
+
+    const primeVoices = () => {
+      try {
+        window.speechSynthesis.getVoices()
+      } catch {
+        // Ignore voice enumeration failures and fall back to browser defaults.
+      }
+    }
+
+    primeVoices()
+    window.speechSynthesis.addEventListener?.('voiceschanged', primeVoices)
+
+    return () => {
+      window.speechSynthesis.removeEventListener?.('voiceschanged', primeVoices)
+    }
   }, [])
 
   useEffect(() => {
@@ -607,6 +642,9 @@ export default function App() {
   const activeBossOrderCopyText = overlayMode ? overlayFilteredOrderedBossCopyText : activeFilteredOrderedBossCopyText
   const canCopyBossOrder = activeBossOrderCopyText.length > 0
   const canCopyKibeliskOrder = activeFilteredOrderedKibeliskCopyText.length > 0
+  const enabledAlertMarks = useMemo(() => {
+    return ALERT_MARKS.filter((mark) => alertPrefs[mark.id])
+  }, [alertPrefs])
 
   const panelBosses = useMemo(() => {
     return filteredBossList.filter((boss) => Number.isFinite(boss.effectiveTime) && boss.effectiveTime < Number.MAX_SAFE_INTEGER)
@@ -766,9 +804,14 @@ export default function App() {
 
     const prevState = ttsStateRef.current
     if (prevState.cycleId !== cycleId || prevState.prevRemainingMs == null) {
-      // Only arm TTS when the newly-tracked current boss still has enough lead time.
-      // This prevents chained alerts from the immediately following boss (e.g. 14s case).
-      ttsStateRef.current = { cycleId, prevRemainingMs: remainingMs, armed: remainingMs > ALERT_ARM_THRESHOLD_MS }
+      const smallestEnabledAlertMs = enabledAlertMarks.length
+        ? Math.min(...enabledAlertMarks.map((mark) => mark.ms))
+        : ALERT_ARM_THRESHOLD_MS
+      ttsStateRef.current = {
+        cycleId,
+        prevRemainingMs: remainingMs,
+        armed: remainingMs > smallestEnabledAlertMs
+      }
       return
     }
 
@@ -786,26 +829,18 @@ export default function App() {
       })
     }
 
-    for (const mark of ALERT_MARKS) {
-      if (!alertPrefs[mark.id]) continue
+    for (const mark of enabledAlertMarks) {
       if (prevState.prevRemainingMs > mark.ms && remainingMs <= mark.ms) {
         if (hasOtherBossInWindow(mark.ms)) {
           continue
         }
-        if ('speechSynthesis' in window) {
-          const bossName = activeMainBoss.name || '보스'
-          const utter = new SpeechSynthesisUtterance(`${bossName}, ${mark.notice}`)
-          utter.lang = 'ko-KR'
-          utter.rate = 1.2
-          utter.pitch = 1.25
-          utter.volume = 1
-          window.speechSynthesis.speak(utter)
-        }
+        const bossName = activeMainBoss.name || '보스'
+        speakTtsMessage(`${bossName}, ${mark.notice}`)
       }
     }
 
     ttsStateRef.current = { ...prevState, prevRemainingMs: remainingMs }
-  }, [ttsEnabled, activeMainBoss, now, alertPrefs, activeAlertBossList])
+  }, [ttsEnabled, activeMainBoss, now, activeAlertBossList, enabledAlertMarks, speakTtsMessage])
 
   useEffect(() => {
     if (chaseModeEnabled) return
@@ -1954,6 +1989,31 @@ export default function App() {
   const nextSyncNeeded = nextBoss ? isSyncNeeded(nextBoss, now) : false
   const overlayMainSyncNeeded = overlayMainBoss ? isSyncNeeded(overlayMainBoss, now) : false
   const overlayNextSyncNeeded = overlayNextBoss ? isSyncNeeded(overlayNextBoss, now) : false
+  const overlayEditorBosses = useMemo(() => {
+    return overlayVisibleOrderedBosses
+      .map((boss) => {
+        const spawn = getSpawnInfo(boss, now)
+        const effectiveTime = spawn.time ?? Number.MAX_SAFE_INTEGER
+        const editorBoss = {
+          ...boss,
+          effectiveTime
+        }
+
+        return {
+          ...editorBoss,
+          countdown: renderCountdown(editorBoss),
+          syncNeeded: boss.alertEnabled !== false && isSyncNeeded(boss, now),
+          timerEditable: Boolean(boss.interval),
+          highlightLabel: boss.key === overlayMainBoss?.key
+            ? '현재'
+            : boss.key === overlayNextBoss?.key
+              ? '다음'
+              : ''
+        }
+      })
+      .sort((a, b) => a.effectiveTime - b.effectiveTime)
+  }, [overlayVisibleOrderedBosses, now, overlayMainBoss, overlayNextBoss])
+  const canEditOverlayBosses = role === 'admin'
 
   const handleMapWheel = (e) => {
     e.preventDefault()
@@ -2187,6 +2247,52 @@ export default function App() {
       </div>
     </section>
   )
+  const remainingTimeDialog = activeView === VIEW_BOSS && timeDialog.open ? (
+    <div className='dialog-backdrop' onClick={closeRemainingDialog}>
+      <div className='dialog' onClick={(e) => e.stopPropagation()}>
+        <h4>남은 시간 수정</h4>
+        <p>시/분/초를 입력하면 [{timeDialog.name || '보스'}]의 다음 젠까지 남은 시간을 바로 반영합니다.</p>
+        <form onSubmit={submitRemainingTime}>
+          <div className='time-grid'>
+            <label>
+              시
+              <input
+                type='number'
+                min='0'
+                max='24'
+                value={timeDialog.h}
+                onChange={(e) => setTimeDialog((prev) => ({ ...prev, h: e.target.value }))}
+              />
+            </label>
+            <label>
+              분
+              <input
+                type='number'
+                min='0'
+                max='59'
+                value={timeDialog.m}
+                onChange={(e) => setTimeDialog((prev) => ({ ...prev, m: e.target.value }))}
+              />
+            </label>
+            <label>
+              초
+              <input
+                type='number'
+                min='0'
+                max='59'
+                value={timeDialog.s}
+                onChange={(e) => setTimeDialog((prev) => ({ ...prev, s: e.target.value }))}
+              />
+            </label>
+          </div>
+          <div className='dialog-actions'>
+            <button type='button' className='btn ghost' onClick={closeRemainingDialog}>취소</button>
+            <button type='submit' className='btn primary'>적용</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  ) : null
 
   if (overlayMode) {
     return (
@@ -2201,6 +2307,8 @@ export default function App() {
             nextCountdown={renderCountdown(overlayNextBoss)}
             mainSyncNeeded={overlayMainSyncNeeded}
             nextSyncNeeded={overlayNextSyncNeeded}
+            overlayBosses={overlayEditorBosses}
+            canEditBosses={canEditOverlayBosses}
             opacity={desktopOpacity}
             scale={desktopScale}
             raceFilter={overlayRaceFilter}
@@ -2216,12 +2324,13 @@ export default function App() {
             onPartyFilterChange={handleOverlayPartyFilterChange}
             onToggleTts={handleToggleTts}
             onToggleAlertPref={toggleAlertPref}
-            canCopyBossOrder={canCopyBossOrder}
-            onCopyBossOrder={handleCopyBossOrder}
+            onEditBoss={openRemainingDialog}
+            onToggleBossAlert={toggleBossAlertEnabled}
             onOpenWebApp={handleOverlayOpenWebApp}
             onExit={handleOverlayExit}
           />
         )}
+        {remainingTimeDialog}
       </div>
     )
   }

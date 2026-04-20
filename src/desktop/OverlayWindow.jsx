@@ -2,8 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 
 const PARTY_OPTIONS = [1, 2, 3, 4]
 const BADGE_DRAG_THRESHOLD = 4
+const EDIT_CONTEXT_MENU_WIDTH = 154
+const EDIT_CONTEXT_MENU_HEIGHT = 52
+const EDIT_CONTEXT_MENU_MARGIN = 8
 
-function OverlayBossCard({ label, boss, countdown, syncNeeded, loading, onOpenWebApp }) {
+function OverlayBossCard({ label, boss, countdown, syncNeeded, loading }) {
   const accent = boss?.color || '#2fb37d'
   const hasBoss = Boolean(boss)
   const locationText = loading
@@ -26,19 +29,49 @@ function OverlayBossCard({ label, boss, countdown, syncNeeded, loading, onOpenWe
       </div>
       <div className={`overlay-boss-time ${syncNeeded ? 'sync-needed' : ''}`}>
         {syncNeeded ? (
-          <button
-            type='button'
-            className='overlay-sync-alert-btn'
-            onClick={onOpenWebApp}
-            title='웹 페이지에서 수정하기'
-            aria-label='웹 페이지에서 수정하기'
-          >
+          <span className='overlay-sync-indicator' aria-hidden='true'>
             !
-          </button>
+          </span>
         ) : null}
         <span>{loading ? '--:--:--' : countdown}</span>
       </div>
       <span className='overlay-boss-location' title={locationText}>{locationText}</span>
+    </section>
+  )
+}
+
+function OverlayEditRow({ boss, countdown, syncNeeded, highlightLabel, canEdit, editTitle, onEdit, onContextMenu }) {
+  const accent = boss?.color || '#2fb37d'
+  const locationText = boss?.location || '-'
+
+  const handleEdit = () => {
+    if (!canEdit) return
+    onEdit(boss)
+  }
+
+  return (
+    <section
+      className={`overlay-edit-row ${syncNeeded ? 'sync-needed' : ''} ${boss.alertEnabled === false ? 'alert-disabled' : ''}`}
+      style={{ '--overlay-accent': accent }}
+      onContextMenu={(event) => onContextMenu(event, boss)}
+    >
+      <div className='overlay-edit-main'>
+        <div className='overlay-edit-head'>
+          {highlightLabel ? <span className='overlay-edit-kind'>{highlightLabel}</span> : null}
+          <strong className='overlay-edit-name'>{boss.name || '이름 없음'}</strong>
+        </div>
+        <span className='overlay-edit-location' title={locationText}>{locationText}</span>
+      </div>
+      <button
+        type='button'
+        className={`overlay-edit-time-btn ${syncNeeded ? 'sync-needed' : ''}`}
+        disabled={!canEdit}
+        onClick={handleEdit}
+        title={editTitle}
+      >
+        {syncNeeded ? <span className='overlay-edit-alert'>!</span> : null}
+        <span>{countdown}</span>
+      </button>
     </section>
   )
 }
@@ -52,6 +85,8 @@ export default function OverlayWindow({
   nextCountdown,
   mainSyncNeeded,
   nextSyncNeeded,
+  overlayBosses,
+  canEditBosses,
   opacity,
   scale,
   raceFilter,
@@ -61,20 +96,22 @@ export default function OverlayWindow({
   ttsEnabled,
   alertPrefs,
   alertMarks,
-  canCopyBossOrder,
   onOpacityChange,
   onScaleChange,
   onRaceFilterChange,
   onPartyFilterChange,
   onToggleTts,
   onToggleAlertPref,
-  onCopyBossOrder,
+  onEditBoss,
+  onToggleBossAlert,
   onOpenWebApp,
   onExit
 }) {
   const [collapsed, setCollapsed] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [partyMenuOpen, setPartyMenuOpen] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [editContextMenu, setEditContextMenu] = useState(null)
   const desktopApi = typeof window !== 'undefined' ? window.aion2bossDesktop : null
   const badgeDragStateRef = useRef({
     active: false,
@@ -84,7 +121,8 @@ export default function OverlayWindow({
     startScreenY: 0
   })
   const suppressBadgeClickRef = useRef(false)
-  const loading = !roomDataLoaded && !mainBoss && !nextBoss
+  const mousePassthroughRef = useRef(false)
+  const loading = !roomDataLoaded && !mainBoss && !nextBoss && overlayBosses.length === 0
   const collapsedBossName = loading ? '불러오는 중...' : mainBoss?.name || '대기 중'
   const collapsedBossCountdown = loading ? '--:--:--' : mainCountdown
 
@@ -94,6 +132,7 @@ export default function OverlayWindow({
       if (next) {
         setSettingsOpen(false)
         setPartyMenuOpen(false)
+        setEditContextMenu(null)
       }
       return next
     })
@@ -102,18 +141,60 @@ export default function OverlayWindow({
   const toggleSettingsOpen = () => {
     setSettingsOpen((prev) => {
       const next = !prev
-      if (next) setPartyMenuOpen(false)
+      if (next) {
+        setPartyMenuOpen(false)
+        setEditContextMenu(null)
+      }
       return next
     })
   }
 
   const togglePartyMenuOpen = () => {
+    setEditContextMenu(null)
     setPartyMenuOpen((prev) => !prev)
+  }
+
+  const toggleEditMode = () => {
+    setEditMode((prev) => {
+      const next = !prev
+      if (next) {
+        setSettingsOpen(false)
+        setPartyMenuOpen(false)
+      } else {
+        setEditContextMenu(null)
+      }
+      return next
+    })
   }
 
   const handlePartyFilterSelect = (value) => {
     onPartyFilterChange(partyFilter === value ? null : value)
     setPartyMenuOpen(false)
+    setEditContextMenu(null)
+  }
+
+  const closeEditContextMenu = () => {
+    setEditContextMenu(null)
+  }
+
+  const handleEditRowContextMenu = (event, boss) => {
+    event.preventDefault()
+    event.stopPropagation()
+
+    const maxX = Math.max(EDIT_CONTEXT_MENU_MARGIN, window.innerWidth - EDIT_CONTEXT_MENU_WIDTH - EDIT_CONTEXT_MENU_MARGIN)
+    const maxY = Math.max(EDIT_CONTEXT_MENU_MARGIN, window.innerHeight - EDIT_CONTEXT_MENU_HEIGHT - EDIT_CONTEXT_MENU_MARGIN)
+
+    setEditContextMenu({
+      boss,
+      x: Math.max(EDIT_CONTEXT_MENU_MARGIN, Math.min(event.clientX, maxX)),
+      y: Math.max(EDIT_CONTEXT_MENU_MARGIN, Math.min(event.clientY, maxY))
+    })
+  }
+
+  const handleToggleBossAlertFromMenu = async () => {
+    if (!editContextMenu?.boss || !onToggleBossAlert) return
+    await onToggleBossAlert(editContextMenu.boss)
+    closeEditContextMenu()
   }
 
   useEffect(() => {
@@ -188,6 +269,86 @@ export default function OverlayWindow({
     }
   }, [desktopApi])
 
+  useEffect(() => {
+    if (!desktopApi?.setIgnoreMouseEvents) return undefined
+
+    const shouldIgnoreForTarget = (target) => {
+      if (collapsed) {
+        return !Boolean(target?.closest('.overlay-badge-button'))
+      }
+
+      return !settingsOpen &&
+        !editMode &&
+        Boolean(target?.closest('.overlay-pass-through-region'))
+    }
+
+    const updateMousePassthrough = (enabled) => {
+      if (mousePassthroughRef.current === enabled) return
+      mousePassthroughRef.current = enabled
+      desktopApi.setIgnoreMouseEvents(enabled).catch(() => {})
+    }
+
+    const handleMouseMove = (event) => {
+      const target = event.target instanceof Element ? event.target : null
+      updateMousePassthrough(shouldIgnoreForTarget(target))
+    }
+
+    const disableMousePassthrough = () => {
+      updateMousePassthrough(false)
+    }
+
+    disableMousePassthrough()
+    window.addEventListener('mousemove', handleMouseMove, true)
+    window.addEventListener('mouseleave', disableMousePassthrough)
+    window.addEventListener('blur', disableMousePassthrough)
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove, true)
+      window.removeEventListener('mouseleave', disableMousePassthrough)
+      window.removeEventListener('blur', disableMousePassthrough)
+      disableMousePassthrough()
+    }
+  }, [collapsed, desktopApi, editMode, settingsOpen])
+
+  useEffect(() => {
+    if (!editContextMenu) return undefined
+
+    const handlePointerDown = (event) => {
+      const target = event.target instanceof Element ? event.target : null
+      if (target?.closest('.overlay-edit-context-menu')) return
+      closeEditContextMenu()
+    }
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeEditContextMenu()
+      }
+    }
+
+    const handleCloseRequest = () => {
+      closeEditContextMenu()
+    }
+
+    window.addEventListener('pointerdown', handlePointerDown, true)
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('wheel', handleCloseRequest, { passive: true })
+    window.addEventListener('scroll', handleCloseRequest, true)
+    window.addEventListener('blur', handleCloseRequest)
+
+    return () => {
+      window.removeEventListener('pointerdown', handlePointerDown, true)
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('wheel', handleCloseRequest)
+      window.removeEventListener('scroll', handleCloseRequest, true)
+      window.removeEventListener('blur', handleCloseRequest)
+    }
+  }, [editContextMenu])
+
+  useEffect(() => {
+    if (!collapsed && !settingsOpen && editMode) return
+    closeEditContextMenu()
+  }, [collapsed, editMode, settingsOpen])
+
   const handleBadgePointerDown = (event) => {
     if (typeof event.button === 'number' && event.button !== 0) return
 
@@ -248,6 +409,15 @@ export default function OverlayWindow({
                 aria-label='오버레이 설정'
               >
                 ⚙
+              </button>
+              <button
+                type='button'
+                className='overlay-icon-btn'
+                onClick={onOpenWebApp}
+                title='웹페이지 열기'
+                aria-label='웹페이지 열기'
+              >
+                🌐
               </button>
               <button
                 type='button'
@@ -347,15 +517,6 @@ export default function OverlayWindow({
                 <option value='기타'>기타</option>
               </select>
 
-              <button
-                type='button'
-                className='overlay-toolbar-btn'
-                onClick={onCopyBossOrder}
-                disabled={!canCopyBossOrder}
-              >
-                순서 복사
-              </button>
-
               {chaseModeEnabled ? (
                 <div className='overlay-party-filter'>
                   <button
@@ -386,32 +547,80 @@ export default function OverlayWindow({
 
               <button
                 type='button'
-                className={`overlay-toolbar-btn overlay-edit-btn ${editNeedsAttention ? 'needs-attention' : ''}`}
-                onClick={onOpenWebApp}
+                className={`overlay-toolbar-btn overlay-edit-btn ${editMode ? 'active' : ''} ${editNeedsAttention ? 'needs-attention' : ''}`}
+                onClick={toggleEditMode}
               >
-                웹페이지 열기
+                {editMode ? '완료' : '수정'}
               </button>
             </div>
 
-            <div className='overlay-body'>
-              <OverlayBossCard
-                label='현재'
-                boss={mainBoss}
-                countdown={mainCountdown}
-                syncNeeded={mainSyncNeeded}
-                loading={loading}
-                onOpenWebApp={onOpenWebApp}
-              />
-              <OverlayBossCard
-                label='다음'
-                boss={nextBoss}
-                countdown={nextCountdown}
-                syncNeeded={nextSyncNeeded}
-                loading={loading}
-                onOpenWebApp={onOpenWebApp}
-              />
-            </div>
+            {editMode ? (
+              <div className='overlay-edit-list'>
+                {loading ? (
+                  <section className='overlay-edit-empty'>불러오는 중...</section>
+                ) : overlayBosses.length ? (
+                  overlayBosses.map((boss) => (
+                    <OverlayEditRow
+                      key={boss.key}
+                      boss={boss}
+                      countdown={boss.countdown}
+                      syncNeeded={boss.syncNeeded}
+                      highlightLabel={boss.highlightLabel}
+                      canEdit={canEditBosses && boss.timerEditable}
+                      editTitle={
+                        canEditBosses
+                          ? (boss.timerEditable ? '남은 시간 수정' : '주기가 없는 보스는 수정할 수 없습니다.')
+                          : '관리자만 수정할 수 있습니다.'
+                      }
+                      onEdit={onEditBoss}
+                      onContextMenu={handleEditRowContextMenu}
+                    />
+                  ))
+                ) : (
+                  <section className='overlay-edit-empty'>필터에 맞는 보스가 없습니다.</section>
+                )}
+              </div>
+            ) : (
+              <div className='overlay-body overlay-pass-through-region'>
+                <OverlayBossCard
+                  label='현재'
+                  boss={mainBoss}
+                  countdown={mainCountdown}
+                  syncNeeded={mainSyncNeeded}
+                  loading={loading}
+                />
+                <OverlayBossCard
+                  label='다음'
+                  boss={nextBoss}
+                  countdown={nextCountdown}
+                  syncNeeded={nextSyncNeeded}
+                  loading={loading}
+                />
+              </div>
+            )}
           </>
+        ) : null}
+        {editContextMenu ? (
+          <div
+            className='overlay-edit-context-menu'
+            role='menu'
+            aria-label='보스 카드 메뉴'
+            style={{ left: `${editContextMenu.x}px`, top: `${editContextMenu.y}px` }}
+          >
+            <button
+              type='button'
+              className={`overlay-edit-context-item ${editContextMenu.boss?.alertEnabled === false ? 'active' : ''}`}
+              onClick={handleToggleBossAlertFromMenu}
+              disabled={!canEditBosses}
+              role='menuitemcheckbox'
+              aria-checked={editContextMenu.boss?.alertEnabled === false}
+            >
+              <span className='overlay-edit-context-check' aria-hidden='true'>
+                {editContextMenu.boss?.alertEnabled === false ? '✓' : ''}
+              </span>
+              <span>알림 제외</span>
+            </button>
+          </div>
         ) : null}
       </section>
     </div>

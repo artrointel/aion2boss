@@ -1,844 +1,123 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { initializeApp } from 'firebase/app'
-import { get, getDatabase, onDisconnect, onValue, ref, remove, set, update } from 'firebase/database'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import RacingGamePage from './RacingGamePage'
+import {
+  ALERT_ARM_THRESHOLD_MS,
+  ALERT_MARKS,
+  CHASE_TEAM_OPTIONS,
+  COLUMN_LABELS,
+  CONFIG,
+  COPY_ORDER_WINDOW_MS,
+  DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC,
+  DEFAULT_COLUMN_WIDTHS,
+  DEFAULT_SHARED_MEMO_SIZE,
+  EMPTY_CHASE_TEAM_DIALOG,
+  EMPTY_PARTICIPANT_LIST_DIALOG,
+  EMPTY_ROOM_SETTINGS_DIALOG,
+  MINI_GAME_ITEMS,
+  PARTICIPANT_NICKNAME_MAX_LENGTH,
+  ROOM_CREATION_DISABLED_MESSAGE,
+  ROOM_CREATION_ENABLED,
+  SHARED_MEMO_MAX_LENGTH,
+  SHARED_MEMO_TOOLS,
+  TOPBAR_LABEL_MINI_GAME,
+  TOPBAR_LABEL_TO_BOSS,
+  VIEW_BOSS,
+  VIEW_RACING,
+  buildChaseCopyText,
+  buildParticipantEntriesFromPresence,
+  describeChaseTeams,
+  diffToClock,
+  emptyForm,
+  formatChaseTeams,
+  formatDateTime,
+  getBossList,
+  getChaseRowBackground,
+  getChaseTeamEmoji,
+  getParticipantDisplayName,
+  getPointerClientX,
+  getPresenceBrowserId,
+  getPresenceSessionId,
+  getSharedMemoPlainText,
+  getSpawnInfo,
+  hasMapPoint,
+  hasRoomPassword,
+  hasSharedMemoContent,
+  hashRoomPassword,
+  isSyncNeeded,
+  normalizeAdjacentBossThresholdSec,
+  normalizeChaseColumnWidth,
+  normalizeChaseTeams,
+  normalizeKibeliskValue,
+  normalizeParticipantNickname,
+  pad2,
+  sanitizeSharedMemoHtml
+} from './core/appCore'
+import {
+  getSharedMemoResizeCursor,
+  getSharedMemoSizeBounds,
+  hasColumnWidthCookie,
+  loadAlertPrefsFromCookie,
+  loadColumnOrderFromCookie,
+  loadColumnPrefsFromCookie,
+  loadColumnWidthsFromCookie,
+  loadOverlayScale,
+  loadParticipantNickname,
+  loadRecentRoomEntry,
+  loadRaceFilterFromCookie,
+  loadSharedMemoSizeFromCookie,
+  loadTtsEnabledFromCookie,
+  loadTtsNoticeDismissed,
+  normalizeSharedMemoSize,
+  saveAlertPrefsToCookie,
+  saveColumnOrderToCookie,
+  saveColumnPrefsToCookie,
+  saveColumnWidthsToCookie,
+  saveOverlayScale,
+  saveParticipantNickname,
+  saveRecentRoomEntry,
+  saveRaceFilterToCookie,
+  saveSharedMemoSizeToCookie,
+  saveTtsEnabledToCookie,
+  saveTtsNoticeDismissed
+} from './core/browserStorage'
+import {
+  cancelDisconnect,
+  createPresenceSessionRef,
+  getRoomSnapshot,
+  removeBoss as repoRemoveBoss,
+  removeValue,
+  scheduleDisconnectRemove,
+  setValue,
+  subscribeConnectionStatus,
+  subscribeRoomBosses,
+  subscribeRoomPresence,
+  subscribeRoomSettings,
+  subscribeServerTimeOffset,
+  updateBoss as repoUpdateBoss,
+  updateRoot as repoUpdateRoot,
+  updateRoomSettings as repoUpdateRoomSettings,
+  updateValue
+} from './data/roomRepository'
+import OverlayWindow from './desktop/OverlayWindow'
+
+const WEB_APP_URL = 'https://artrointel.github.io/aion2boss/'
 
-const CONFIG = {
-  FIREBASE: {
-    apiKey: 'AIzaSyB8HvxU7VhR9mWiSvyFu3XXXbmLfoKz9M0',
-    authDomain: 'aion2boss.firebaseapp.com',
-    databaseURL: 'https://aion2boss-default-rtdb.firebaseio.com',
-    projectId: 'aion2boss',
-    storageBucket: 'aion2boss.firebasestorage.app',
-    messagingSenderId: '985334026286',
-    appId: '1:985334026286:web:4959921d864700b5cf0fbf'
-  },
-  UI: {
-    WARNING_MS: 300000
-  },
-  MAP: {
-    FLY_SCALE: 1.6,
-    MIN_SCALE: 0.3,
-    MAX_SCALE: 5,
-    FLY_DURATION_MS: 450
-  },
-  LIMITS: {
-    NAME: 20,
-    LOC: 100,
-    INFO: 400
-  }
-}
-
-const app = initializeApp(CONFIG.FIREBASE)
-const db = getDatabase(app)
-
-const emptyForm = {
-  name: '',
-  color: '#ffadad',
-  race: '마족',
-  location: '',
-  kibelisk: '',
-  drop: '',
-  interval: '',
-  mapX: '',
-  mapY: ''
-}
-
-const pad2 = (num) => String(num).padStart(2, '0')
-const TTS_STORAGE_KEY = 'aion2boss_tts_enabled'
-const TTS_NOTICE_DISMISS_KEY = 'aion2boss_tts_notice_dismissed'
-const ALERT_PREF_COOKIE_KEY = 'aion2boss_alert_prefs'
-const SHARED_MEMO_SIZE_COOKIE_KEY = 'aion2boss_shared_memo_size'
-const PARTICIPANT_NICKNAME_STORAGE_KEY = 'aion2boss_participant_nickname'
-const PARTICIPANT_NICKNAME_MAX_LENGTH = 8
-const ALERT_MARKS = [
-  { id: 'm20', ms: 20 * 60000, label: '20분 전', notice: '20분 남았습니다.' },
-  { id: 'm10', ms: 10 * 60000, label: '10분 전', notice: '10분 남았습니다.' },
-  { id: 'm5', ms: 5 * 60000, label: '5분 전', notice: '5분 남았습니다.' },
-  { id: 'm1', ms: 62000, label: '1분 전', notice: '1분 남았습니다.' },
-  { id: 's30', ms: 32000, label: '30초 전', notice: '30초 남았습니다.' },
-  { id: 's10', ms: 12000, label: '10초 전', notice: '10초 남았습니다.' },
-  { id: 's5', ms: 7000, label: '5초 전', notice: '5초 남았습니다.' }
-]
-const ALERT_ARM_THRESHOLD_MS = 62000
-const DEFAULT_ALERT_PREFS = {
-  m20: false,
-  m10: true,
-  m5: false,
-  m1: true,
-  s30: true,
-  s10: true,
-  s5: true
-}
-const CYCLE_DRIFT_CORRECTION_MS = 10000
-const COLUMN_PREF_COOKIE_KEY = 'aion2boss_column_prefs'
-const COLUMN_WIDTH_COOKIE_KEY = 'aion2boss_column_widths'
-const COLUMN_ORDER_COOKIE_KEY = 'aion2boss_column_order'
-const RACE_FILTER_COOKIE_KEY = 'aion2boss_race_filter'
-const DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC = 40
-const ADJACENT_BOSS_THRESHOLD_MIN_SEC = 1
-const ADJACENT_BOSS_THRESHOLD_MAX_SEC = 600
-const ROOM_CREATION_ENABLED = false
-const ROOM_CREATION_DISABLED_MESSAGE = '현재 새 방 생성은 일시적으로 비활성화되어 있습니다. 기존 방만 입장할 수 있습니다.'
-const COPY_ORDER_WINDOW_MS = 30 * 60000
-const DEFAULT_CHASE_COLUMN_WIDTH = 118
-const MIN_CHASE_COLUMN_WIDTH = DEFAULT_CHASE_COLUMN_WIDTH
-const LEGACY_CHASE_COLUMN_WIDTHS = new Set([148, 164])
-const CHASE_TEAM_OPTIONS = [
-  { value: 1, label: '1팀', emoji: '1️⃣' },
-  { value: 2, label: '2팀', emoji: '2️⃣' },
-  { value: 3, label: '3팀', emoji: '3️⃣' },
-  { value: 4, label: '4팀', emoji: '4️⃣' }
-]
-const CHASE_TEAM_SET = new Set(CHASE_TEAM_OPTIONS.map((team) => team.value))
-const BASE_COLUMN_ORDER = ['alert', 'name', 'info', 'location', 'kibelisk', 'remaining', 'next', 'chase']
-const COLUMN_LABELS = {
-  kibelisk: '키벨리스크',
-  alert: '알림',
-  name: '보스명',
-  info: '정보',
-  location: '위치',
-  remaining: '남은 시간',
-  next: '다음 젠 시간',
-  chase: '추격팀'
-}
-const DEFAULT_COLUMN_PREFS = {
-  kibelisk: false,
-  alert: true,
-  name: true,
-  info: false,
-  location: true,
-  remaining: true,
-  next: true
-}
-const DEFAULT_COLUMN_WIDTHS = {
-  kibelisk: 110,
-  alert: 96,
-  name: 180,
-  info: 240,
-  location: 190,
-  remaining: 140,
-  next: 140,
-  chase: DEFAULT_CHASE_COLUMN_WIDTH,
-  manage: 110
-}
-
-function formatDateTime(timestamp) {
-  if (!timestamp) return '-'
-  const d = new Date(timestamp)
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`
-}
-
-function diffToClock(ms) {
-  const safe = Math.max(0, ms)
-  const h = Math.floor(safe / 3600000)
-  const m = Math.floor((safe % 3600000) / 60000)
-  const s = Math.floor((safe % 60000) / 1000)
-  return { h, m, s }
-}
-
-function getSpawnInfo(boss, now) {
-  if (!boss?.nextSpawnTimestamp || !boss?.interval) {
-    return { time: null }
-  }
-
-  const intervalMs = Number(boss.interval) * 3600000
-  if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
-    return { time: null }
-  }
-
-  let nextTime = Number(boss.nextSpawnTimestamp)
-
-  if (nextTime <= now) {
-    // First spawn uses the manually synced time.
-    // After that point, apply empirical +10s correction per spawn cycle.
-    const correctedIntervalMs = intervalMs + CYCLE_DRIFT_CORRECTION_MS
-    const diff = now - nextTime
-    const cycles = Math.floor(diff / correctedIntervalMs) + 1
-    nextTime += cycles * correctedIntervalMs
-  }
-
-  return { time: nextTime }
-}
-
-function isSyncNeeded(boss, now) {
-  if (!boss?.interval || !boss?.nextSpawnTimestamp) return false
-  return now >= Number(boss.nextSpawnTimestamp)
-}
-
-function getBossList(bosses, now) {
-  return Object.entries(bosses)
-    .map(([key, boss]) => {
-      const spawn = getSpawnInfo(boss, now)
-      return {
-        key,
-        ...boss,
-        alertEnabled: boss?.alertEnabled !== false,
-        effectiveTime: spawn.time ?? Number.MAX_SAFE_INTEGER
-      }
-    })
-    .sort((a, b) => a.effectiveTime - b.effectiveTime)
-}
-
-function hasMapPoint(boss) {
-  return boss?.mapX !== '' && boss?.mapY !== '' && boss?.mapX != null && boss?.mapY != null
-}
-
-function getPresenceSessionId() {
-  const storageKey = 'aion2boss_presence_session_id'
-
-  try {
-    const existing = window.sessionStorage.getItem(storageKey)
-    if (existing) return existing
-
-    const nextId = window.crypto?.randomUUID
-      ? window.crypto.randomUUID()
-      : `presence-${Date.now()}-${Math.random().toString(16).slice(2)}`
-
-    window.sessionStorage.setItem(storageKey, nextId)
-    return nextId
-  } catch {
-    return window.crypto?.randomUUID
-      ? window.crypto.randomUUID()
-      : `presence-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  }
-}
-
-function getPresenceBrowserId() {
-  const storageKey = 'aion2boss_presence_browser_id'
-
-  try {
-    const existing = window.localStorage.getItem(storageKey)
-    if (existing) return existing
-
-    const nextId = window.crypto?.randomUUID
-      ? window.crypto.randomUUID()
-      : `presence-browser-${Date.now()}-${Math.random().toString(16).slice(2)}`
-
-    window.localStorage.setItem(storageKey, nextId)
-    return nextId
-  } catch {
-    return window.crypto?.randomUUID
-      ? window.crypto.randomUUID()
-      : `presence-browser-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  }
-}
-
-function isLegacyPresenceEntry(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
-  return ['role', 'nickname', 'joinedAt', 'updatedAt'].some((key) => Object.prototype.hasOwnProperty.call(value, key))
-}
-
-function normalizePresenceLeaf(id, value) {
-  return {
-    id,
-    nickname: normalizeParticipantNickname(value?.nickname || ''),
-    role: value?.role === 'admin' ? 'admin' : 'guest',
-    joinedAt: Number(value?.joinedAt) || 0,
-    updatedAt: Number(value?.updatedAt) || 0
-  }
-}
-
-function buildParticipantEntriesFromPresence(presence) {
-  return Object.entries(presence || {})
-    .map(([id, value]) => {
-      if (isLegacyPresenceEntry(value)) {
-        return normalizePresenceLeaf(id, value)
-      }
-
-      const tabEntries = Object.entries(value || {})
-        .map(([tabId, tabValue]) => normalizePresenceLeaf(tabId, tabValue))
-        .filter((entry) => entry.joinedAt || entry.updatedAt || entry.nickname)
-
-      if (!tabEntries.length) return null
-
-      const representative = tabEntries.reduce((best, entry) => {
-        if (!best) return entry
-        const bestStamp = best.updatedAt || best.joinedAt || 0
-        const entryStamp = entry.updatedAt || entry.joinedAt || 0
-        if (entryStamp > bestStamp) return entry
-        if (entryStamp === bestStamp && entry.joinedAt > best.joinedAt) return entry
-        return best
-      }, null)
-
-      const joinedAt = tabEntries.reduce((earliest, entry) => {
-        if (!entry.joinedAt) return earliest
-        return entry.joinedAt < earliest ? entry.joinedAt : earliest
-      }, Number.POSITIVE_INFINITY)
-
-      return {
-        id,
-        nickname: representative?.nickname || '',
-        role: representative?.role || 'guest',
-        joinedAt: Number.isFinite(joinedAt) ? joinedAt : 0,
-        updatedAt: representative?.updatedAt || representative?.joinedAt || 0,
-        tabCount: tabEntries.length
-      }
-    })
-    .filter(Boolean)
-    .sort((a, b) => {
-      if (a.joinedAt !== b.joinedAt) return a.joinedAt - b.joinedAt
-      return a.id.localeCompare(b.id)
-    })
-}
-
-function normalizeParticipantNickname(value) {
-  return String(value ?? '').replace(/\r?\n/g, ' ').slice(0, PARTICIPANT_NICKNAME_MAX_LENGTH)
-}
-
-function loadParticipantNickname() {
-  try {
-    return normalizeParticipantNickname(window.localStorage.getItem(PARTICIPANT_NICKNAME_STORAGE_KEY) || '')
-  } catch {
-    return ''
-  }
-}
-
-function getParticipantDisplayName(participant) {
-  const nickname = normalizeParticipantNickname(participant?.nickname || '').trim()
-  return nickname || '별명 미설정'
-}
-
-async function hashRoomPassword(password) {
-  if (!window.crypto?.subtle) {
-    throw new Error('Room password hashing requires Web Crypto support.')
-  }
-
-  const normalized = String(password ?? '').trim()
-  const encoded = new TextEncoder().encode(normalized)
-  const digest = await window.crypto.subtle.digest('SHA-256', encoded)
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
-}
-
-function hasRoomPassword(settings) {
-  return typeof settings?.passwordHash === 'string' && settings.passwordHash.length > 0
-}
-
-function readCookie(name) {
-  const key = `${name}=`
-  const found = document.cookie.split(';').map((p) => p.trim()).find((p) => p.startsWith(key))
-  return found ? decodeURIComponent(found.slice(key.length)) : ''
-}
-
-function loadColumnPrefsFromCookie() {
-  try {
-    const raw = readCookie(COLUMN_PREF_COOKIE_KEY)
-    if (!raw) return DEFAULT_COLUMN_PREFS
-    const parsed = JSON.parse(raw)
-    return {
-      alert: parsed?.alert !== false,
-      name: parsed?.name !== false,
-      info: parsed?.info !== false,
-      location: parsed?.location !== false,
-      kibelisk: parsed?.kibelisk === true,
-      remaining: parsed?.remaining !== false,
-      next: parsed?.next !== false
-    }
-  } catch {
-    return DEFAULT_COLUMN_PREFS
-  }
-}
-
-function saveColumnPrefsToCookie(prefs) {
-  const expires = 60 * 60 * 24 * 365
-  document.cookie = `${COLUMN_PREF_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(prefs))}; path=/; max-age=${expires}; SameSite=Lax`
-}
-
-function loadColumnWidthsFromCookie() {
-  try {
-    const raw = readCookie(COLUMN_WIDTH_COOKIE_KEY)
-    if (!raw) return DEFAULT_COLUMN_WIDTHS
-    const parsed = JSON.parse(raw)
-    return {
-      alert: Number.isFinite(parsed?.alert) ? parsed.alert : DEFAULT_COLUMN_WIDTHS.alert,
-      name: Number.isFinite(parsed?.name) ? parsed.name : DEFAULT_COLUMN_WIDTHS.name,
-      info: Number.isFinite(parsed?.info) ? parsed.info : DEFAULT_COLUMN_WIDTHS.info,
-      location: Number.isFinite(parsed?.location) ? parsed.location : DEFAULT_COLUMN_WIDTHS.location,
-      kibelisk: Number.isFinite(parsed?.kibelisk) ? parsed.kibelisk : DEFAULT_COLUMN_WIDTHS.kibelisk,
-      remaining: Number.isFinite(parsed?.remaining) ? parsed.remaining : DEFAULT_COLUMN_WIDTHS.remaining,
-      next: Number.isFinite(parsed?.next) ? parsed.next : DEFAULT_COLUMN_WIDTHS.next,
-      chase: normalizeChaseColumnWidth(parsed?.chase),
-      manage: Number.isFinite(parsed?.manage) ? parsed.manage : DEFAULT_COLUMN_WIDTHS.manage
-    }
-  } catch {
-    return DEFAULT_COLUMN_WIDTHS
-  }
-}
-
-function saveColumnWidthsToCookie(widths) {
-  const expires = 60 * 60 * 24 * 365
-  document.cookie = `${COLUMN_WIDTH_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(widths))}; path=/; max-age=${expires}; SameSite=Lax`
-}
-
-function hasColumnWidthCookie() {
-  return Boolean(readCookie(COLUMN_WIDTH_COOKIE_KEY))
-}
-
-function loadColumnOrderFromCookie() {
-  try {
-    const raw = readCookie(COLUMN_ORDER_COOKIE_KEY)
-    if (!raw) return BASE_COLUMN_ORDER
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return BASE_COLUMN_ORDER
-    const known = parsed.filter((key) => BASE_COLUMN_ORDER.includes(key))
-    const missing = BASE_COLUMN_ORDER.filter((key) => !known.includes(key))
-    return [...known, ...missing]
-  } catch {
-    return BASE_COLUMN_ORDER
-  }
-}
-
-function saveColumnOrderToCookie(order) {
-  const expires = 60 * 60 * 24 * 365
-  document.cookie = `${COLUMN_ORDER_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(order))}; path=/; max-age=${expires}; SameSite=Lax`
-}
-
-function loadRaceFilterFromCookie() {
-  const raw = readCookie(RACE_FILTER_COOKIE_KEY)
-  if (raw === '천족' || raw === '마족' || raw === '기타' || raw === '모두') {
-    return raw
-  }
-  return '모두'
-}
-
-function saveRaceFilterToCookie(filterValue) {
-  const expires = 60 * 60 * 24 * 365
-  document.cookie = `${RACE_FILTER_COOKIE_KEY}=${encodeURIComponent(filterValue)}; path=/; max-age=${expires}; SameSite=Lax`
-}
-
-function loadTtsEnabledFromCookie() {
-  const raw = readCookie(TTS_STORAGE_KEY)
-  if (raw === 'true') return true
-  if (raw === 'false') return false
-  // Backward compatibility: migrate old localStorage value if present.
-  return window.localStorage.getItem(TTS_STORAGE_KEY) === 'true'
-}
-
-function saveTtsEnabledToCookie(enabled) {
-  const expires = 60 * 60 * 24 * 365
-  document.cookie = `${TTS_STORAGE_KEY}=${encodeURIComponent(enabled ? 'true' : 'false')}; path=/; max-age=${expires}; SameSite=Lax`
-}
-
-function loadAlertPrefsFromCookie() {
-  try {
-    const raw = readCookie(ALERT_PREF_COOKIE_KEY)
-    if (!raw) return DEFAULT_ALERT_PREFS
-    const parsed = JSON.parse(raw)
-    return {
-      m20: parsed?.m20 === true,
-      m10: parsed?.m10 !== false,
-      m5: parsed?.m5 === true,
-      m1: parsed?.m1 !== false,
-      s30: parsed?.s30 !== false,
-      s10: parsed?.s10 !== false,
-      s5: parsed?.s5 !== false
-    }
-  } catch {
-    return DEFAULT_ALERT_PREFS
-  }
-}
-
-function saveAlertPrefsToCookie(prefs) {
-  const expires = 60 * 60 * 24 * 365
-  document.cookie = `${ALERT_PREF_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(prefs))}; path=/; max-age=${expires}; SameSite=Lax`
-}
-
-function getSharedMemoSizeBounds() {
-  if (typeof window === 'undefined') {
-    return {
-      minWidth: MIN_SHARED_MEMO_WIDTH,
-      maxWidth: MAX_SHARED_MEMO_WIDTH,
-      minHeight: MIN_SHARED_MEMO_HEIGHT,
-      maxHeight: MAX_SHARED_MEMO_HEIGHT
-    }
-  }
-
-  return {
-    minWidth: MIN_SHARED_MEMO_WIDTH,
-    maxWidth: Math.max(MIN_SHARED_MEMO_WIDTH, Math.min(MAX_SHARED_MEMO_WIDTH, window.innerWidth - 32)),
-    minHeight: MIN_SHARED_MEMO_HEIGHT,
-    maxHeight: Math.max(MIN_SHARED_MEMO_HEIGHT, Math.min(MAX_SHARED_MEMO_HEIGHT, window.innerHeight - 140))
-  }
-}
-
-function normalizeSharedMemoSize(value) {
-  const bounds = getSharedMemoSizeBounds()
-  const width = Number(value?.width)
-  const height = Number(value?.height)
-  const nextWidth = Number.isFinite(width) ? Math.round(width) : DEFAULT_SHARED_MEMO_SIZE.width
-  const nextHeight = Number.isFinite(height) ? Math.round(height) : DEFAULT_SHARED_MEMO_SIZE.height
-
-  return {
-    width: Math.min(bounds.maxWidth, Math.max(bounds.minWidth, nextWidth)),
-    height: Math.min(bounds.maxHeight, Math.max(bounds.minHeight, nextHeight))
-  }
-}
-
-function loadSharedMemoSizeFromCookie() {
-  try {
-    const raw = readCookie(SHARED_MEMO_SIZE_COOKIE_KEY)
-    if (!raw) return normalizeSharedMemoSize(DEFAULT_SHARED_MEMO_SIZE)
-    return normalizeSharedMemoSize(JSON.parse(raw))
-  } catch {
-    return normalizeSharedMemoSize(DEFAULT_SHARED_MEMO_SIZE)
-  }
-}
-
-function saveSharedMemoSizeToCookie(size) {
-  const expires = 60 * 60 * 24 * 365
-  const normalized = normalizeSharedMemoSize(size)
-  document.cookie = `${SHARED_MEMO_SIZE_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(normalized))}; path=/; max-age=${expires}; SameSite=Lax`
-}
-
-function getSharedMemoResizeCursor(direction) {
-  if (direction === 'top') return 'ns-resize'
-  if (direction === 'left') return 'ew-resize'
-  return 'nwse-resize'
-}
-
-function getPointerClientX(event) {
-  if (typeof event.clientX === 'number') return event.clientX
-  if (event.touches?.length) return event.touches[0].clientX
-  if (event.changedTouches?.length) return event.changedTouches[0].clientX
-  return null
-}
-
-function normalizeAdjacentBossThresholdSec(value) {
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) return DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC
-  return Math.min(
-    ADJACENT_BOSS_THRESHOLD_MAX_SEC,
-    Math.max(ADJACENT_BOSS_THRESHOLD_MIN_SEC, Math.round(parsed))
-  )
-}
-
-function normalizeKibeliskValue(value) {
-  return String(value ?? '').replace(/[^\d]/g, '')
-}
-
-function normalizeChaseTeams(value) {
-  if (!Array.isArray(value)) return []
-
-  return [...new Set(
-    value
-      .map((team) => Number(team))
-      .filter((team) => CHASE_TEAM_SET.has(team))
-  )].sort((a, b) => a - b)
-}
-
-function normalizeChaseColumnWidth(value) {
-  const parsed = Number(value)
-  if (!Number.isFinite(parsed)) return DEFAULT_CHASE_COLUMN_WIDTH
-  if (LEGACY_CHASE_COLUMN_WIDTHS.has(parsed)) return DEFAULT_CHASE_COLUMN_WIDTH
-  return Math.max(Math.round(parsed), MIN_CHASE_COLUMN_WIDTH)
-}
-
-function hslToRgb(hue, saturation, lightness) {
-  const s = saturation / 100
-  const l = lightness / 100
-  const c = (1 - Math.abs(2 * l - 1)) * s
-  const hh = hue / 60
-  const x = c * (1 - Math.abs((hh % 2) - 1))
-  let r1 = 0
-  let g1 = 0
-  let b1 = 0
-
-  if (hh >= 0 && hh < 1) {
-    r1 = c
-    g1 = x
-  } else if (hh >= 1 && hh < 2) {
-    r1 = x
-    g1 = c
-  } else if (hh >= 2 && hh < 3) {
-    g1 = c
-    b1 = x
-  } else if (hh >= 3 && hh < 4) {
-    g1 = x
-    b1 = c
-  } else if (hh >= 4 && hh < 5) {
-    r1 = x
-    b1 = c
-  } else {
-    r1 = c
-    b1 = x
-  }
-
-  const m = lightness / 100 - c / 2
-  return {
-    r: Math.round((r1 + m) * 255),
-    g: Math.round((g1 + m) * 255),
-    b: Math.round((b1 + m) * 255)
-  }
-}
-
-function getRelativeLuminance(rgb) {
-  const toLinear = (channel) => {
-    const value = channel / 255
-    return value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4
-  }
-
-  return 0.2126 * toLinear(rgb.r) + 0.7152 * toLinear(rgb.g) + 0.0722 * toLinear(rgb.b)
-}
-
-function getContrastRatio(rgbA, rgbB) {
-  const luminanceA = getRelativeLuminance(rgbA)
-  const luminanceB = getRelativeLuminance(rgbB)
-  const lighter = Math.max(luminanceA, luminanceB)
-  const darker = Math.min(luminanceA, luminanceB)
-  return (lighter + 0.05) / (darker + 0.05)
-}
-
-function getColorDistance(rgbA, rgbB) {
-  return Math.sqrt(
-    (rgbA.r - rgbB.r) ** 2 +
-    (rgbA.g - rgbB.g) ** 2 +
-    (rgbA.b - rgbB.b) ** 2
-  )
-}
-
-function rgbToCss(rgb) {
-  return `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`
-}
-
-function buildChaseRowPalette() {
-  const white = { r: 255, g: 255, b: 255 }
-  const usedColors = []
-  const palette = []
-
-  for (let idx = 0; idx < 15; idx += 1) {
-    let hue = (idx * 137.508) % 360
-    let saturation = 58 + (idx % 3) * 6
-    let lightness = 28 - (idx % 4)
-    let rgb = hslToRgb(hue, saturation, lightness)
-
-    for (let attempt = 0; attempt < 36; attempt += 1) {
-      const contrastOk = getContrastRatio(rgb, white) >= 4.8
-      const distinctEnough = usedColors.every((usedColor) => getColorDistance(usedColor, rgb) >= 52)
-      if (contrastOk && distinctEnough) break
-
-      if (!contrastOk) {
-        lightness = Math.max(18, lightness - 2)
-      } else {
-        hue = (hue + 23) % 360
-        saturation = Math.min(78, saturation + 1)
-      }
-
-      rgb = hslToRgb(hue, saturation, lightness)
-    }
-
-    usedColors.push(rgb)
-    palette.push(rgbToCss(rgb))
-  }
-
-  return palette
-}
-
-const CHASE_ROW_COLOR_PALETTE = buildChaseRowPalette()
-
-function formatChaseTeams(teams) {
-  const normalized = normalizeChaseTeams(teams)
-  if (!normalized.length) return '추격팀'
-  return normalized
-    .map((team) => CHASE_TEAM_OPTIONS.find((option) => option.value === team)?.emoji || `${team}`)
-    .join(' ')
-}
-
-function getChaseTeamEmoji(team) {
-  return CHASE_TEAM_OPTIONS.find((option) => option.value === team)?.emoji || `${team}`
-}
-
-function describeChaseTeams(teams) {
-  const normalized = normalizeChaseTeams(teams)
-  if (!normalized.length) return '추격팀 미설정'
-  return normalized.map((team) => `${team}팀`).join(', ')
-}
-
-function buildChaseCopyText(items, getValue) {
-  const groups = new Map()
-  const groupOrder = []
-
-  items.forEach((item) => {
-    const value = String(getValue(item) ?? '').trim()
-    if (!value) return
-
-    const teams = normalizeChaseTeams(item?.chaseTeams)
-    const key = teams.join(',')
-    if (!groups.has(key)) {
-      groups.set(key, { teams, values: [] })
-      groupOrder.push(key)
-    }
-
-    groups.get(key).values.push(value)
-  })
-
-  return groupOrder
-    .map((key) => {
-      const group = groups.get(key)
-      if (!group || !group.values.length) return ''
-
-      const valuesText = group.values.join(',')
-      if (!group.teams.length) return valuesText
-      return `[${group.teams.join(',')}팀-${valuesText}]`
-    })
-    .filter(Boolean)
-    .join(' ')
-}
-
-function getChaseRowBackground(teams) {
-  const normalized = normalizeChaseTeams(teams)
-  if (!normalized.length) return ''
-
-  const mask = normalized.reduce((bits, team) => bits | (1 << (team - 1)), 0)
-  return CHASE_ROW_COLOR_PALETTE[(mask - 1) % CHASE_ROW_COLOR_PALETTE.length]
-}
-
-function sanitizeSharedMemoHtml(html) {
-  if (!html) return ''
-
-  if (typeof window === 'undefined' || typeof window.DOMParser === 'undefined') {
-    return String(html).trim()
-  }
-
-  const parser = new window.DOMParser()
-  const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html')
-  const source = doc.body.firstElementChild
-  if (!source) return ''
-
-  const sanitizeNode = (node) => {
-    if (node.nodeType === 3) {
-      return doc.createTextNode(node.textContent || '')
-    }
-
-    if (node.nodeType !== 1) {
-      return null
-    }
-
-    const tag = node.tagName.toUpperCase()
-    const fragment = doc.createDocumentFragment()
-    Array.from(node.childNodes).forEach((child) => {
-      const sanitizedChild = sanitizeNode(child)
-      if (sanitizedChild) fragment.appendChild(sanitizedChild)
-    })
-
-    if (tag === 'BR') {
-      return doc.createElement('br')
-    }
-
-    const normalizedTag = tag === 'STRONG'
-      ? 'b'
-      : tag === 'EM'
-        ? 'i'
-        : tag === 'DIV'
-          ? 'p'
-          : tag.toLowerCase()
-
-    if (!['p', 'b', 'i', 'u', 's', 'ul', 'ol', 'li'].includes(normalizedTag)) {
-      return fragment
-    }
-
-    const el = doc.createElement(normalizedTag)
-    el.appendChild(fragment)
-    return el
-  }
-
-  const clean = doc.createElement('div')
-  Array.from(source.childNodes).forEach((child) => {
-    const sanitizedChild = sanitizeNode(child)
-    if (sanitizedChild) clean.appendChild(sanitizedChild)
-  })
-
-  return clean.innerHTML
-    .replace(/<p>\s*<\/p>/gi, '')
-    .replace(/<li>\s*<\/li>/gi, '')
-    .replace(/<p><br><\/p>/gi, '')
-    .replace(/\u200b/gi, '')
-    .trim()
-}
-
-function getSharedMemoPlainText(html) {
-  const sanitized = sanitizeSharedMemoHtml(html)
-  return sanitized
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<\/(p|li|ul|ol)>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/\u200b/gi, '')
-}
-
-function hasSharedMemoContent(html) {
-  return getSharedMemoPlainText(html).trim().length > 0
-}
-
-const VIEW_BOSS = 'boss'
-const VIEW_RACING = 'racing'
-const TOPBAR_LABEL_MINI_GAME = '미니게임'
-const TOPBAR_LABEL_TO_BOSS = '필보관리'
-const MINI_GAME_TARGET_INTERNAL = 'internal'
-const MINI_GAME_TARGET_EXTERNAL = 'external'
-const MINI_GAME_ITEMS = [
-  {
-    id: 'racing',
-    label: '달려달려',
-    description: '기존 달려달려 미니게임으로 현재 페이지에서 이동합니다.',
-    target: MINI_GAME_TARGET_INTERNAL,
-    view: VIEW_RACING
-  },
-  {
-    id: 'horse-coffee',
-    label: 'horse.coffee',
-    description: 'horse.coffee 페이지를 새 탭에서 엽니다.',
-    target: MINI_GAME_TARGET_EXTERNAL,
-    url: 'https://horsecoffee.synology.me/'
-  },
-  {
-    id: 'roulette',
-    label: 'roulette',
-    description: 'roulette 페이지를 새 탭에서 엽니다.',
-    target: MINI_GAME_TARGET_EXTERNAL,
-    url: 'https://lazygyu.github.io/roulette/'
-  }
-]
-const EMPTY_CHASE_TEAM_DIALOG = {
-  open: false,
-  key: '',
-  name: '',
-  selectedTeams: []
-}
-const EMPTY_ROOM_SETTINGS_DIALOG = {
-  open: false,
-  roomName: '',
-  password: '',
-  showPassword: false,
-  saving: false
-}
-const EMPTY_PARTICIPANT_LIST_DIALOG = {
-  open: false
-}
-const DEFAULT_SHARED_MEMO_SIZE = {
-  width: 380,
-  height: 320
-}
-const MIN_SHARED_MEMO_WIDTH = 280
-const MIN_SHARED_MEMO_HEIGHT = 220
-const MAX_SHARED_MEMO_WIDTH = 620
-const MAX_SHARED_MEMO_HEIGHT = 520
-const SHARED_MEMO_MAX_LENGTH = 3000
-const SHARED_MEMO_TOOLS = [
-  { command: 'bold', label: 'B', title: '굵게' },
-  { command: 'italic', label: 'I', title: '기울임' },
-  { command: 'underline', label: 'U', title: '밑줄' },
-  { command: 'clearAll', label: '전체 지우기', title: '내용 전체 지우기' }
-]
 export default function App() {
-  const [roomInput, setRoomInput] = useState('')
-  const [roomPasswordInput, setRoomPasswordInput] = useState('')
+  const overlayMode = useMemo(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('overlay') === '1' || params.get('mode') === 'overlay'
+  }, [])
+  const desktopApi = typeof window !== 'undefined' ? window.aion2bossDesktop : null
+  const initialRecentRoomEntryRef = useRef(loadRecentRoomEntry())
+  const [roomInput, setRoomInput] = useState(() => initialRecentRoomEntryRef.current.room)
+  const [roomPasswordInput, setRoomPasswordInput] = useState(() => initialRecentRoomEntryRef.current.password)
   const [showRoomPassword, setShowRoomPassword] = useState(false)
   const [loginPending, setLoginPending] = useState(false)
   const [myNickname, setMyNickname] = useState(() => loadParticipantNickname())
   const [participantCount, setParticipantCount] = useState(0)
   const [participantEntries, setParticipantEntries] = useState([])
   const [roomId, setRoomId] = useState('')
-  const [role, setRole] = useState('admin')
+  const [role, setRole] = useState(() => initialRecentRoomEntryRef.current.role)
   const [activeView, setActiveView] = useState(VIEW_BOSS)
   const [miniGameDialogOpen, setMiniGameDialogOpen] = useState(false)
   const [bosses, setBosses] = useState({})
@@ -848,6 +127,8 @@ export default function App() {
   const [chaseModeEnabled, setChaseModeEnabled] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [raceFilter, setRaceFilter] = useState(() => loadRaceFilterFromCookie())
+  const [overlayRaceFilter, setOverlayRaceFilter] = useState('마족')
+  const [overlayPartyFilter, setOverlayPartyFilter] = useState(null)
   const [columnPrefs, setColumnPrefs] = useState(() => loadColumnPrefsFromCookie())
   const [columnOrder, setColumnOrder] = useState(() => loadColumnOrderFromCookie())
   const [columnWidths, setColumnWidths] = useState(() => loadColumnWidthsFromCookie())
@@ -870,9 +151,7 @@ export default function App() {
   const [ttsEnabled, setTtsEnabled] = useState(() => loadTtsEnabledFromCookie())
   const [alertPrefs, setAlertPrefs] = useState(() => loadAlertPrefsFromCookie())
   const [ttsNoticeDialogOpen, setTtsNoticeDialogOpen] = useState(false)
-  const [ttsNoticeDontShow, setTtsNoticeDontShow] = useState(() => {
-    return window.localStorage.getItem(TTS_NOTICE_DISMISS_KEY) === 'true'
-  })
+  const [ttsNoticeDontShow, setTtsNoticeDontShow] = useState(() => loadTtsNoticeDismissed())
   const [mapAspectRatio, setMapAspectRatio] = useState('16 / 9')
   const [roomDataLoaded, setRoomDataLoaded] = useState(false)
   const [adjacentBossThresholdSec, setAdjacentBossThresholdSec] = useState(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC)
@@ -893,11 +172,19 @@ export default function App() {
   const [roomSettingsDialog, setRoomSettingsDialog] = useState(EMPTY_ROOM_SETTINGS_DIALOG)
   const [participantListDialog, setParticipantListDialog] = useState(EMPTY_PARTICIPANT_LIST_DIALOG)
   const [toastMessage, setToastMessage] = useState('')
+  const [desktopRuntime, setDesktopRuntime] = useState({
+    isElectron: Boolean(desktopApi),
+    isDev: false,
+    platform: 'web'
+  })
+  const [desktopOpacity, setDesktopOpacity] = useState(0.94)
+  const [desktopScale, setDesktopScale] = useState(() => loadOverlayScale())
 
   const mapViewportRef = useRef(null)
   const mapImgRef = useRef(null)
   const sharedMemoEditorRef = useRef(null)
   const tableWrapRef = useRef(null)
+  const overlayContentRef = useRef(null)
   const mapRef = useRef({
     scale: 1,
     x: 0,
@@ -938,16 +225,113 @@ export default function App() {
   const presenceSessionIdRef = useRef(getPresenceSessionId())
   const presenceJoinedAtRef = useRef(Date.now())
   const toastTimerRef = useRef(null)
+  const skipTtsDisableCancelRef = useRef(false)
+
+  const speakTtsMessage = useCallback((text, options = {}) => {
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return false
+
+    const {
+      cancelCurrent = false,
+      lang = 'ko-KR',
+      rate = 1.2,
+      pitch = 1.25,
+      volume = 1
+    } = options
+
+    if (cancelCurrent) {
+      window.speechSynthesis.cancel()
+    }
+
+    const utter = new SpeechSynthesisUtterance(text)
+    utter.lang = lang
+    utter.rate = rate
+    utter.pitch = pitch
+    utter.volume = volume
+    window.speechSynthesis.speak(utter)
+    return true
+  }, [])
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const room = params.get('room')
-    if (room) setRoomInput(room)
+    if (!room) return
+
+    setRoomInput(room)
+    if (room !== initialRecentRoomEntryRef.current.room) {
+      setRoomPasswordInput('')
+    }
   }, [])
 
   useEffect(() => {
     roleRef.current = role
   }, [role])
+
+  useEffect(() => {
+    document.body.classList.toggle('overlay-mode', overlayMode)
+    return () => document.body.classList.remove('overlay-mode')
+  }, [overlayMode])
+
+  useEffect(() => {
+    if (!overlayMode || !desktopApi?.getRuntimeInfo) return undefined
+
+    let disposed = false
+
+    desktopApi.getRuntimeInfo()
+      .then((info) => {
+        if (disposed || !info) return
+        setDesktopRuntime({
+          isElectron: info.isElectron === true,
+          isDev: info.isDev === true,
+          platform: info.platform || 'web'
+        })
+      })
+      .catch(() => {})
+
+    desktopApi.setAlwaysOnTop(true).catch(() => {})
+
+    desktopApi.setOpacity(desktopOpacity)
+      .then((value) => {
+        if (!disposed) setDesktopOpacity(Number(value) || 0.94)
+      })
+      .catch(() => {})
+
+    return () => {
+      disposed = true
+    }
+  }, [desktopApi, desktopOpacity, overlayMode])
+
+  useLayoutEffect(() => {
+    if (!overlayMode || !desktopApi?.setWindowSize) return undefined
+    const node = overlayContentRef.current
+    if (!node) return undefined
+
+    let rafId = 0
+
+    const syncWindowSize = () => {
+      window.cancelAnimationFrame(rafId)
+      rafId = window.requestAnimationFrame(() => {
+        const rect = node.getBoundingClientRect()
+        const width = Math.ceil(rect.width || node.scrollWidth || 0)
+        const height = Math.ceil(rect.height || node.scrollHeight || 0)
+        desktopApi.setWindowSize({ width, height }).catch(() => {})
+      })
+    }
+
+    syncWindowSize()
+
+    const observer = new ResizeObserver(() => {
+      syncWindowSize()
+    })
+    observer.observe(node)
+
+    window.addEventListener('resize', syncWindowSize)
+
+    return () => {
+      window.cancelAnimationFrame(rafId)
+      observer.disconnect()
+      window.removeEventListener('resize', syncWindowSize)
+    }
+  }, [desktopApi, overlayMode, roomId, roomDataLoaded, desktopOpacity, desktopScale, loginPending, showRoomPassword, roomPasswordInput, roomInput])
 
   useEffect(() => {
     return () => {
@@ -960,38 +344,54 @@ export default function App() {
 
   useEffect(() => {
     myNicknameRef.current = myNickname
-    try {
-      window.localStorage.setItem(PARTICIPANT_NICKNAME_STORAGE_KEY, myNickname)
-    } catch {
-      // Ignore storage sync failures and keep nickname in memory.
-    }
+    saveParticipantNickname(myNickname)
   }, [myNickname])
 
   useEffect(() => {
     saveTtsEnabledToCookie(ttsEnabled)
-    if (!ttsEnabled && 'speechSynthesis' in window) {
-      window.speechSynthesis.cancel()
+    if (!ttsEnabled) {
+      if (skipTtsDisableCancelRef.current) {
+        skipTtsDisableCancelRef.current = false
+        return
+      }
+
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel()
+      }
     }
   }, [ttsEnabled])
 
   useEffect(() => {
-    window.localStorage.setItem(TTS_NOTICE_DISMISS_KEY, ttsNoticeDontShow ? 'true' : 'false')
+    saveTtsNoticeDismissed(ttsNoticeDontShow)
   }, [ttsNoticeDontShow])
+
+  useEffect(() => {
+    saveOverlayScale(desktopScale)
+  }, [desktopScale])
 
   useEffect(() => {
     saveSharedMemoSizeToCookie(sharedMemoSize)
   }, [sharedMemoSize])
 
   useEffect(() => {
-    const offsetRef = ref(db, '.info/serverTimeOffset')
-    const unsubscribe = onValue(offsetRef, (snapshot) => {
-      const offset = Number(snapshot.val())
+    const unsubscribe = subscribeServerTimeOffset((value) => {
+      const offset = Number(value)
       setServerOffsetMs(Number.isFinite(offset) ? offset : 0)
     })
     return () => unsubscribe()
   }, [])
 
   const getServerNow = useCallback(() => Date.now() + serverOffsetMs, [serverOffsetMs])
+  const buildRoomUrl = useCallback((nextRoom = '') => {
+    const params = new URLSearchParams(window.location.search)
+    if (nextRoom) {
+      params.set('room', nextRoom)
+    } else {
+      params.delete('room')
+    }
+    const query = params.toString()
+    return `${window.location.pathname}${query ? `?${query}` : ''}`
+  }, [])
 
   useEffect(() => {
     const timer = window.setInterval(() => setNow(getServerNow()), 1000)
@@ -1002,9 +402,8 @@ export default function App() {
   useEffect(() => {
     if (!roomId) return undefined
 
-    const roomRef = ref(db, `${roomId}/bosses`)
-    const unsubscribe = onValue(roomRef, (snapshot) => {
-      setBosses(snapshot.val() || {})
+    const unsubscribe = subscribeRoomBosses(roomId, (value) => {
+      setBosses(value || {})
       setRoomDataLoaded(true)
     })
 
@@ -1014,9 +413,8 @@ export default function App() {
   useEffect(() => {
     if (!roomId) return undefined
 
-    const roomSettingsRef = ref(db, `${roomId}/settings`)
-    const unsubscribe = onValue(roomSettingsRef, (snapshot) => {
-      const settings = snapshot.val() || {}
+    const unsubscribe = subscribeRoomSettings(roomId, (value) => {
+      const settings = value || {}
       const sec = normalizeAdjacentBossThresholdSec(settings.adjacentBossThresholdSec)
       const nextSharedMemoHtml = sanitizeSharedMemoHtml(settings.sharedMemoHtml || '')
       const nextSharedMemoUpdatedAt = Number(settings.sharedMemoUpdatedAt) || 0
@@ -1058,9 +456,8 @@ export default function App() {
       return undefined
     }
 
-    const presenceRef = ref(db, `${roomId}/presence`)
-    const unsubscribe = onValue(presenceRef, (snapshot) => {
-      const entries = buildParticipantEntriesFromPresence(snapshot.val())
+    const unsubscribe = subscribeRoomPresence(roomId, (value) => {
+      const entries = buildParticipantEntriesFromPresence(value)
 
       setParticipantEntries(entries)
       setParticipantCount(entries.length)
@@ -1076,18 +473,17 @@ export default function App() {
   useEffect(() => {
     if (!roomId) return undefined
 
-    const connectedRef = ref(db, '.info/connected')
-    const sessionRef = ref(db, `${roomId}/presence/${presenceBrowserIdRef.current}/${presenceSessionIdRef.current}`)
+    const sessionRef = createPresenceSessionRef(roomId, presenceBrowserIdRef.current, presenceSessionIdRef.current)
     let disposed = false
 
-    const unsubscribe = onValue(connectedRef, async (snapshot) => {
-      if (snapshot.val() !== true) return
+    const unsubscribe = subscribeConnectionStatus(async (connected) => {
+      if (connected !== true) return
 
       try {
-        await onDisconnect(sessionRef).remove()
+        await scheduleDisconnectRemove(sessionRef)
         if (disposed) return
 
-        await set(sessionRef, {
+        await setValue(sessionRef, {
           role: roleRef.current,
           nickname: myNicknameRef.current,
           joinedAt: presenceJoinedAtRef.current,
@@ -1101,16 +497,16 @@ export default function App() {
     return () => {
       disposed = true
       unsubscribe()
-      onDisconnect(sessionRef).cancel().catch(() => {})
-      remove(sessionRef).catch(() => {})
+      cancelDisconnect(sessionRef).catch(() => {})
+      removeValue(sessionRef).catch(() => {})
     }
   }, [roomId])
 
   useEffect(() => {
     if (!roomId) return undefined
 
-    const sessionRef = ref(db, `${roomId}/presence/${presenceBrowserIdRef.current}/${presenceSessionIdRef.current}`)
-    update(sessionRef, {
+    const sessionRef = createPresenceSessionRef(roomId, presenceBrowserIdRef.current, presenceSessionIdRef.current)
+    updateValue(sessionRef, {
       role,
       nickname: myNickname,
       joinedAt: presenceJoinedAtRef.current,
@@ -1130,6 +526,28 @@ export default function App() {
     }
     return enabledBossList.filter((boss) => (boss.race || '마족') === raceFilter)
   }, [enabledBossList, raceFilter])
+  const overlayBossList = useMemo(() => {
+    return enabledBossList.map((boss) => ({
+      ...boss,
+      chaseTeams: normalizeChaseTeams(boss.chaseTeams)
+    }))
+  }, [enabledBossList])
+  const overlayFilteredBossList = useMemo(() => {
+    if (overlayRaceFilter === '모두') {
+      return overlayBossList
+    }
+    return overlayBossList.filter((boss) => (boss.race || '마족') === overlayRaceFilter)
+  }, [overlayBossList, overlayRaceFilter])
+  const overlayVisibleBossList = useMemo(() => {
+    if (!chaseModeEnabled || !overlayPartyFilter) {
+      return overlayFilteredBossList
+    }
+
+    return overlayFilteredBossList.filter((boss) => {
+      const chaseTeams = normalizeChaseTeams(boss.chaseTeams)
+      return !chaseTeams.length || chaseTeams.includes(overlayPartyFilter)
+    })
+  }, [chaseModeEnabled, overlayFilteredBossList, overlayPartyFilter])
   const orderedBosses = useMemo(() => {
     return Object.entries(bosses)
       .sort((a, b) => (a[1]?.order ?? 0) - (b[1]?.order ?? 0))
@@ -1141,6 +559,22 @@ export default function App() {
         chaseTeams: normalizeChaseTeams(value?.chaseTeams)
       }))
   }, [bosses])
+  const overlayFilteredOrderedBosses = useMemo(() => {
+    if (overlayRaceFilter === '모두') {
+      return orderedBosses
+    }
+    return orderedBosses.filter((boss) => (boss.race || '마족') === overlayRaceFilter)
+  }, [orderedBosses, overlayRaceFilter])
+  const overlayVisibleOrderedBosses = useMemo(() => {
+    if (!chaseModeEnabled || !overlayPartyFilter) {
+      return overlayFilteredOrderedBosses
+    }
+
+    return overlayFilteredOrderedBosses.filter((boss) => {
+      const chaseTeams = normalizeChaseTeams(boss.chaseTeams)
+      return !chaseTeams.length || chaseTeams.includes(overlayPartyFilter)
+    })
+  }, [chaseModeEnabled, overlayFilteredOrderedBosses, overlayPartyFilter])
   const filteredOrderedBosses = useMemo(() => {
     if (raceFilter === '모두') {
       return orderedBosses
@@ -1154,21 +588,39 @@ export default function App() {
       return Number.isFinite(spawn.time) && spawn.time - now <= COPY_ORDER_WINDOW_MS
     })
   }, [filteredOrderedBosses, now])
+  const overlayCopyEligibleFilteredOrderedBosses = useMemo(() => {
+    return overlayVisibleOrderedBosses.filter((boss) => {
+      if (boss.alertEnabled === false) return false
+      const spawn = getSpawnInfo(boss, now)
+      return Number.isFinite(spawn.time) && spawn.time - now <= COPY_ORDER_WINDOW_MS
+    })
+  }, [overlayVisibleOrderedBosses, now])
   const activeFilteredOrderedBossCopyText = useMemo(() => {
     return buildChaseCopyText(copyEligibleFilteredOrderedBosses, (boss) => String(boss.name || '').trim())
   }, [copyEligibleFilteredOrderedBosses])
+  const overlayFilteredOrderedBossCopyText = useMemo(() => {
+    return buildChaseCopyText(overlayCopyEligibleFilteredOrderedBosses, (boss) => String(boss.name || '').trim())
+  }, [overlayCopyEligibleFilteredOrderedBosses])
   const activeFilteredOrderedKibeliskCopyText = useMemo(() => {
     return buildChaseCopyText(copyEligibleFilteredOrderedBosses, (boss) => normalizeKibeliskValue(boss.kibelisk))
   }, [copyEligibleFilteredOrderedBosses])
-  const canCopyBossOrder = activeFilteredOrderedBossCopyText.length > 0
+  const activeBossOrderCopyText = overlayMode ? overlayFilteredOrderedBossCopyText : activeFilteredOrderedBossCopyText
+  const canCopyBossOrder = activeBossOrderCopyText.length > 0
   const canCopyKibeliskOrder = activeFilteredOrderedKibeliskCopyText.length > 0
 
   const panelBosses = useMemo(() => {
     return filteredBossList.filter((boss) => Number.isFinite(boss.effectiveTime) && boss.effectiveTime < Number.MAX_SAFE_INTEGER)
   }, [filteredBossList])
+  const overlayPanelBosses = useMemo(() => {
+    return overlayVisibleBossList.filter((boss) => Number.isFinite(boss.effectiveTime) && boss.effectiveTime < Number.MAX_SAFE_INTEGER)
+  }, [overlayVisibleBossList])
 
   const mainBoss = panelBosses[0] ?? null
   const nextBoss = panelBosses.length > 1 ? panelBosses[1] : null
+  const overlayMainBoss = overlayPanelBosses[0] ?? null
+  const overlayNextBoss = overlayPanelBosses.length > 1 ? overlayPanelBosses[1] : null
+  const activeMainBoss = overlayMode ? overlayMainBoss : mainBoss
+  const activeAlertBossList = overlayMode ? overlayVisibleBossList : enabledBossList
   const prevBoss = panelBosses.length > 1 ? panelBosses[panelBosses.length - 1] : null
   const adjacentSpawnBossGroups = useMemo(() => {
     const adjacentThresholdMs = adjacentBossThresholdSec * 1000
@@ -1299,13 +751,13 @@ export default function App() {
   }, [roomId, role, roomDataLoaded, syncNeededBosses])
 
   useEffect(() => {
-    if (!ttsEnabled || !mainBoss || mainBoss.effectiveTime === Number.MAX_SAFE_INTEGER || mainBoss.alertEnabled === false) {
+    if (!ttsEnabled || !activeMainBoss || activeMainBoss.effectiveTime === Number.MAX_SAFE_INTEGER || activeMainBoss.alertEnabled === false) {
       ttsStateRef.current = { cycleId: '', prevRemainingMs: null, armed: false }
       return
     }
 
-    const cycleId = `${mainBoss.key}:${mainBoss.effectiveTime}`
-    const remainingMs = mainBoss.effectiveTime - now
+    const cycleId = `${activeMainBoss.key}:${activeMainBoss.effectiveTime}`
+    const remainingMs = activeMainBoss.effectiveTime - now
 
     if (!Number.isFinite(remainingMs) || remainingMs <= 0) {
       ttsStateRef.current = { cycleId, prevRemainingMs: remainingMs }
@@ -1326,8 +778,8 @@ export default function App() {
     }
 
     const hasOtherBossInWindow = (windowMs) => {
-      return enabledBossList.some((boss) => {
-        if (boss.key === mainBoss.key) return false
+      return activeAlertBossList.some((boss) => {
+        if (boss.key === activeMainBoss.key) return false
         if (!Number.isFinite(boss.effectiveTime) || boss.effectiveTime >= Number.MAX_SAFE_INTEGER) return false
         const bossRemainingMs = boss.effectiveTime - now
         return bossRemainingMs > 0 && bossRemainingMs <= windowMs
@@ -1341,7 +793,7 @@ export default function App() {
           continue
         }
         if ('speechSynthesis' in window) {
-          const bossName = mainBoss.name || '보스'
+          const bossName = activeMainBoss.name || '보스'
           const utter = new SpeechSynthesisUtterance(`${bossName}, ${mark.notice}`)
           utter.lang = 'ko-KR'
           utter.rate = 1.2
@@ -1353,12 +805,17 @@ export default function App() {
     }
 
     ttsStateRef.current = { ...prevState, prevRemainingMs: remainingMs }
-  }, [ttsEnabled, mainBoss, now, alertPrefs, enabledBossList])
+  }, [ttsEnabled, activeMainBoss, now, alertPrefs, activeAlertBossList])
 
   useEffect(() => {
     if (chaseModeEnabled) return
     setChaseTeamDialog(EMPTY_CHASE_TEAM_DIALOG)
   }, [chaseModeEnabled])
+
+  useEffect(() => {
+    if (chaseModeEnabled || overlayPartyFilter == null) return
+    setOverlayPartyFilter(null)
+  }, [chaseModeEnabled, overlayPartyFilter])
 
   useEffect(() => {
     if (!chaseModeEnabled) return
@@ -1547,21 +1004,21 @@ export default function App() {
   }, [applyMapTransform, constrainMap, isMapOpen])
 
   const updateBoss = useCallback((key, payload) => {
-    return update(ref(db, `${roomId}/bosses/${key}`), payload)
+    return repoUpdateBoss(roomId, key, payload)
   }, [roomId])
 
   const removeBoss = useCallback((key) => {
-    return remove(ref(db, `${roomId}/bosses/${key}`))
+    return repoRemoveBoss(roomId, key)
   }, [roomId])
 
   const saveOrder = useCallback((updates) => {
-    return update(ref(db), updates)
+    return repoUpdateRoot(updates)
   }, [])
   const updateRoot = useCallback((updates) => {
-    return update(ref(db), updates)
+    return repoUpdateRoot(updates)
   }, [])
   const updateRoomSettings = useCallback((payload) => {
-    return update(ref(db, `${roomId}/settings`), payload)
+    return repoUpdateRoomSettings(roomId, payload)
   }, [roomId])
 
   const queueSharedMemoSave = useCallback((html) => {
@@ -1736,9 +1193,9 @@ export default function App() {
     syncNoticeShownRef.current = false
     syncNoticeCheckedOnEntryRef.current = false
 
-    const newUrl = `${window.location.pathname}?room=${encodeURIComponent(room)}`
+    const newUrl = buildRoomUrl(room)
     window.history.pushState({ path: newUrl }, '', newUrl)
-  }, [])
+  }, [buildRoomUrl])
 
   const handleLogin = useCallback(async () => {
     if (loginPending) return
@@ -1751,7 +1208,7 @@ export default function App() {
 
     setLoginPending(true)
     try {
-      const roomSnapshot = await get(ref(db, room))
+      const roomSnapshot = await getRoomSnapshot(room)
       const roomExists = roomSnapshot.exists()
       const settings = roomSnapshot.child('settings').val() || {}
       const inputPassword = roomPasswordInput.trim()
@@ -1770,7 +1227,7 @@ export default function App() {
       } else if (!roomExists && role === 'admin' && ROOM_CREATION_ENABLED) {
         if (inputPassword) {
           const passwordHash = await hashRoomPassword(inputPassword)
-          await update(ref(db, `${room}/settings`), {
+          await repoUpdateRoomSettings(room, {
             passwordHash,
             passwordUpdatedAt: Date.now()
           })
@@ -1792,6 +1249,7 @@ export default function App() {
           )
         }
 
+        saveRecentRoomEntry({ room, password: inputPassword, role })
         enterRoom(room)
         return
       }
@@ -1801,6 +1259,7 @@ export default function App() {
         return
       }
 
+      saveRecentRoomEntry({ room, password: inputPassword, role })
       enterRoom(room)
     } catch (error) {
       console.error('Failed to enter room.', error)
@@ -1835,15 +1294,15 @@ export default function App() {
   }, [])
 
   const handleCopyBossOrder = useCallback(async () => {
-    if (!activeFilteredOrderedBossCopyText) return
+    if (!activeBossOrderCopyText) return
 
     try {
-      await navigator.clipboard.writeText(activeFilteredOrderedBossCopyText)
+      await navigator.clipboard.writeText(activeBossOrderCopyText)
       showToast('복사됨!')
     } catch {
       window.alert('보스 순서 복사에 실패했습니다.')
     }
-  }, [activeFilteredOrderedBossCopyText, showToast])
+  }, [activeBossOrderCopyText, showToast])
 
   const handleCopyKibeliskOrder = useCallback(async () => {
     if (!activeFilteredOrderedKibeliskCopyText) return
@@ -1868,8 +1327,48 @@ export default function App() {
     if (!window.confirm('정말 나가시겠습니까?')) return
     setMiniGameDialogOpen(false)
     setActiveView(VIEW_BOSS)
-    window.location.href = window.location.pathname
+    window.location.href = buildRoomUrl('')
   }
+
+  const handleOverlayExit = useCallback(() => {
+    if (desktopApi?.closeWindow) {
+      desktopApi.closeWindow()
+      return
+    }
+    window.close()
+  }, [desktopApi])
+
+  const handleOverlayOpenWebApp = useCallback(() => {
+    const targetUrl = roomId ? `${WEB_APP_URL}?room=${encodeURIComponent(roomId)}` : WEB_APP_URL
+    if (desktopApi?.openExternalUrl) {
+      desktopApi.openExternalUrl(targetUrl)
+      return
+    }
+    window.open(targetUrl, '_blank', 'noopener,noreferrer')
+  }, [desktopApi, roomId])
+
+  const handleOverlayOpacityChange = useCallback(async (value) => {
+    const next = Math.min(1, Math.max(0.55, Number(value) || 0.94))
+    if (desktopApi?.setOpacity) {
+      const actual = await desktopApi.setOpacity(next)
+      setDesktopOpacity(Number(actual) || next)
+      return
+    }
+    setDesktopOpacity(next)
+  }, [desktopApi])
+
+  const handleOverlayScaleChange = useCallback((value) => {
+    const next = Math.min(1, Math.max(0.5, Number(value) || 1))
+    setDesktopScale(next)
+  }, [])
+
+  const handleOverlayRaceFilterChange = useCallback((value) => {
+    setOverlayRaceFilter(value)
+  }, [])
+
+  const handleOverlayPartyFilterChange = useCallback((value) => {
+    setOverlayPartyFilter(value)
+  }, [])
 
   const openRoomSettingsDialog = useCallback(() => {
     if (role !== 'admin' || !roomId) return
@@ -1910,7 +1409,7 @@ export default function App() {
     })
 
     try {
-      const currentRoomSnapshot = await get(ref(db, roomId))
+      const currentRoomSnapshot = await getRoomSnapshot(roomId)
       if (!currentRoomSnapshot.exists()) {
         window.alert('현재 방 정보를 찾지 못했습니다.')
         return
@@ -1927,7 +1426,7 @@ export default function App() {
       }
 
       if (isRoomNameChanged) {
-        const targetRoomSnapshot = await get(ref(db, nextRoomName))
+        const targetRoomSnapshot = await getRoomSnapshot(nextRoomName)
         if (targetRoomSnapshot.exists()) {
           window.alert('이미 사용 중인 방 이름입니다. 다른 방 이름을 입력해주세요.')
           return
@@ -1948,11 +1447,19 @@ export default function App() {
         setRoomId(nextRoomName)
         setRoomDataLoaded(true)
 
-        const nextUrl = `${window.location.pathname}?room=${encodeURIComponent(nextRoomName)}`
+        const nextUrl = buildRoomUrl(nextRoomName)
         window.history.replaceState({ path: nextUrl }, '', nextUrl)
       } else {
-        await update(ref(db, `${roomId}/settings`), nextSettings)
+        await repoUpdateRoomSettings(roomId, nextSettings)
       }
+
+      const savedRecentRoom = loadRecentRoomEntry()
+      const fallbackPassword = savedRecentRoom.room === roomId ? savedRecentRoom.password : ''
+      saveRecentRoomEntry({
+        room: isRoomNameChanged ? nextRoomName : roomId,
+        password: nextPassword || fallbackPassword,
+        role
+      })
 
       closeRoomSettingsDialog()
       window.alert(
@@ -1971,7 +1478,7 @@ export default function App() {
         return { ...prev, saving: false }
       })
     }
-  }, [closeRoomSettingsDialog, role, roomId, roomSettingsDialog.password, roomSettingsDialog.roomName, updateRoot])
+  }, [buildRoomUrl, closeRoomSettingsDialog, role, roomId, roomSettingsDialog.password, roomSettingsDialog.roomName, updateRoot])
 
   const submitRoomSettings = useCallback((e) => {
     e.preventDefault()
@@ -2232,12 +1739,15 @@ export default function App() {
 
   const handleToggleTts = () => {
     if (ttsEnabled) {
+      skipTtsDisableCancelRef.current = true
       setTtsEnabled(false)
+      speakTtsMessage('음성 알림을 껐습니다', { cancelCurrent: true })
       return
     }
 
     setTtsEnabled(true)
-    if (!ttsNoticeDontShow) {
+    speakTtsMessage('음성 알림을 켰습니다', { cancelCurrent: true })
+    if (!overlayMode && !ttsNoticeDontShow) {
       setTtsNoticeDialogOpen(true)
     }
   }
@@ -2442,6 +1952,8 @@ export default function App() {
   const mainSyncNeeded = mainBoss ? isSyncNeeded(mainBoss, now) : false
   const prevSyncNeeded = prevBoss ? isSyncNeeded(prevBoss, now) : false
   const nextSyncNeeded = nextBoss ? isSyncNeeded(nextBoss, now) : false
+  const overlayMainSyncNeeded = overlayMainBoss ? isSyncNeeded(overlayMainBoss, now) : false
+  const overlayNextSyncNeeded = overlayNextBoss ? isSyncNeeded(overlayNextBoss, now) : false
 
   const handleMapWheel = (e) => {
     e.preventDefault()
@@ -2592,76 +2104,131 @@ export default function App() {
     }
   }, [resizingColumn])
 
-  return (
-    <div className='page'>
-      {!roomId ? (
-        <section className='login-wrap'>
-          <div className='login-card'>
-            <h1>필드 보스 타이머</h1>
-            <p>방 이름을 입력하고 역할을 선택하세요.</p>
+  const loginTitle = overlayMode ? '필보 타이머 v1.0' : '필드 보스 타이머'
+  const loginDescription = overlayMode
+    ? '화면에 필드 보스 타이머를 띄워주는 앱이에요.'
+    : '방 이름을 입력하고 역할을 선택하세요.'
+  const loginCredit = overlayMode ? '제작자 화폭[브리]' : ''
+  const pageClassName = overlayMode ? 'page overlay-page' : 'page'
+  const loginWrapClassName = overlayMode ? 'login-wrap overlay-login-wrap' : 'login-wrap'
+  const loginCardClassName = overlayMode ? 'login-card overlay-login-card' : 'login-card'
+  const overlayPageStyle = overlayMode ? { zoom: desktopScale } : undefined
+  const loginView = (
+    <section className={loginWrapClassName}>
+      <div className={loginCardClassName}>
+        <h1>{loginTitle}</h1>
+        <p>{loginDescription}</p>
+        {loginCredit ? <p className='login-credit'>{loginCredit}</p> : null}
 
-            <div className='login-inputs'>
-              <input
-                value={roomInput}
-                onChange={(e) => setRoomInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                placeholder='예: 1서버마족, A공대'
-                className='input-text large'
+        <div className='login-inputs'>
+          <input
+            value={roomInput}
+            onChange={(e) => setRoomInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+            placeholder='예: 1서버마족, A공대'
+            className='input-text large'
+            disabled={loginPending}
+          />
+
+          <div className='login-password-field'>
+            <input
+              type={showRoomPassword ? 'text' : 'password'}
+              value={roomPasswordInput}
+              onChange={(e) => setRoomPasswordInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+              placeholder={role === 'admin' && ROOM_CREATION_ENABLED
+                ? '새 방 비밀번호를 입력하세요'
+                : '방 비밀번호가 있으면 입력'
+              }
+              className='input-text large'
+              autoComplete='current-password'
+              disabled={loginPending}
+            />
+            <div className='login-password-actions'>
+              <button
+                type='button'
+                className='btn ghost tiny'
+                onClick={() => setShowRoomPassword((prev) => !prev)}
                 disabled={loginPending}
-              />
-
-              <div className='login-password-field'>
-                <input
-                  type={showRoomPassword ? 'text' : 'password'}
-                  value={roomPasswordInput}
-                  onChange={(e) => setRoomPasswordInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                  placeholder={role === 'admin' && ROOM_CREATION_ENABLED
-                    ? '새 방 비밀번호를 입력하세요'
-                    : '방 비밀번호가 있으면 입력'
-                  }
-                  className='input-text large'
-                  autoComplete='current-password'
-                  disabled={loginPending}
-                />
-                <div className='login-password-actions'>
-                  <button
-                    type='button'
-                    className='btn ghost tiny'
-                    onClick={() => setShowRoomPassword((prev) => !prev)}
-                    disabled={loginPending}
-                  >
-                    {showRoomPassword ? '숨기기' : '보기'}
-                  </button>
-                </div>
-              </div>
+              >
+                {showRoomPassword ? '숨기기' : '보기'}
+              </button>
             </div>
-
-            <div className='role-switch'>
-              <label className={role === 'admin' ? 'active' : ''}>
-                <input type='radio' checked={role === 'admin'} onChange={() => setRole('admin')} disabled={loginPending} />
-                관리자
-              </label>
-              <label className={role === 'guest' ? 'active' : ''}>
-                <input type='radio' checked={role === 'guest'} onChange={() => setRole('guest')} disabled={loginPending} />
-                손님
-              </label>
-            </div>
-
-            <p className='login-help'>
-              {!ROOM_CREATION_ENABLED
-                ? ROOM_CREATION_DISABLED_MESSAGE
-                : role === 'admin'
-                ? '새 방을 만들면 입력한 비밀번호가 저장됩니다. 비워두면 비밀번호 없이 생성됩니다.'
-                : '비밀번호가 설정된 방이면 입력 후 입장하세요. 비밀번호가 없는 방은 비워둬도 됩니다.'}
-            </p>
-
-            <button className='btn primary block' onClick={handleLogin} disabled={loginPending}>
-              {loginPending ? '입장 중...' : '입장하기'}
-            </button>
           </div>
-        </section>
-      ) : (
+        </div>
+
+        <div className='role-switch'>
+          <label className={role === 'admin' ? 'active' : ''}>
+            <input type='radio' checked={role === 'admin'} onChange={() => setRole('admin')} disabled={loginPending} />
+            관리자
+          </label>
+          <label className={role === 'guest' ? 'active' : ''}>
+            <input type='radio' checked={role === 'guest'} onChange={() => setRole('guest')} disabled={loginPending} />
+            손님
+          </label>
+        </div>
+
+        <p className='login-help'>
+          {!ROOM_CREATION_ENABLED
+            ? ROOM_CREATION_DISABLED_MESSAGE
+            : role === 'admin'
+            ? '새 방을 만들면 입력한 비밀번호가 저장됩니다. 비워두면 비밀번호 없이 생성됩니다.'
+            : '비밀번호가 설정된 방이면 입력 후 입장하세요. 비밀번호가 없는 방은 비워둬도 됩니다.'}
+        </p>
+
+        <button className='btn primary block' onClick={handleLogin} disabled={loginPending}>
+          {loginPending ? '입장 중...' : overlayMode ? '오버레이 연결' : '입장하기'}
+        </button>
+        {overlayMode ? (
+          <button type='button' className='btn ghost block login-exit-btn' onClick={handleOverlayExit}>
+            종료
+          </button>
+        ) : null}
+      </div>
+    </section>
+  )
+
+  if (overlayMode) {
+    return (
+      <div className={pageClassName} ref={overlayContentRef} style={overlayPageStyle}>
+        {!roomId ? loginView : (
+          <OverlayWindow
+            roomId={roomId}
+            roomDataLoaded={roomDataLoaded}
+            mainBoss={overlayMainBoss}
+            nextBoss={overlayNextBoss}
+            mainCountdown={renderCountdown(overlayMainBoss)}
+            nextCountdown={renderCountdown(overlayNextBoss)}
+            mainSyncNeeded={overlayMainSyncNeeded}
+            nextSyncNeeded={overlayNextSyncNeeded}
+            opacity={desktopOpacity}
+            scale={desktopScale}
+            raceFilter={overlayRaceFilter}
+            chaseModeEnabled={chaseModeEnabled}
+            partyFilter={overlayPartyFilter}
+            editNeedsAttention={overlayMainSyncNeeded || overlayNextSyncNeeded}
+            ttsEnabled={ttsEnabled}
+            alertPrefs={alertPrefs}
+            alertMarks={ALERT_MARKS}
+            onOpacityChange={handleOverlayOpacityChange}
+            onScaleChange={handleOverlayScaleChange}
+            onRaceFilterChange={handleOverlayRaceFilterChange}
+            onPartyFilterChange={handleOverlayPartyFilterChange}
+            onToggleTts={handleToggleTts}
+            onToggleAlertPref={toggleAlertPref}
+            canCopyBossOrder={canCopyBossOrder}
+            onCopyBossOrder={handleCopyBossOrder}
+            onOpenWebApp={handleOverlayOpenWebApp}
+            onExit={handleOverlayExit}
+          />
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className={pageClassName}>
+      {!roomId ? loginView : (
         <main className={`app-shell ${activeView === VIEW_RACING ? 'app-shell-racing' : ''}`}>
           <header className='topbar'>
             <div className='topbar-info'>

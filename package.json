@@ -3,9 +3,16 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "main": "electron/main.mjs",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "dev:web": "vite",
+    "desktop:dev": "node scripts/electron-dev.mjs",
+    "desktop:start": "electron .",
+    "desktop:preview": "npm run build:desktop && electron .",
+    "build": "vite build --mode web",
+    "build:web": "vite build --mode web",
+    "build:desktop": "vite build --mode desktop",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -15,6 +22,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
+    "electron": "^37.2.1",
     "vite": "^6.0.7"
   }
 }

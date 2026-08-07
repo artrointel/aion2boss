@@ -657,12 +657,16 @@ body {
   justify-content: space-between;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .section-left {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  flex: 1 1 520px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .section-actions {
@@ -670,6 +674,7 @@ body {
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
+  flex: 0 1 auto;
 }
 
 .column-controls {
@@ -766,6 +771,8 @@ body {
 
 .section-head h3 {
   margin: 0;
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .filter-select {

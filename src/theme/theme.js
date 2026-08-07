@@ -4,6 +4,53 @@ const THEME_STORAGE_KEY = 'aion2boss-theme'
 const THEME_SYSTEM = 'system'
 const THEME_DARK = 'dark'
 const THEME_LIGHT = 'light'
+const THEME_COOKIE_MAX_AGE_SEC = 60 * 60 * 24 * 365
+
+function isSavedTheme(value) {
+  return value === THEME_DARK || value === THEME_LIGHT
+}
+
+function loadThemeCookie() {
+  if (typeof document === 'undefined') return ''
+
+  const prefix = `${THEME_STORAGE_KEY}=`
+  let cookie = ''
+
+  try {
+    cookie = document.cookie
+      .split(';')
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(prefix)) || ''
+  } catch {
+    return ''
+  }
+
+  if (!cookie) return ''
+
+  try {
+    return decodeURIComponent(cookie.slice(prefix.length))
+  } catch {
+    return ''
+  }
+}
+
+function saveThemePreference(theme) {
+  if (!isSavedTheme(theme) || typeof window === 'undefined') return
+
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme)
+  } catch {
+    // Cookie persistence below remains available when local storage is blocked.
+  }
+
+  if (typeof document !== 'undefined') {
+    try {
+      document.cookie = `${THEME_STORAGE_KEY}=${encodeURIComponent(theme)}; path=/; max-age=${THEME_COOKIE_MAX_AGE_SEC}; SameSite=Lax`
+    } catch {
+      // Local storage remains the primary persistence mechanism.
+    }
+  }
+}
 
 function getSystemTheme() {
   if (typeof window === 'undefined' || !window.matchMedia) return THEME_DARK
@@ -15,10 +62,13 @@ function loadThemePreference() {
 
   try {
     const savedTheme = window.localStorage.getItem(THEME_STORAGE_KEY)
-    return savedTheme === THEME_DARK || savedTheme === THEME_LIGHT ? savedTheme : THEME_SYSTEM
+    if (isSavedTheme(savedTheme)) return savedTheme
   } catch {
-    return THEME_SYSTEM
+    // Fall through to the cookie backup.
   }
+
+  const cookieTheme = loadThemeCookie()
+  return isSavedTheme(cookieTheme) ? cookieTheme : THEME_SYSTEM
 }
 
 function resolveTheme(preference) {
@@ -52,17 +102,22 @@ export function useTheme() {
     return () => mediaQuery.removeEventListener('change', handleSystemThemeChange)
   }, [preference])
 
+  useEffect(() => {
+    const handleStorageChange = (event) => {
+      if (event.key !== THEME_STORAGE_KEY || !isSavedTheme(event.newValue)) return
+      setPreference(event.newValue)
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    return () => window.removeEventListener('storage', handleStorageChange)
+  }, [])
+
   const toggleTheme = useCallback(() => {
     setPreference((currentPreference) => {
       const currentTheme = resolveTheme(currentPreference)
       const nextTheme = currentTheme === THEME_DARK ? THEME_LIGHT : THEME_DARK
 
-      try {
-        window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme)
-      } catch {
-        // The selected theme still applies for this session when storage is unavailable.
-      }
-
+      saveThemePreference(nextTheme)
       return nextTheme
     })
   }, [])

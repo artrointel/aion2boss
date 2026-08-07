@@ -794,13 +794,60 @@ body {
 }
 
 .form-grid {
-  margin-top: 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 12px;
+  margin-top: 14px;
+  border: 1px solid rgba(82, 118, 170, 0.58);
+  border-radius: 14px;
+  padding: 14px;
   display: grid;
-  grid-template-columns: 80px 1fr 1fr 140px 1fr 1fr;
+  grid-template-columns: 72px minmax(180px, 1.25fr) minmax(132px, 0.8fr) minmax(132px, 0.8fr);
+  gap: 12px;
+  align-items: end;
+  background: rgba(8, 17, 30, 0.32);
+  box-shadow: inset 0 1px 0 rgba(139, 178, 229, 0.08);
+}
+
+.form-field {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.form-field span {
+  color: #9fb9dc;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.form-field-color {
+  justify-items: stretch;
+}
+
+.form-field-color input[type='color'] {
+  width: 100%;
+  height: 42px;
+  border: 1px solid rgba(99, 139, 197, 0.76);
+  border-radius: 10px;
+  padding: 5px;
+  background: rgba(12, 22, 34, 0.85);
+  cursor: pointer;
+}
+
+.form-field-location {
+  grid-column: span 2;
+}
+
+.form-field-map {
+  grid-column: span 2;
+}
+
+.map-coordinate-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+}
+
+.form-field-info {
+  grid-column: span 3;
 }
 
 .span-2 {
@@ -810,6 +857,9 @@ body {
 .row-actions {
   display: flex;
   gap: 8px;
+  justify-content: flex-end;
+  align-items: flex-end;
+  align-self: stretch;
 }
 
 .table-wrap {
@@ -2671,6 +2721,14 @@ tr.row-timer-disabled td.alert-cell {
     grid-template-columns: 1fr 1fr;
   }
 
+  .form-field-color,
+  .form-field-name,
+  .form-field-location,
+  .form-field-map,
+  .form-field-info {
+    grid-column: span 2;
+  }
+
   .span-2 {
     grid-column: span 2;
   }
@@ -2830,6 +2888,14 @@ tr.row-timer-disabled td.alert-cell {
     grid-template-columns: 1fr;
   }
 
+  .form-field-color,
+  .form-field-name,
+  .form-field-location,
+  .form-field-map,
+  .form-field-info {
+    grid-column: span 1;
+  }
+
   .span-2 {
     grid-column: span 1;
   }
@@ -2886,7 +2952,7 @@ tr.row-timer-disabled td.alert-cell {
 
   .row-actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   th,

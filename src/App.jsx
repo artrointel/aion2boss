@@ -3074,41 +3074,67 @@ export default function App() {
           <div className='dialog form-dialog' onClick={(e) => e.stopPropagation()}>
             <h4>{editingKey ? '보스 수정' : '보스 추가'}</h4>
             <div className='form-grid'>
-              <input type='color' value={form.color} onChange={(e) => setForm((p) => ({ ...p, color: e.target.value }))} />
-              <input className='input-text' placeholder='보스명' value={form.name} maxLength={20} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
-              <select className='input-text' value={form.race} onChange={(e) => setForm((p) => ({ ...p, race: e.target.value }))}>
-                <option value='천족'>천족</option>
-                <option value='마족'>마족</option>
-                <option value='기타'>기타</option>
-              </select>
-              <input className='input-text' placeholder='위치 정보' value={form.location} maxLength={100} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} />
-              <input
-                className='input-text'
-                placeholder='키벨리스크 번호'
-                inputMode='numeric'
-                value={form.kibelisk}
-                onChange={(e) => setForm((p) => ({ ...p, kibelisk: normalizeKibeliskValue(e.target.value) }))}
-              />
-              <select className='input-text' value={form.interval} onChange={(e) => setForm((p) => ({ ...p, interval: e.target.value }))}>
-                <option value=''>젠 주기</option>
-                {Array.from({ length: 24 }, (_, idx) => idx + 1).map((n) => (
-                  <option key={n} value={n}>{n}시간</option>
-                ))}
-              </select>
-              <input className='input-text' placeholder='지도 X (0.0~1.0)' type='number' min='0' max='1' step='0.01' value={form.mapX} onChange={(e) => setForm((p) => ({ ...p, mapX: e.target.value }))} />
-              <input className='input-text' placeholder='지도 Y (0.0~1.0)' type='number' min='0' max='1' step='0.01' value={form.mapY} onChange={(e) => setForm((p) => ({ ...p, mapY: e.target.value }))} />
-              <textarea
-                className='input-text textarea span-2'
-                placeholder='정보 내용 (여러 줄 입력 가능)'
-                value={form.drop}
-                maxLength={400}
-                rows={4}
-                onChange={(e) => setForm((p) => ({ ...p, drop: e.target.value }))}
-              />
+              <label className='form-field form-field-color'>
+                <span>색상</span>
+                <input type='color' value={form.color} onChange={(e) => setForm((p) => ({ ...p, color: e.target.value }))} />
+              </label>
+              <label className='form-field form-field-name'>
+                <span>보스명</span>
+                <input className='input-text' placeholder='보스명' value={form.name} maxLength={20} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
+              </label>
+              <label className='form-field'>
+                <span>종족</span>
+                <select className='input-text' value={form.race} onChange={(e) => setForm((p) => ({ ...p, race: e.target.value }))}>
+                  <option value='천족'>천족</option>
+                  <option value='마족'>마족</option>
+                  <option value='기타'>기타</option>
+                </select>
+              </label>
+              <label className='form-field'>
+                <span>젠 주기</span>
+                <select className='input-text' value={form.interval} onChange={(e) => setForm((p) => ({ ...p, interval: e.target.value }))}>
+                  <option value=''>젠 주기</option>
+                  {Array.from({ length: 24 }, (_, idx) => idx + 1).map((n) => (
+                    <option key={n} value={n}>{n}시간</option>
+                  ))}
+                </select>
+              </label>
+              <label className='form-field form-field-location'>
+                <span>위치 정보</span>
+                <input className='input-text' placeholder='위치 정보' value={form.location} maxLength={100} onChange={(e) => setForm((p) => ({ ...p, location: e.target.value }))} />
+              </label>
+              <label className='form-field'>
+                <span>키벨리스크</span>
+                <input
+                  className='input-text'
+                  placeholder='번호'
+                  inputMode='numeric'
+                  value={form.kibelisk}
+                  onChange={(e) => setForm((p) => ({ ...p, kibelisk: normalizeKibeliskValue(e.target.value) }))}
+                />
+              </label>
+              <label className='form-field form-field-map'>
+                <span>지도 좌표</span>
+                <div className='map-coordinate-fields'>
+                  <input className='input-text' aria-label='지도 X' placeholder='X 0.0~1.0' type='number' min='0' max='1' step='0.01' value={form.mapX} onChange={(e) => setForm((p) => ({ ...p, mapX: e.target.value }))} />
+                  <input className='input-text' aria-label='지도 Y' placeholder='Y 0.0~1.0' type='number' min='0' max='1' step='0.01' value={form.mapY} onChange={(e) => setForm((p) => ({ ...p, mapY: e.target.value }))} />
+                </div>
+              </label>
+              <label className='form-field form-field-info'>
+                <span>정보 내용</span>
+                <textarea
+                  className='input-text textarea'
+                  placeholder='여러 줄 입력 가능'
+                  value={form.drop}
+                  maxLength={400}
+                  rows={4}
+                  onChange={(e) => setForm((p) => ({ ...p, drop: e.target.value }))}
+                />
+              </label>
               <div className='row-actions'>
-                <button className='btn ghost' onClick={closeBossFormDialog}>취소</button>
-                <button className='btn primary' onClick={handleFormSubmit}>{editingKey ? '수정 저장' : '등록'}</button>
-                {editingKey ? <button className='btn danger' onClick={() => handleDelete(editingKey)}>삭제</button> : null}
+                {editingKey ? <button type='button' className='btn danger' onClick={() => handleDelete(editingKey)}>삭제</button> : null}
+                <button type='button' className='btn ghost' onClick={closeBossFormDialog}>취소</button>
+                <button type='button' className='btn primary' onClick={handleFormSubmit}>{editingKey ? '수정 저장' : '등록'}</button>
               </div>
             </div>
           </div>

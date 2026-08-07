@@ -1,0 +1,515 @@
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #0b1411;
+  --bg-soft: #111c18;
+  --panel: #15231e;
+  --panel-2: #20342b;
+  --line: #355246;
+  --text: #f1f5f3;
+  --muted: #9bb0a6;
+  --brand: #35c98c;
+  --brand-2: #22a66f;
+  --danger: #e0636c;
+  --warn: #e6aa4e;
+  --theme-canvas: #0b1411;
+  --theme-canvas-alt: #101921;
+  --theme-surface: #15231e;
+  --theme-surface-raised: #1a2a24;
+  --theme-surface-subtle: #101b17;
+  --theme-control: #21352c;
+  --theme-control-hover: #2a4337;
+  --theme-border: #355246;
+  --theme-border-strong: #4f7363;
+  --theme-text: #f1f5f3;
+  --theme-text-muted: #9bb0a6;
+  --theme-text-soft: #c4d0ca;
+  --theme-blue: #7fc2ef;
+  --theme-blue-soft: #193443;
+  --theme-green: #56d89e;
+  --theme-green-soft: #153c2b;
+  --theme-amber: #f1bf67;
+  --theme-amber-soft: #3c311d;
+  --theme-red: #ff8189;
+  --theme-red-soft: #45272b;
+  --theme-table-row: #13201b;
+  --theme-table-hover: #1b3027;
+  --theme-main-row: #17392a;
+  --theme-next-row: #193041;
+  --theme-status-surface: #12221c;
+  --theme-table-shell: #0d1814;
+  --theme-name-glow: #050b08;
+  --theme-backdrop: rgba(4, 9, 10, 0.78);
+  --theme-highlight: rgba(255, 255, 255, 0.045);
+  --theme-on-brand: #08271c;
+  --theme-shadow: 0 18px 38px rgba(0, 0, 0, 0.32);
+  --theme-shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.24);
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --bg: #e2ece7;
+  --bg-soft: #edf4f0;
+  --panel: #f4f8f6;
+  --panel-2: #dbe9e2;
+  --line: #b5cbbf;
+  --text: #20332b;
+  --muted: #61776d;
+  --brand: #0f8b5f;
+  --brand-2: #08734d;
+  --danger: #bd4853;
+  --warn: #9a6417;
+  --theme-canvas: #e2ece7;
+  --theme-canvas-alt: #e6edf2;
+  --theme-surface: #f4f8f6;
+  --theme-surface-raised: #eef5f1;
+  --theme-surface-subtle: #e7f0eb;
+  --theme-control: #dbe9e2;
+  --theme-control-hover: #cfe1d8;
+  --theme-border: #b5cbbf;
+  --theme-border-strong: #86a797;
+  --theme-text: #20332b;
+  --theme-text-muted: #61776d;
+  --theme-text-soft: #3f5a4e;
+  --theme-blue: #2f76a8;
+  --theme-blue-soft: #e3f0f9;
+  --theme-green: #0f7750;
+  --theme-green-soft: #d5eee1;
+  --theme-amber: #966116;
+  --theme-amber-soft: #fff0cf;
+  --theme-red: #b9434f;
+  --theme-red-soft: #fbe5e8;
+  --theme-table-row: #f3f8f5;
+  --theme-table-hover: #e3f0e9;
+  --theme-main-row: #cfe9dc;
+  --theme-next-row: #d9eaf5;
+  --theme-status-surface: #e0ece6;
+  --theme-table-shell: #d3e3db;
+  --theme-name-glow: #315046;
+  --theme-backdrop: rgba(28, 43, 40, 0.48);
+  --theme-highlight: rgba(255, 255, 255, 0.82);
+  --theme-on-brand: #ffffff;
+  --theme-shadow: 0 16px 34px rgba(42, 67, 60, 0.11);
+  --theme-shadow-soft: 0 9px 22px rgba(42, 67, 60, 0.09);
+}
+
+:root[data-theme] body {
+  background: linear-gradient(135deg, var(--theme-canvas), var(--theme-canvas-alt)) fixed;
+  color: var(--theme-text);
+}
+
+:root[data-theme] body.overlay-mode {
+  background: transparent;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 102px;
+  white-space: nowrap;
+}
+
+.theme-toggle-icon {
+  width: 1em;
+  line-height: 1;
+  font-size: 1rem;
+}
+
+:root[data-theme] .login-card,
+:root[data-theme] .card,
+:root[data-theme] .dialog,
+:root[data-theme] .boss-table-card,
+:root[data-theme] .shared-memo-card {
+  border-color: var(--theme-border);
+  background-color: var(--theme-surface);
+  background-image: none;
+  color: var(--theme-text);
+  box-shadow: inset 0 1px 0 var(--theme-highlight), var(--theme-shadow);
+}
+
+:root[data-theme] .btn.primary {
+  color: var(--theme-on-brand);
+}
+
+:root[data-theme] .status-card {
+  border-color: color-mix(in srgb, var(--theme-green) 34%, var(--theme-border));
+  background-color: var(--theme-status-surface);
+}
+
+:root[data-theme] .status-card .boss-table-card {
+  border-color: color-mix(in srgb, var(--theme-green) 26%, var(--theme-border));
+  background: var(--theme-table-shell);
+  box-shadow: inset 0 1px 0 var(--theme-highlight), var(--theme-shadow-soft);
+}
+
+:root[data-theme] .boss-side,
+:root[data-theme] .boss-main,
+:root[data-theme] .pref-group,
+:root[data-theme] .form-grid,
+:root[data-theme] .participant-list-item,
+:root[data-theme] .racing-config-panel,
+:root[data-theme] .racing-actions-panel,
+:root[data-theme] .racing-track-options,
+:root[data-theme] .race-auto-scroll-toggle,
+:root[data-theme] .race-state,
+:root[data-theme] .race-empty-state,
+:root[data-theme] .race-roster-item,
+:root[data-theme] .race-ranking,
+:root[data-theme] .race-log-card,
+:root[data-theme] .race-log-list {
+  border-color: var(--theme-border);
+  background: var(--theme-surface-subtle);
+  color: var(--theme-text);
+}
+
+:root[data-theme] .boss-main {
+  border-color: color-mix(in srgb, var(--theme-blue) 42%, var(--theme-border));
+  background: linear-gradient(145deg, var(--theme-surface-subtle), var(--theme-blue-soft));
+}
+
+:root[data-theme] :is(
+  .boss-name-text,
+  .boss-color-text,
+  .boss-main-name,
+  .boss-side strong,
+  .overlay-boss-name,
+  .overlay-edit-name
+) {
+  text-shadow:
+    0 0 2px color-mix(in srgb, var(--theme-name-glow) 70%, transparent),
+    0 0 7px color-mix(in srgb, var(--theme-name-glow) 48%, transparent),
+    0 0 16px color-mix(in srgb, var(--theme-name-glow) 26%, transparent),
+    0 0 26px color-mix(in srgb, var(--theme-name-glow) 13%, transparent);
+}
+
+:root[data-theme] .boss-name-text {
+  font-weight: 700;
+}
+
+:root[data-theme] .login-card p,
+:root[data-theme] .login-credit,
+:root[data-theme] .login-create-key-field,
+:root[data-theme] .login-help,
+:root[data-theme] .room-settings-field,
+:root[data-theme] .dialog p,
+:root[data-theme] .dialog-check,
+:root[data-theme] .column-controls,
+:root[data-theme] .muted,
+:root[data-theme] .boss-main-drop,
+:root[data-theme] .shared-memo-head span,
+:root[data-theme] .form-field span,
+:root[data-theme] th,
+:root[data-theme] .info-cell-text,
+:root[data-theme] .creator-credit,
+:root[data-theme] .minigame-item-desc,
+:root[data-theme] .racing-subtitle,
+:root[data-theme] .race-roster-head span,
+:root[data-theme] .pet-type-text,
+:root[data-theme] .race-log-time,
+:root[data-theme] .race-log-empty,
+:root[data-theme] .overlay-settings-help,
+:root[data-theme] .overlay-boss-label,
+:root[data-theme] .overlay-edit-kind {
+  color: var(--theme-text-muted);
+}
+
+:root[data-theme] .room-pill,
+:root[data-theme] .room-pill-label,
+:root[data-theme] .shared-memo-head strong,
+:root[data-theme] .shared-memo-tool,
+:root[data-theme] .shared-memo-editor,
+:root[data-theme] .pref-row-label,
+:root[data-theme] .location-text,
+:root[data-theme] .next-time-text,
+:root[data-theme] .participant-list-name,
+:root[data-theme] .race-roster-head,
+:root[data-theme] .race-roster-stats,
+:root[data-theme] .race-ranking li,
+:root[data-theme] .race-log-item,
+:root[data-theme] .race-result-list li,
+:root[data-theme] .race-skill-table td {
+  color: var(--theme-text-soft);
+}
+
+:root[data-theme] .boss-main-name,
+:root[data-theme] .pref-group-title,
+:root[data-theme] .boss-table th .th-cell,
+:root[data-theme] .racing-title,
+:root[data-theme] .pet-name-input-wrap label,
+:root[data-theme] .racing-track-options-title,
+:root[data-theme] .racing-meta,
+:root[data-theme] .race-status,
+:root[data-theme] .race-ranking h3,
+:root[data-theme] .race-log-card h3 {
+  color: var(--theme-blue);
+}
+
+:root[data-theme] .sync-help-text,
+:root[data-theme] .sync-needed-time,
+:root[data-theme] .adjacent-spawn-info,
+:root[data-theme] .race-ranking li strong,
+:root[data-theme] .race-result-list li strong {
+  color: var(--theme-amber) !important;
+}
+
+:root[data-theme] .boss-main-time.warning {
+  color: var(--theme-red);
+}
+
+:root[data-theme] .room-pill,
+:root[data-theme] .btn.ghost,
+:root[data-theme] .btn.muted,
+:root[data-theme] .room-settings-key-help,
+:root[data-theme] .shared-memo-tool,
+:root[data-theme] .btn-icon-info,
+:root[data-theme] .btn.chase-cell-btn,
+:root[data-theme] .btn.chase-cell-btn.has-selection {
+  border-color: var(--theme-border);
+  background: var(--theme-control);
+  color: var(--theme-text);
+}
+
+:root[data-theme] .room-pill-button:hover,
+:root[data-theme] .btn.ghost:hover:not(:disabled),
+:root[data-theme] .room-settings-key-help:hover:not(:disabled),
+:root[data-theme] .shared-memo-tool:hover,
+:root[data-theme] .btn-icon-info:hover {
+  border-color: var(--theme-border-strong);
+  background: var(--theme-control-hover);
+}
+
+:root[data-theme] .input-text,
+:root[data-theme] .time-grid input,
+:root[data-theme] .form-field-color input[type='color'],
+:root[data-theme] .shared-memo-editor {
+  border-color: var(--theme-border);
+  background: var(--theme-surface-raised);
+  color: var(--theme-text);
+}
+
+:root[data-theme] .input-text::placeholder,
+:root[data-theme] .room-pill-text-input::placeholder,
+:root[data-theme] .shared-memo-editor:empty::before {
+  color: var(--theme-text-muted);
+  opacity: 0.82;
+}
+
+:root[data-theme] .role-switch label {
+  border-color: var(--theme-border);
+  background: var(--theme-surface-subtle);
+  color: var(--theme-text-muted);
+}
+
+:root[data-theme] .role-switch label.active,
+:root[data-theme] .bell-btn.active {
+  border-color: var(--theme-green);
+  background: var(--theme-green-soft);
+  color: var(--theme-green);
+}
+
+:root[data-theme] tbody tr td {
+  border-color: var(--theme-border);
+  background: var(--theme-table-row);
+  color: var(--theme-text);
+}
+
+:root[data-theme] tbody tr:hover td {
+  background: var(--theme-table-hover);
+}
+
+:root[data-theme] tr.row-main-boss td {
+  border-color: var(--theme-green);
+  background: var(--theme-main-row);
+}
+
+:root[data-theme] tr.row-next-boss td {
+  border-color: var(--theme-blue);
+  background: var(--theme-next-row);
+}
+
+:root[data-theme] .time-cell-btn {
+  border-color: var(--theme-border-strong);
+  background: var(--theme-blue-soft);
+  color: var(--theme-blue);
+}
+
+:root[data-theme] .time-cell-btn.sync-needed {
+  border-color: var(--theme-amber);
+  background: var(--theme-amber-soft);
+  color: var(--theme-amber);
+}
+
+:root[data-theme] .map-icon-btn {
+  border-color: var(--theme-border);
+  background: var(--theme-blue-soft);
+}
+
+:root[data-theme] .chase-team-option,
+:root[data-theme] .minigame-item {
+  border-color: var(--theme-border);
+  background: var(--theme-surface-subtle);
+  color: var(--theme-text);
+}
+
+:root[data-theme] .chase-team-option:hover,
+:root[data-theme] .minigame-item:hover {
+  border-color: var(--theme-border-strong);
+  background: var(--theme-control-hover);
+}
+
+:root[data-theme] .chase-team-option.active {
+  border-color: var(--theme-amber);
+  background: var(--theme-amber-soft);
+  color: var(--theme-amber);
+}
+
+:root[data-theme] .participant-list-badge,
+:root[data-theme] .minigame-item-badge.internal {
+  background: var(--theme-green-soft);
+  color: var(--theme-green);
+}
+
+:root[data-theme] .minigame-item-badge.external {
+  background: var(--theme-amber-soft);
+  color: var(--theme-amber);
+}
+
+:root[data-theme] .dialog-backdrop {
+  background: var(--theme-backdrop);
+}
+
+:root[data-theme] .shared-memo-card,
+:root[data-theme] .shared-memo-fab {
+  background: var(--theme-surface-raised);
+  color: var(--theme-text);
+  box-shadow: var(--theme-shadow-soft);
+}
+
+:root[data-theme] .racing-card {
+  --race-text-glow-soft: none;
+  --race-text-glow-strong: none;
+  --racing-bg-overlay-top: color-mix(in srgb, var(--theme-surface) 76%, transparent);
+  --racing-bg-overlay-bottom: color-mix(in srgb, var(--theme-surface-subtle) 88%, transparent);
+  background-image:
+    linear-gradient(180deg, var(--racing-bg-overlay-top), var(--racing-bg-overlay-bottom)),
+    var(--racing-bg-image);
+}
+
+:root[data-theme] .race-auto-scroll-toggle,
+:root[data-theme] .pet-option {
+  border-color: var(--theme-border);
+  background: var(--theme-control);
+  color: var(--theme-text-soft);
+}
+
+:root[data-theme] .pet-option:hover,
+:root[data-theme] .pet-option.active {
+  border-color: var(--theme-blue);
+  background: var(--theme-blue-soft);
+  color: var(--theme-blue);
+}
+
+:root[data-theme] .race-state.running {
+  border-color: var(--theme-green);
+  background: var(--theme-green-soft);
+  color: var(--theme-green);
+}
+
+:root[data-theme] .race-state.finished {
+  border-color: var(--theme-amber);
+  background: var(--theme-amber-soft);
+  color: var(--theme-amber);
+}
+
+:root[data-theme] .race-skill-table {
+  border-color: var(--theme-border);
+  background: var(--theme-surface-raised);
+}
+
+:root[data-theme] .race-skill-table th {
+  background: var(--theme-blue-soft);
+  color: var(--theme-blue);
+}
+
+:root[data-theme] .overlay-login-card,
+:root[data-theme] .overlay-frame,
+:root[data-theme] .overlay-settings-dialog,
+:root[data-theme] .overlay-party-menu,
+:root[data-theme] .overlay-edit-context-menu {
+  border-color: var(--theme-border);
+  background: var(--theme-surface-raised);
+  color: var(--theme-text);
+  box-shadow: var(--theme-shadow);
+}
+
+:root[data-theme] .overlay-boss-card,
+:root[data-theme] .overlay-edit-row,
+:root[data-theme] .overlay-edit-empty {
+  border-color: var(--theme-border);
+  background: var(--theme-surface-subtle);
+  color: var(--theme-text);
+}
+
+:root[data-theme] .overlay-room-name,
+:root[data-theme] .overlay-collapsed-name,
+:root[data-theme] .overlay-settings-title,
+:root[data-theme] .overlay-edit-name,
+:root[data-theme] .overlay-boss-name {
+  color: var(--theme-text);
+}
+
+:root[data-theme] .overlay-settings-value,
+:root[data-theme] .overlay-edit-location,
+:root[data-theme] .overlay-boss-location,
+:root[data-theme] .overlay-edit-empty {
+  color: var(--theme-text-muted);
+}
+
+:root[data-theme] .overlay-chip,
+:root[data-theme] .overlay-icon-btn,
+:root[data-theme] .overlay-filter-select,
+:root[data-theme] .overlay-toolbar-btn,
+:root[data-theme] .overlay-party-option,
+:root[data-theme] .overlay-alert-option,
+:root[data-theme] .overlay-edit-time-btn {
+  border-color: var(--theme-border);
+  background: var(--theme-control);
+  color: var(--theme-text-soft);
+}
+
+:root[data-theme] .overlay-chip:hover,
+:root[data-theme] .overlay-icon-btn:hover,
+:root[data-theme] .overlay-toolbar-btn:hover,
+:root[data-theme] .overlay-party-option:hover,
+:root[data-theme] .overlay-edit-time-btn:hover:not(:disabled),
+:root[data-theme] .overlay-edit-context-item:hover:not(:disabled) {
+  border-color: var(--theme-border-strong);
+  background: var(--theme-control-hover);
+}
+
+:root[data-theme] .overlay-edit-context-item {
+  color: var(--theme-text);
+}
+
+:root[data-theme] .overlay-party-option.active,
+:root[data-theme] .overlay-edit-btn.needs-attention,
+:root[data-theme] .overlay-edit-context-item.active,
+:root[data-theme] .overlay-edit-context-check,
+:root[data-theme] .overlay-edit-time-btn.sync-needed,
+:root[data-theme] .overlay-edit-alert,
+:root[data-theme] .overlay-sync-indicator {
+  border-color: var(--theme-amber);
+  background-color: var(--theme-amber-soft);
+  color: var(--theme-amber);
+}
+
+@media (max-width: 620px) {
+  .theme-toggle {
+    min-width: 42px;
+  }
+
+  .theme-toggle-label {
+    display: none;
+  }
+}

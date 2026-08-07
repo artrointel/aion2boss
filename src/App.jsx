@@ -104,10 +104,12 @@ import {
   updateValue
 } from './data/roomRepository'
 import OverlayWindow from './desktop/OverlayWindow'
+import { useTheme } from './theme/theme'
 
 const WEB_APP_URL = 'https://artrointel.github.io/aion2boss/'
 
 export default function App() {
+  const { theme, toggleTheme } = useTheme()
   const overlayMode = useMemo(() => {
     const params = new URLSearchParams(window.location.search)
     return params.get('overlay') === '1' || params.get('mode') === 'overlay'
@@ -2195,7 +2197,7 @@ export default function App() {
   const loginDescription = overlayMode
     ? '화면에 필드 보스 타이머를 띄워주는 앱이에요.'
     : '방 이름을 입력하고 역할을 선택하세요.'
-  const loginCredit = overlayMode ? '제작자 화폭[브리]' : ''
+  const loginCredit = overlayMode ? '제작자 [브리] 뿌띠' : ''
   const pageClassName = overlayMode ? 'page overlay-page' : 'page'
   const loginWrapClassName = overlayMode ? 'login-wrap overlay-login-wrap' : 'login-wrap'
   const loginCardClassName = overlayMode ? 'login-card overlay-login-card' : 'login-card'
@@ -2405,6 +2407,16 @@ export default function App() {
                 <button className='btn ghost' onClick={openBossView}>{TOPBAR_LABEL_TO_BOSS}</button>
               ) : null}
               <button className='btn ghost' onClick={handleShare}>주소복사</button>
+              <button
+                type='button'
+                className='btn ghost theme-toggle'
+                onClick={toggleTheme}
+                aria-label={theme === 'dark' ? '라이트 테마로 전환' : '다크 테마로 전환'}
+                title={theme === 'dark' ? '라이트 테마로 전환' : '다크 테마로 전환'}
+              >
+                <span className='theme-toggle-icon' aria-hidden='true'>{theme === 'dark' ? '☀' : '☾'}</span>
+                <span className='theme-toggle-label'>{theme === 'dark' ? '라이트' : '다크'}</span>
+              </button>
               {role === 'admin' ? <button className='btn ghost' onClick={openRoomSettingsDialog}>방 설정</button> : null}
               {role === 'admin' ? <button className='btn danger ghost' onClick={handleLeave}>방 나가기</button> : null}
             </div>
@@ -2897,7 +2909,7 @@ export default function App() {
                   <button className='btn' onClick={handleSort}>다음 젠 시간순 정렬</button>
                   <button className='btn' disabled={!undoStack.length} onClick={handleUndo}>실행 취소</button>
                   <button className='btn' disabled={!redoStack.length} onClick={handleRedo}>다시 실행</button>
-                  <span className='creator-credit'>제작자: 화폭[브리]</span>
+                  <span className='creator-credit'>제작자: [브리] 뿌띠</span>
                 </section>
               ) : null}
             </>
@@ -3218,7 +3230,7 @@ export default function App() {
               보스{' '}
               {syncNoticeDialog.bosses.map((boss, idx) => (
                 <span key={`${boss.name}-${idx}`}>
-                  <span style={{ color: boss.color, fontWeight: 700 }}>{boss.name}</span>
+                  <span className='boss-color-text' style={{ color: boss.color, fontWeight: 700 }}>{boss.name}</span>
                   {idx < syncNoticeDialog.bosses.length - 1 ? ', ' : ''}
                 </span>
               ))}

@@ -219,6 +219,14 @@ body {
   overflow-x: clip;
 }
 
+.hero button {
+  width: fit-content;
+  max-width: 100%;
+  min-width: 0;
+  flex: 0 0 auto;
+  justify-self: center;
+}
+
 .hero-label {
   text-align: center;
   font-size: 0.8rem;

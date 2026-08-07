@@ -11,6 +11,7 @@ import {
   ADJACENT_BOSS_THRESHOLD_MIN_SEC,
   DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC,
   DEFAULT_COLUMN_WIDTHS,
+  DEFAULT_PASSWORD_CHANGE_KEY,
   DEFAULT_SHARED_MEMO_SIZE,
   EMPTY_CHASE_TEAM_DIALOG,
   EMPTY_PARTICIPANT_LIST_DIALOG,
@@ -115,6 +116,7 @@ export default function App() {
   const initialRecentRoomEntryRef = useRef(loadRecentRoomEntry())
   const [roomInput, setRoomInput] = useState(() => initialRecentRoomEntryRef.current.room)
   const [roomPasswordInput, setRoomPasswordInput] = useState(() => initialRecentRoomEntryRef.current.password)
+  const [roomPasswordChangeKeyInput, setRoomPasswordChangeKeyInput] = useState(DEFAULT_PASSWORD_CHANGE_KEY)
   const [showRoomPassword, setShowRoomPassword] = useState(false)
   const [loginPending, setLoginPending] = useState(false)
   const [myNickname, setMyNickname] = useState(() => loadParticipantNickname())
@@ -1264,13 +1266,18 @@ export default function App() {
           return
         }
       } else if (!roomExists && role === 'admin' && ROOM_CREATION_ENABLED) {
-        if (inputPassword) {
-          const passwordHash = await hashRoomPassword(inputPassword)
-          await repoUpdateRoomSettings(room, {
-            passwordHash,
-            passwordUpdatedAt: Date.now()
-          })
+        const passwordChangeKey = roomPasswordChangeKeyInput.trim() || DEFAULT_PASSWORD_CHANGE_KEY
+        const newRoomSettings = {
+          passwordChangeKeyHash: await hashRoomPassword(passwordChangeKey),
+          passwordChangeKeyUpdatedAt: Date.now()
         }
+
+        if (inputPassword) {
+          newRoomSettings.passwordHash = await hashRoomPassword(inputPassword)
+          newRoomSettings.passwordUpdatedAt = Date.now()
+        }
+
+        await repoUpdateRoomSettings(room, newRoomSettings)
 
         if (false) {
           let copied = false
@@ -1306,7 +1313,7 @@ export default function App() {
     } finally {
       setLoginPending(false)
     }
-  }, [enterRoom, loginPending, role, roomInput, roomPasswordInput])
+  }, [enterRoom, loginPending, role, roomInput, roomPasswordChangeKeyInput, roomPasswordInput])
 
   const handleShare = async () => {
     try {
@@ -1415,6 +1422,7 @@ export default function App() {
     setRoomSettingsDialog({
       open: true,
       roomName: roomId,
+      passwordChangeKey: '',
       password: '',
       showPassword: false,
       saving: false
@@ -1429,6 +1437,7 @@ export default function App() {
     if (role !== 'admin' || !roomId) return
 
     const nextRoomName = roomSettingsDialog.roomName.trim()
+    const passwordChangeKey = roomSettingsDialog.passwordChangeKey.trim()
     const nextPassword = roomSettingsDialog.password.trim()
     const isRoomNameChanged = nextRoomName !== roomId
 
@@ -1439,6 +1448,11 @@ export default function App() {
 
     if (!isRoomNameChanged && !nextPassword) {
       closeRoomSettingsDialog()
+      return
+    }
+
+    if (nextPassword && !passwordChangeKey) {
+      window.alert('비밀번호 변경 키를 입력해주세요.')
       return
     }
 
@@ -1460,6 +1474,15 @@ export default function App() {
       }
 
       if (nextPassword) {
+        const expectedChangeKeyHash = nextSettings.passwordChangeKeyHash
+          || await hashRoomPassword(DEFAULT_PASSWORD_CHANGE_KEY)
+        const inputChangeKeyHash = await hashRoomPassword(passwordChangeKey)
+
+        if (inputChangeKeyHash !== expectedChangeKeyHash) {
+          window.alert('비밀번호 변경 키가 올바르지 않습니다.')
+          return
+        }
+
         nextSettings.passwordHash = await hashRoomPassword(nextPassword)
         nextSettings.passwordUpdatedAt = Date.now()
       }
@@ -1517,7 +1540,7 @@ export default function App() {
         return { ...prev, saving: false }
       })
     }
-  }, [buildRoomUrl, closeRoomSettingsDialog, role, roomId, roomSettingsDialog.password, roomSettingsDialog.roomName, updateRoot])
+  }, [buildRoomUrl, closeRoomSettingsDialog, role, roomId, roomSettingsDialog.password, roomSettingsDialog.passwordChangeKey, roomSettingsDialog.roomName, updateRoot])
 
   const submitRoomSettings = useCallback((e) => {
     e.preventDefault()
@@ -2219,6 +2242,22 @@ export default function App() {
               </button>
             </div>
           </div>
+
+          {role === 'admin' && ROOM_CREATION_ENABLED ? (
+            <label className='login-create-key-field'>
+              <span>비밀번호 변경 키</span>
+              <input
+                type='password'
+                value={roomPasswordChangeKeyInput}
+                onChange={(e) => setRoomPasswordChangeKeyInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                className='input-text large'
+                placeholder='비밀번호 변경 키'
+                autoComplete='new-password'
+                disabled={loginPending}
+              />
+            </label>
+          ) : null}
         </div>
 
         <div className='role-switch'>
@@ -3032,6 +3071,35 @@ export default function App() {
                 />
               </label>
 
+              <div className='room-settings-field'>
+                <label htmlFor='room-password-change-key'>비밀번호 변경 키</label>
+                <div className='room-settings-key-row'>
+                  <input
+                    id='room-password-change-key'
+                    type='password'
+                    className='input-text'
+                    value={roomSettingsDialog.passwordChangeKey}
+                    onChange={(e) => {
+                      const value = e.target.value
+                      setRoomSettingsDialog((prev) => ({ ...prev, passwordChangeKey: value }))
+                    }}
+                    placeholder='변경 키를 입력하세요'
+                    autoComplete='off'
+                    disabled={roomSettingsDialog.saving}
+                  />
+                  <button
+                    type='button'
+                    className='room-settings-key-help'
+                    onClick={() => window.alert('비밀번호 변경 키는 artrointel에게 문의해주세요.')}
+                    aria-label='비밀번호 변경 키 도움말'
+                    title='비밀번호 변경 키 도움말'
+                    disabled={roomSettingsDialog.saving}
+                  >
+                    ?
+                  </button>
+                </div>
+              </div>
+
               <label className='room-settings-field'>
                 <span>새 비밀번호</span>
                 <input
@@ -3044,7 +3112,7 @@ export default function App() {
                   }}
                   placeholder='비워두면 기존 비밀번호 유지'
                   autoComplete='new-password'
-                  disabled={roomSettingsDialog.saving}
+                  disabled={roomSettingsDialog.saving || !roomSettingsDialog.passwordChangeKey.trim()}
                 />
               </label>
 

@@ -78,6 +78,13 @@ body {
   gap: 8px;
 }
 
+.login-create-key-field {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
 .login-help {
   margin: 0 0 18px;
   font-size: 0.92rem;
@@ -2414,6 +2421,34 @@ tr.row-timer-disabled td.alert-cell {
   gap: 6px;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.room-settings-key-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  gap: 8px;
+}
+
+.room-settings-key-help {
+  width: 40px;
+  min-width: 40px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.room-settings-key-help:hover:not(:disabled) {
+  border-color: #6fa8ef;
+  background: rgba(55, 104, 168, 0.3);
+}
+
+.room-settings-key-help:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .room-settings-inline-actions {

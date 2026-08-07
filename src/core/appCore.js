@@ -66,6 +66,7 @@ export const ADJACENT_BOSS_THRESHOLD_MIN_SEC = 1
 export const ADJACENT_BOSS_THRESHOLD_MAX_SEC = 600
 export const ROOM_CREATION_ENABLED = false
 export const ROOM_CREATION_DISABLED_MESSAGE = '현재 새 방 생성은 일시적으로 비활성화되어 있습니다. 기존 방만 입장할 수 있습니다.'
+export const DEFAULT_PASSWORD_CHANGE_KEY = '0110'
 export const COPY_ORDER_WINDOW_MS = 30 * 60000
 const DEFAULT_CHASE_COLUMN_WIDTH = 118
 const MIN_CHASE_COLUMN_WIDTH = DEFAULT_CHASE_COLUMN_WIDTH
@@ -601,6 +602,7 @@ export const EMPTY_CHASE_TEAM_DIALOG = {
 export const EMPTY_ROOM_SETTINGS_DIALOG = {
   open: false,
   roomName: '',
+  passwordChangeKey: '',
   password: '',
   showPassword: false,
   saving: false

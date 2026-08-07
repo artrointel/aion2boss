@@ -168,22 +168,13 @@
   background: linear-gradient(145deg, var(--theme-surface-subtle), var(--theme-blue-soft));
 }
 
-:root[data-theme] :is(
-  .boss-name-text,
-  .boss-color-text,
-  .boss-main-name,
-  .boss-side strong,
-  .overlay-boss-name,
-  .overlay-edit-name
-) {
+:root[data-theme] :is(.boss-name-text, .boss-color-text) {
   text-shadow:
-    0 0 2px color-mix(in srgb, var(--theme-name-glow) 70%, transparent),
-    0 0 7px color-mix(in srgb, var(--theme-name-glow) 48%, transparent),
-    0 0 16px color-mix(in srgb, var(--theme-name-glow) 26%, transparent),
-    0 0 26px color-mix(in srgb, var(--theme-name-glow) 13%, transparent);
-}
-
-:root[data-theme] .boss-name-text {
+    0 0 1px var(--theme-name-glow),
+    0 0 3px var(--theme-name-glow),
+    0 0 7px color-mix(in srgb, var(--theme-name-glow) 90%, transparent),
+    0 0 14px color-mix(in srgb, var(--theme-name-glow) 66%, transparent),
+    0 0 24px color-mix(in srgb, var(--theme-name-glow) 38%, transparent);
   font-weight: 700;
 }
 

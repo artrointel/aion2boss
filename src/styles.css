@@ -775,8 +775,10 @@ body {
   white-space: nowrap;
 }
 
-.filter-select {
-  width: 96px;
+.input-text.filter-select {
+  width: fit-content;
+  min-width: max-content;
+  flex: 0 0 auto;
   padding: 7px 9px;
   font-size: 0.9rem;
 }

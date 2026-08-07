@@ -5,67 +5,46 @@ import racingLaneSceneryCliff from './assets/racing-lane-scenery-cliff.svg'
 import racingLaneSceneryMeadow from './assets/racing-lane-scenery-meadow.svg'
 import racingTrackPatternCliff from './assets/racing-track-pattern-cliff.svg'
 import racingTrackPatternMeadow from './assets/racing-track-pattern-meadow.svg'
-const PET_TYPE_RABBIT = 'rabbit'
-const PET_TYPE_HORSE = 'horse'
-const MAP_DEFAULT = 'default'
-const MAP_DIZZY_CLIFF = 'dizzy_cliff'
-const DEFAULT_RACE_DISTANCE = 1000
-const TRACK_WORLD_PX_PER_DISTANCE = 1.55
-const MIN_TRACK_WORLD_WIDTH_PX = 1400
-const MAX_TRACK_WORLD_WIDTH_PX = 9600
-const RACE_TICK_MS = 120
-const INITIAL_SKILL_OFFSET_MAX_MS = 1000
-const MAP_EVENT_TICK_MS = 1000
-const STUN_DURATION_MS = 2000
-const SHIELD_DURATION_MS = 3000
-const BOULDER_STUN_DURATION_MS = 3000
-const MUD_SLOW_DURATION_MS = 3000
-const MUD_LIFETIME_MS = 9000
-const DEFAULT_SKILL_TICK_MIN_SEC = 1
-const DEFAULT_SKILL_TICK_MAX_SEC = 2
-const MIN_SKILL_TICK_SEC = 0.2
-const MAX_SKILL_TICK_SEC = 10
-const DEFAULT_SKILL_CHANCE_PERCENT = {
-  attack: 20,
-  shield: 10,
-  boost: 15,
-  boulder: 20,
-  mud: 20
-}
-const CARROT_PROJECTILE_SPEED_PX_PER_MS = 0.2925
-const CARROT_PROJECTILE_DISTANCE_ACCEL_PER_PX_PER_MS = 0.00045
-const CARROT_PROJECTILE_MAX_SPEED_PX_PER_MS = 1.55
-const CARROT_HIT_DISTANCE_PX = 18
-const RUNNER_EDGE_PADDING_PX = 28
-const RUNNER_MIN_PROGRESS_PERCENT = 3
-const RACING_BGM_STORAGE_KEY = 'aion2boss_racing_bgm_enabled'
-const RACING_SFX_STORAGE_KEY = 'aion2boss_racing_sfx_enabled'
-const RACING_AUTO_SCROLL_STORAGE_KEY = 'aion2boss_racing_auto_scroll_enabled'
-const RACING_BGM_VOLUME_SCALE = 0.5
-const RACING_SFX_VOLUME_SCALE = 0.7
-const RACING_BGM_BASE_VOLUME = 0.36 * RACING_BGM_VOLUME_SCALE
-const RACING_BGM_FADE_MS = 700
-const APP_BASE_URL = (import.meta.env.BASE_URL || '/').replace(/\/?$/, '/')
-const SOUND_SOURCES = {
-  bgmWaiting: `${APP_BASE_URL}sound/bgm_waiting.mp3`,
-  bgmPlaying: `${APP_BASE_URL}sound/bgm_playing.mp3`,
-  throwing: `${APP_BASE_URL}sound/throwing.wav`,
-  boost: `${APP_BASE_URL}sound/boost.wav`,
-  stun: `${APP_BASE_URL}sound/stun.wav`,
-  shield: `${APP_BASE_URL}sound/shield.wav`
-}
-const LANE_SCENERY_POSITIONS = [4, 12, 20, 28, 36, 44, 52, 60, 68, 76, 84, 92, 100, 108]
-const LANE_SCENERY_LANE_OFFSET_PERCENT = 7
-const RACER_COLOR_PALETTE = [
-  '#ff8da1',
-  '#7fd7ff',
-  '#ffd677',
-  '#c2b2ff',
-  '#81df9c',
-  '#b8d6ff',
-  '#ffb993',
-  '#9dddc1'
-]
+import { usePersistentBoolean } from './core/usePersistentState'
+import {
+  BOULDER_STUN_DURATION_MS,
+  CARROT_HIT_DISTANCE_PX,
+  CARROT_PROJECTILE_DISTANCE_ACCEL_PER_PX_PER_MS,
+  CARROT_PROJECTILE_MAX_SPEED_PX_PER_MS,
+  CARROT_PROJECTILE_SPEED_PX_PER_MS,
+  DEFAULT_RACE_DISTANCE,
+  DEFAULT_SKILL_CHANCE_PERCENT,
+  DEFAULT_SKILL_TICK_MAX_SEC,
+  DEFAULT_SKILL_TICK_MIN_SEC,
+  INITIAL_SKILL_OFFSET_MAX_MS,
+  LANE_SCENERY_LANE_OFFSET_PERCENT,
+  LANE_SCENERY_POSITIONS,
+  MAP_DEFAULT,
+  MAP_DIZZY_CLIFF,
+  MAP_EVENT_TICK_MS,
+  MAX_SKILL_TICK_SEC,
+  MAX_TRACK_WORLD_WIDTH_PX,
+  MIN_SKILL_TICK_SEC,
+  MIN_TRACK_WORLD_WIDTH_PX,
+  MUD_LIFETIME_MS,
+  MUD_SLOW_DURATION_MS,
+  PET_TYPE_HORSE,
+  PET_TYPE_RABBIT,
+  RACER_COLOR_PALETTE,
+  RACE_TICK_MS,
+  RACING_AUTO_SCROLL_STORAGE_KEY,
+  RACING_BGM_BASE_VOLUME,
+  RACING_BGM_FADE_MS,
+  RACING_BGM_STORAGE_KEY,
+  RACING_SFX_STORAGE_KEY,
+  RACING_SFX_VOLUME_SCALE,
+  RUNNER_EDGE_PADDING_PX,
+  RUNNER_MIN_PROGRESS_PERCENT,
+  SHIELD_DURATION_MS,
+  SOUND_SOURCES,
+  STUN_DURATION_MS,
+  TRACK_WORLD_PX_PER_DISTANCE
+} from './racing/config'
 
 function parsePetNamesInput(rawValue) {
   return rawValue
@@ -149,18 +128,9 @@ export default function RacingGamePage() {
   const [resultPopup, setResultPopup] = useState({ open: false, entries: [] })
   const [skillInfoPopupOpen, setSkillInfoPopupOpen] = useState(false)
   const [isTopPanelsCollapsed, setIsTopPanelsCollapsed] = useState(false)
-  const [bgmEnabled, setBgmEnabled] = useState(() => {
-    if (typeof window === 'undefined') return true
-    return window.localStorage.getItem(RACING_BGM_STORAGE_KEY) !== 'false'
-  })
-  const [sfxEnabled, setSfxEnabled] = useState(() => {
-    if (typeof window === 'undefined') return true
-    return window.localStorage.getItem(RACING_SFX_STORAGE_KEY) !== 'false'
-  })
-  const [autoScrollEnabled, setAutoScrollEnabled] = useState(() => {
-    if (typeof window === 'undefined') return true
-    return window.localStorage.getItem(RACING_AUTO_SCROLL_STORAGE_KEY) !== 'false'
-  })
+  const [bgmEnabled, setBgmEnabled] = usePersistentBoolean(RACING_BGM_STORAGE_KEY, true)
+  const [sfxEnabled, setSfxEnabled] = usePersistentBoolean(RACING_SFX_STORAGE_KEY, true)
+  const [autoScrollEnabled, setAutoScrollEnabled] = usePersistentBoolean(RACING_AUTO_SCROLL_STORAGE_KEY, true)
   const [skillChancePercent, setSkillChancePercent] = useState(() => ({ ...DEFAULT_SKILL_CHANCE_PERCENT }))
   const [skillTickRangeSec, setSkillTickRangeSec] = useState(() => ({
     min: DEFAULT_SKILL_TICK_MIN_SEC,
@@ -286,21 +256,6 @@ export default function RacingGamePage() {
   useEffect(() => {
     mapHazardsRef.current = mapHazards
   }, [mapHazards])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    window.localStorage.setItem(RACING_BGM_STORAGE_KEY, bgmEnabled ? 'true' : 'false')
-  }, [bgmEnabled])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    window.localStorage.setItem(RACING_SFX_STORAGE_KEY, sfxEnabled ? 'true' : 'false')
-  }, [sfxEnabled])
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    window.localStorage.setItem(RACING_AUTO_SCROLL_STORAGE_KEY, autoScrollEnabled ? 'true' : 'false')
-  }, [autoScrollEnabled])
 
   const clearProjectileTimers = useCallback(() => {
     projectileTimerRef.current.forEach((timerId) => window.clearTimeout(timerId))

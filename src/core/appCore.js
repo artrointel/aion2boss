@@ -1,3 +1,5 @@
+import { readLocalStorage, readSessionStorage, writeLocalStorage, writeSessionStorage } from './storage'
+
 const pad2 = (num) => String(num).padStart(2, '0')
 
 export const CONFIG = {
@@ -169,44 +171,37 @@ export function hasMapPoint(boss) {
   return boss?.mapX !== '' && boss?.mapY !== '' && boss?.mapX != null && boss?.mapY != null
 }
 
+function createPresenceId(prefix) {
+  return window.crypto?.randomUUID
+    ? window.crypto.randomUUID()
+    : `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`
+}
+
+function getOrCreatePresenceId(storageKey, prefix, readStorage, writeStorage) {
+  const existing = readStorage(storageKey)
+  if (existing) return existing
+
+  const nextId = createPresenceId(prefix)
+  writeStorage(storageKey, nextId)
+  return nextId
+}
+
 export function getPresenceSessionId() {
-  const storageKey = 'aion2boss_presence_session_id'
-
-  try {
-    const existing = window.sessionStorage.getItem(storageKey)
-    if (existing) return existing
-
-    const nextId = window.crypto?.randomUUID
-      ? window.crypto.randomUUID()
-      : `presence-${Date.now()}-${Math.random().toString(16).slice(2)}`
-
-    window.sessionStorage.setItem(storageKey, nextId)
-    return nextId
-  } catch {
-    return window.crypto?.randomUUID
-      ? window.crypto.randomUUID()
-      : `presence-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  }
+  return getOrCreatePresenceId(
+    'aion2boss_presence_session_id',
+    'presence',
+    readSessionStorage,
+    writeSessionStorage
+  )
 }
 
 export function getPresenceBrowserId() {
-  const storageKey = 'aion2boss_presence_browser_id'
-
-  try {
-    const existing = window.localStorage.getItem(storageKey)
-    if (existing) return existing
-
-    const nextId = window.crypto?.randomUUID
-      ? window.crypto.randomUUID()
-      : `presence-browser-${Date.now()}-${Math.random().toString(16).slice(2)}`
-
-    window.localStorage.setItem(storageKey, nextId)
-    return nextId
-  } catch {
-    return window.crypto?.randomUUID
-      ? window.crypto.randomUUID()
-      : `presence-browser-${Date.now()}-${Math.random().toString(16).slice(2)}`
-  }
+  return getOrCreatePresenceId(
+    'aion2boss_presence_browser_id',
+    'presence-browser',
+    readLocalStorage,
+    writeLocalStorage
+  )
 }
 
 function isLegacyPresenceEntry(value) {
@@ -319,6 +314,27 @@ export function normalizeChaseTeams(value) {
       .map((team) => Number(team))
       .filter((team) => CHASE_TEAM_SET.has(team))
   )].sort((a, b) => a - b)
+}
+
+export function filterBossesByRace(bosses, raceFilter) {
+  if (raceFilter === '모두') return bosses
+  return bosses.filter((boss) => (boss.race || '마족') === raceFilter)
+}
+
+export function filterBossesByParty(bosses, chaseModeEnabled, partyFilter) {
+  if (!chaseModeEnabled || !partyFilter) return bosses
+  return bosses.filter((boss) => {
+    const chaseTeams = normalizeChaseTeams(boss.chaseTeams)
+    return !chaseTeams.length || chaseTeams.includes(partyFilter)
+  })
+}
+
+export function getCopyEligibleBosses(bosses, now, windowMs) {
+  return bosses.filter((boss) => {
+    if (boss.alertEnabled === false) return false
+    const spawn = getSpawnInfo(boss, now)
+    return Number.isFinite(spawn.time) && spawn.time - now <= windowMs
+  })
 }
 
 export function normalizeChaseColumnWidth(value) {

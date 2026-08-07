@@ -11,6 +11,7 @@ import {
   normalizeChaseColumnWidth,
   normalizeParticipantNickname
 } from './appCore'
+import { readCookie, readLocalStorage, removeLocalStorage, writeCookie, writeLocalStorage } from './storage'
 
 const TTS_STORAGE_KEY = 'aion2boss_tts_enabled'
 const TTS_NOTICE_DISMISS_KEY = 'aion2boss_tts_notice_dismissed'
@@ -24,12 +25,6 @@ const COLUMN_WIDTH_COOKIE_KEY = 'aion2boss_column_widths'
 const COLUMN_ORDER_COOKIE_KEY = 'aion2boss_column_order'
 const RACE_FILTER_COOKIE_KEY = 'aion2boss_race_filter'
 
-function readCookie(name) {
-  const key = `${name}=`
-  const found = document.cookie.split(';').map((part) => part.trim()).find((part) => part.startsWith(key))
-  return found ? decodeURIComponent(found.slice(key.length)) : ''
-}
-
 function normalizeOverlayScaleValue(value) {
   if (value == null || value === '') return 1
   const nextValue = Number(value)
@@ -38,40 +33,24 @@ function normalizeOverlayScaleValue(value) {
 }
 
 export function loadParticipantNickname() {
-  try {
-    return normalizeParticipantNickname(window.localStorage.getItem(PARTICIPANT_NICKNAME_STORAGE_KEY) || '')
-  } catch {
-    return ''
-  }
+  return normalizeParticipantNickname(readLocalStorage(PARTICIPANT_NICKNAME_STORAGE_KEY))
 }
 
 export function saveParticipantNickname(nickname) {
-  try {
-    window.localStorage.setItem(PARTICIPANT_NICKNAME_STORAGE_KEY, normalizeParticipantNickname(nickname))
-  } catch {
-    // Ignore storage sync failures and keep nickname in memory.
-  }
+  writeLocalStorage(PARTICIPANT_NICKNAME_STORAGE_KEY, normalizeParticipantNickname(nickname))
 }
 
 export function loadOverlayScale() {
-  try {
-    return normalizeOverlayScaleValue(window.localStorage.getItem(OVERLAY_SCALE_STORAGE_KEY))
-  } catch {
-    return 1
-  }
+  return normalizeOverlayScaleValue(readLocalStorage(OVERLAY_SCALE_STORAGE_KEY))
 }
 
 export function saveOverlayScale(scale) {
-  try {
-    window.localStorage.setItem(OVERLAY_SCALE_STORAGE_KEY, String(normalizeOverlayScaleValue(scale)))
-  } catch {
-    // Ignore local storage failures and keep overlay scale in memory.
-  }
+  writeLocalStorage(OVERLAY_SCALE_STORAGE_KEY, normalizeOverlayScaleValue(scale))
 }
 
 export function loadRecentRoomEntry() {
   try {
-    const raw = window.localStorage.getItem(RECENT_ROOM_STORAGE_KEY)
+    const raw = readLocalStorage(RECENT_ROOM_STORAGE_KEY)
     if (!raw) {
       return {
         room: '',
@@ -104,30 +83,22 @@ export function saveRecentRoomEntry(entry) {
     }
 
     if (!normalized.room) {
-      window.localStorage.removeItem(RECENT_ROOM_STORAGE_KEY)
+      removeLocalStorage(RECENT_ROOM_STORAGE_KEY)
       return
     }
 
-    window.localStorage.setItem(RECENT_ROOM_STORAGE_KEY, JSON.stringify(normalized))
+    writeLocalStorage(RECENT_ROOM_STORAGE_KEY, JSON.stringify(normalized))
   } catch {
     // Ignore local storage failures and keep room info in memory.
   }
 }
 
 export function loadTtsNoticeDismissed() {
-  try {
-    return window.localStorage.getItem(TTS_NOTICE_DISMISS_KEY) === 'true'
-  } catch {
-    return false
-  }
+  return readLocalStorage(TTS_NOTICE_DISMISS_KEY) === 'true'
 }
 
 export function saveTtsNoticeDismissed(dismissed) {
-  try {
-    window.localStorage.setItem(TTS_NOTICE_DISMISS_KEY, dismissed ? 'true' : 'false')
-  } catch {
-    // Ignore local storage failures and keep state in memory.
-  }
+  writeLocalStorage(TTS_NOTICE_DISMISS_KEY, dismissed ? 'true' : 'false')
 }
 
 export function loadColumnPrefsFromCookie() {
@@ -150,8 +121,7 @@ export function loadColumnPrefsFromCookie() {
 }
 
 export function saveColumnPrefsToCookie(prefs) {
-  const expires = 60 * 60 * 24 * 365
-  document.cookie = `${COLUMN_PREF_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(prefs))}; path=/; max-age=${expires}; SameSite=Lax`
+  writeCookie(COLUMN_PREF_COOKIE_KEY, JSON.stringify(prefs))
 }
 
 export function loadColumnWidthsFromCookie() {
@@ -176,8 +146,7 @@ export function loadColumnWidthsFromCookie() {
 }
 
 export function saveColumnWidthsToCookie(widths) {
-  const expires = 60 * 60 * 24 * 365
-  document.cookie = `${COLUMN_WIDTH_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(widths))}; path=/; max-age=${expires}; SameSite=Lax`
+  writeCookie(COLUMN_WIDTH_COOKIE_KEY, JSON.stringify(widths))
 }
 
 export function hasColumnWidthCookie() {
@@ -199,8 +168,7 @@ export function loadColumnOrderFromCookie() {
 }
 
 export function saveColumnOrderToCookie(order) {
-  const expires = 60 * 60 * 24 * 365
-  document.cookie = `${COLUMN_ORDER_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(order))}; path=/; max-age=${expires}; SameSite=Lax`
+  writeCookie(COLUMN_ORDER_COOKIE_KEY, JSON.stringify(order))
 }
 
 export function loadRaceFilterFromCookie() {
@@ -212,20 +180,18 @@ export function loadRaceFilterFromCookie() {
 }
 
 export function saveRaceFilterToCookie(filterValue) {
-  const expires = 60 * 60 * 24 * 365
-  document.cookie = `${RACE_FILTER_COOKIE_KEY}=${encodeURIComponent(filterValue)}; path=/; max-age=${expires}; SameSite=Lax`
+  writeCookie(RACE_FILTER_COOKIE_KEY, filterValue)
 }
 
 export function loadTtsEnabledFromCookie() {
   const raw = readCookie(TTS_STORAGE_KEY)
   if (raw === 'true') return true
   if (raw === 'false') return false
-  return window.localStorage.getItem(TTS_STORAGE_KEY) === 'true'
+  return readLocalStorage(TTS_STORAGE_KEY) === 'true'
 }
 
 export function saveTtsEnabledToCookie(enabled) {
-  const expires = 60 * 60 * 24 * 365
-  document.cookie = `${TTS_STORAGE_KEY}=${encodeURIComponent(enabled ? 'true' : 'false')}; path=/; max-age=${expires}; SameSite=Lax`
+  writeCookie(TTS_STORAGE_KEY, enabled ? 'true' : 'false')
 }
 
 export function loadAlertPrefsFromCookie() {
@@ -248,8 +214,7 @@ export function loadAlertPrefsFromCookie() {
 }
 
 export function saveAlertPrefsToCookie(prefs) {
-  const expires = 60 * 60 * 24 * 365
-  document.cookie = `${ALERT_PREF_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(prefs))}; path=/; max-age=${expires}; SameSite=Lax`
+  writeCookie(ALERT_PREF_COOKIE_KEY, JSON.stringify(prefs))
 }
 
 export function getSharedMemoSizeBounds() {
@@ -294,9 +259,8 @@ export function loadSharedMemoSizeFromCookie() {
 }
 
 export function saveSharedMemoSizeToCookie(size) {
-  const expires = 60 * 60 * 24 * 365
   const normalized = normalizeSharedMemoSize(size)
-  document.cookie = `${SHARED_MEMO_SIZE_COOKIE_KEY}=${encodeURIComponent(JSON.stringify(normalized))}; path=/; max-age=${expires}; SameSite=Lax`
+  writeCookie(SHARED_MEMO_SIZE_COOKIE_KEY, JSON.stringify(normalized))
 }
 
 export function getSharedMemoResizeCursor(direction) {

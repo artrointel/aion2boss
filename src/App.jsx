@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import RacingGamePage from './RacingGamePage'
+import { lazy, memo, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import {
   ALERT_ARM_THRESHOLD_MS,
   ALERT_MARKS,
@@ -16,8 +15,6 @@ import {
   EMPTY_CHASE_TEAM_DIALOG,
   EMPTY_PARTICIPANT_LIST_DIALOG,
   EMPTY_ROOM_SETTINGS_DIALOG,
-  MINI_GAME_ITEMS,
-  MINI_GAME_TARGET_EXTERNAL,
   MINI_GAME_TARGET_INTERNAL,
   PARTICIPANT_NICKNAME_MAX_LENGTH,
   ROOM_CREATION_DISABLED_MESSAGE,
@@ -33,12 +30,14 @@ import {
   describeChaseTeams,
   diffToClock,
   emptyForm,
+  filterBossesByParty,
+  filterBossesByRace,
   formatChaseTeams,
   formatDateTime,
   getBossList,
   getChaseRowBackground,
   getChaseTeamEmoji,
-  getParticipantDisplayName,
+  getCopyEligibleBosses,
   getPointerClientX,
   getPresenceBrowserId,
   getPresenceSessionId,
@@ -105,8 +104,19 @@ import {
 } from './data/roomRepository'
 import OverlayWindow from './desktop/OverlayWindow'
 import { useTheme } from './theme/theme'
+import { MiniGameDialog, ParticipantListDialog, TtsNoticeDialog } from './components/AppDialogs'
 
 const WEB_APP_URL = 'https://artrointel.github.io/aion2boss/'
+const MAP_IMAGE_SRC = `${import.meta.env.BASE_URL}aion2boss.png`
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, idx) => idx + 1)
+let racingGamePagePromise
+
+function loadRacingGamePage() {
+  racingGamePagePromise ||= import('./RacingGamePage')
+  return racingGamePagePromise
+}
+
+const RacingGamePage = memo(lazy(loadRacingGamePage))
 
 export default function App() {
   const { theme, toggleTheme } = useTheme()
@@ -122,7 +132,6 @@ export default function App() {
   const [showRoomPassword, setShowRoomPassword] = useState(false)
   const [loginPending, setLoginPending] = useState(false)
   const [myNickname, setMyNickname] = useState(() => loadParticipantNickname())
-  const [participantCount, setParticipantCount] = useState(0)
   const [participantEntries, setParticipantEntries] = useState([])
   const [roomId, setRoomId] = useState('')
   const [role, setRole] = useState(() => initialRecentRoomEntryRef.current.role)
@@ -332,7 +341,7 @@ export default function App() {
 
     desktopApi.setAlwaysOnTop(true).catch(() => {})
 
-    desktopApi.setOpacity(desktopOpacity)
+    desktopApi.setOpacity(0.94)
       .then((value) => {
         if (!disposed) setDesktopOpacity(Number(value) || 0.94)
       })
@@ -341,7 +350,7 @@ export default function App() {
     return () => {
       disposed = true
     }
-  }, [desktopApi, desktopOpacity, overlayMode])
+  }, [desktopApi, overlayMode])
 
   useLayoutEffect(() => {
     if (!overlayMode || !desktopApi?.setWindowSize) return undefined
@@ -374,7 +383,7 @@ export default function App() {
       observer.disconnect()
       window.removeEventListener('resize', syncWindowSize)
     }
-  }, [desktopApi, overlayMode, roomId, roomDataLoaded, desktopOpacity, desktopScale, loginPending, showRoomPassword, roomPasswordInput, roomInput])
+  }, [desktopApi, desktopScale, overlayMode])
 
   useEffect(() => {
     return () => {
@@ -437,10 +446,11 @@ export default function App() {
   }, [])
 
   useEffect(() => {
+    if (!roomId) return undefined
     const timer = window.setInterval(() => setNow(getServerNow()), 1000)
     setNow(getServerNow())
     return () => window.clearInterval(timer)
-  }, [getServerNow])
+  }, [getServerNow, roomId])
 
   useEffect(() => {
     if (!roomId) return undefined
@@ -494,7 +504,6 @@ export default function App() {
 
   useEffect(() => {
     if (!roomId) {
-      setParticipantCount(0)
       setParticipantEntries([])
       return undefined
     }
@@ -503,12 +512,10 @@ export default function App() {
       const entries = buildParticipantEntriesFromPresence(value)
 
       setParticipantEntries(entries)
-      setParticipantCount(entries.length)
     })
 
     return () => {
       unsubscribe()
-      setParticipantCount(0)
       setParticipantEntries([])
     }
   }, [roomId])
@@ -560,14 +567,12 @@ export default function App() {
   }, [myNickname, role, roomId])
 
   const bossList = useMemo(() => getBossList(bosses, now), [bosses, now])
+  const participantCount = participantEntries.length
   const enabledBossList = useMemo(() => {
     return bossList.filter((boss) => boss.alertEnabled !== false)
   }, [bossList])
   const filteredBossList = useMemo(() => {
-    if (raceFilter === '모두') {
-      return enabledBossList
-    }
-    return enabledBossList.filter((boss) => (boss.race || '마족') === raceFilter)
+    return filterBossesByRace(enabledBossList, raceFilter)
   }, [enabledBossList, raceFilter])
   const overlayBossList = useMemo(() => {
     return enabledBossList.map((boss) => ({
@@ -576,20 +581,10 @@ export default function App() {
     }))
   }, [enabledBossList])
   const overlayFilteredBossList = useMemo(() => {
-    if (overlayRaceFilter === '모두') {
-      return overlayBossList
-    }
-    return overlayBossList.filter((boss) => (boss.race || '마족') === overlayRaceFilter)
+    return filterBossesByRace(overlayBossList, overlayRaceFilter)
   }, [overlayBossList, overlayRaceFilter])
   const overlayVisibleBossList = useMemo(() => {
-    if (!chaseModeEnabled || !overlayPartyFilter) {
-      return overlayFilteredBossList
-    }
-
-    return overlayFilteredBossList.filter((boss) => {
-      const chaseTeams = normalizeChaseTeams(boss.chaseTeams)
-      return !chaseTeams.length || chaseTeams.includes(overlayPartyFilter)
-    })
+    return filterBossesByParty(overlayFilteredBossList, chaseModeEnabled, overlayPartyFilter)
   }, [chaseModeEnabled, overlayFilteredBossList, overlayPartyFilter])
   const orderedBosses = useMemo(() => {
     return Object.entries(bosses)
@@ -603,40 +598,19 @@ export default function App() {
       }))
   }, [bosses])
   const overlayFilteredOrderedBosses = useMemo(() => {
-    if (overlayRaceFilter === '모두') {
-      return orderedBosses
-    }
-    return orderedBosses.filter((boss) => (boss.race || '마족') === overlayRaceFilter)
+    return filterBossesByRace(orderedBosses, overlayRaceFilter)
   }, [orderedBosses, overlayRaceFilter])
   const overlayVisibleOrderedBosses = useMemo(() => {
-    if (!chaseModeEnabled || !overlayPartyFilter) {
-      return overlayFilteredOrderedBosses
-    }
-
-    return overlayFilteredOrderedBosses.filter((boss) => {
-      const chaseTeams = normalizeChaseTeams(boss.chaseTeams)
-      return !chaseTeams.length || chaseTeams.includes(overlayPartyFilter)
-    })
+    return filterBossesByParty(overlayFilteredOrderedBosses, chaseModeEnabled, overlayPartyFilter)
   }, [chaseModeEnabled, overlayFilteredOrderedBosses, overlayPartyFilter])
   const filteredOrderedBosses = useMemo(() => {
-    if (raceFilter === '모두') {
-      return orderedBosses
-    }
-    return orderedBosses.filter((boss) => (boss.race || '마족') === raceFilter)
+    return filterBossesByRace(orderedBosses, raceFilter)
   }, [orderedBosses, raceFilter])
   const copyEligibleFilteredOrderedBosses = useMemo(() => {
-    return filteredOrderedBosses.filter((boss) => {
-      if (boss.alertEnabled === false) return false
-      const spawn = getSpawnInfo(boss, now)
-      return Number.isFinite(spawn.time) && spawn.time - now <= COPY_ORDER_WINDOW_MS
-    })
+    return getCopyEligibleBosses(filteredOrderedBosses, now, COPY_ORDER_WINDOW_MS)
   }, [filteredOrderedBosses, now])
   const overlayCopyEligibleFilteredOrderedBosses = useMemo(() => {
-    return overlayVisibleOrderedBosses.filter((boss) => {
-      if (boss.alertEnabled === false) return false
-      const spawn = getSpawnInfo(boss, now)
-      return Number.isFinite(spawn.time) && spawn.time - now <= COPY_ORDER_WINDOW_MS
-    })
+    return getCopyEligibleBosses(overlayVisibleOrderedBosses, now, COPY_ORDER_WINDOW_MS)
   }, [overlayVisibleOrderedBosses, now])
   const activeFilteredOrderedBossCopyText = useMemo(() => {
     return buildChaseCopyText(copyEligibleFilteredOrderedBosses, (boss) => String(boss.name || '').trim())
@@ -717,7 +691,6 @@ export default function App() {
       .filter((boss) => isSyncNeeded(boss, now))
       .map((boss) => ({ name: boss.name, color: boss.color || '#ffadad' }))
   }, [orderedBosses, now])
-  const mapImageSrc = `${import.meta.env.BASE_URL}aion2boss.png`
   const shouldShowColumn = useCallback((key) => {
     if (key === 'chase') return chaseModeEnabled
     if (showManagePanel) return true
@@ -1281,22 +1254,6 @@ export default function App() {
 
         await repoUpdateRoomSettings(room, newRoomSettings)
 
-        if (false) {
-          let copied = false
-          try {
-            await navigator.clipboard.writeText(passwordToSave)
-            copied = true
-          } catch {
-            copied = false
-          }
-
-          window.alert(
-            copied
-              ? `새 방 비밀번호가 생성되었습니다.\n${passwordToSave}\n클립보드에 복사해두었습니다.`
-              : `새 방 비밀번호가 생성되었습니다.\n${passwordToSave}`
-          )
-        }
-
         saveRecentRoomEntry({ room, password: inputPassword, role })
         enterRoom(room)
         return
@@ -1549,28 +1506,29 @@ export default function App() {
     saveRoomSettings()
   }, [saveRoomSettings])
 
-  const openMiniGameDialog = () => {
+  const openMiniGameDialog = useCallback(() => {
+    loadRacingGamePage()
     setMiniGameDialogOpen(true)
-  }
+  }, [])
 
-  const closeMiniGameDialog = () => {
+  const closeMiniGameDialog = useCallback(() => {
     setMiniGameDialogOpen(false)
-  }
+  }, [])
 
-  const openRacingView = () => {
+  const openRacingView = useCallback(() => {
     setMiniGameDialogOpen(false)
     setShowForm(false)
     setTimeDialog({ open: false, key: '', name: '', h: 0, m: 0, s: 0 })
     setSyncNoticeDialog({ open: false, bosses: [] })
     setActiveView(VIEW_RACING)
-  }
+  }, [])
 
-  const openBossView = () => {
+  const openBossView = useCallback(() => {
     setMiniGameDialogOpen(false)
     setActiveView(VIEW_BOSS)
-  }
+  }, [])
 
-  const handleMiniGameSelect = (miniGame) => {
+  const handleMiniGameSelect = useCallback((miniGame) => {
     if (!miniGame) return
 
     if (miniGame.target === MINI_GAME_TARGET_INTERNAL) {
@@ -1599,7 +1557,7 @@ export default function App() {
       newWindow.close()
       window.alert('새 탭을 열지 못했습니다. 브라우저 팝업 차단 설정을 확인해주세요.')
     }
-  }
+  }, [closeMiniGameDialog, openBossView, openRacingView])
 
   const openRemainingDialog = (boss) => {
     if (role !== 'admin') return
@@ -1816,9 +1774,9 @@ export default function App() {
     }
   }
 
-  const closeTtsNoticeDialog = () => {
+  const closeTtsNoticeDialog = useCallback(() => {
     setTtsNoticeDialogOpen(false)
-  }
+  }, [])
 
   const handleAdjacentThresholdInputChange = (event) => {
     const raw = event.target.value
@@ -2490,46 +2448,8 @@ export default function App() {
                   onWheel={handleMapWheel}
                   onMouseDown={handleMapMouseDown}
                 >
-                  <img ref={mapImgRef} src={mapImageSrc} alt='보스 지도' draggable='false' onLoad={handleMapImageLoad} />
+                  <img ref={mapImgRef} src={MAP_IMAGE_SRC} alt='보스 지도' draggable='false' onLoad={handleMapImageLoad} />
                 </div>
-              ) : null}
-              {false ? (
-                <section className='shared-memo-card'>
-                  <div className='shared-memo-head'>
-                    <strong>공유 메모</strong>
-                    <span className={`shared-memo-status ${sharedMemoSaveStatus}`}>
-                      {sharedMemoSaveStatus === 'saving' ? '자동 저장중..' : '자동 저장됨'}
-                    </span>
-                  </div>
-                  <div className='shared-memo-toolbar'>
-                    {SHARED_MEMO_TOOLS.map((tool) => (
-                      <button
-                        key={tool.command}
-                        type='button'
-                        className='shared-memo-tool'
-                        title={tool.title}
-                        onMouseDown={(e) => {
-                          e.preventDefault()
-                          runSharedMemoCommand(tool.command)
-                        }}
-                      >
-                        {tool.label}
-                      </button>
-                    ))}
-                  </div>
-                  <div
-                    ref={sharedMemoEditorRef}
-                    className='shared-memo-editor'
-                    contentEditable
-                    suppressContentEditableWarning
-                    data-placeholder='함께 확인할 메모를 적어주세요. (최대 3000자)'
-                    role='textbox'
-                    aria-label='공유 메모 편집기'
-                    aria-multiline='true'
-                    onInput={handleSharedMemoInput}
-                    onBlur={flushSharedMemoSave}
-                  />
-                </section>
               ) : null}
             </div>
           </section>
@@ -2914,64 +2834,19 @@ export default function App() {
               ) : null}
             </>
           ) : (
-            <RacingGamePage />
+            <Suspense fallback={null}>
+              <RacingGamePage />
+            </Suspense>
           )}
         </main>
       )}
-      {miniGameDialogOpen ? (
-        <div className='dialog-backdrop' onClick={closeMiniGameDialog}>
-          <div className='dialog minigame-dialog' onClick={(e) => e.stopPropagation()}>
-            <h4>미니게임 선택</h4>
-            <p>원하는 미니게임을 선택하세요. 외부 미니게임은 새 탭에서 열립니다.</p>
-            <div className='minigame-list'>
-              {MINI_GAME_ITEMS.map((miniGame) => (
-                <button
-                  key={miniGame.id}
-                  type='button'
-                  className='minigame-item'
-                  onClick={() => handleMiniGameSelect(miniGame)}
-                >
-                  <span className='minigame-item-head'>
-                    <strong className='minigame-item-title'>{miniGame.label}</strong>
-                    <span className={`minigame-item-badge ${miniGame.target}`}>
-                      {miniGame.target === MINI_GAME_TARGET_EXTERNAL ? '새 탭' : '현재 탭'}
-                    </span>
-                  </span>
-                  <span className='minigame-item-desc'>{miniGame.description}</span>
-                </button>
-              ))}
-            </div>
-            <div className='dialog-actions'>
-              <button className='btn ghost' onClick={closeMiniGameDialog}>닫기</button>
-            </div>
-          </div>
-        </div>
-      ) : null}
-      {participantListDialog.open ? (
-        <div className='dialog-backdrop' onClick={closeParticipantListDialog}>
-          <div className='dialog participant-list-dialog' onClick={(e) => e.stopPropagation()}>
-            <h4>입장한 사람 목록</h4>
-            <p>현재 방에 접속 중인 사람들의 별명입니다.</p>
-            {participantEntries.length ? (
-              <div className='participant-list'>
-                {participantEntries.map((participant) => (
-                  <div key={participant.id} className='participant-list-item'>
-                    <span className='participant-list-name'>{getParticipantDisplayName(participant)}</span>
-                    {participant.id === presenceBrowserIdRef.current ? (
-                      <span className='participant-list-badge'>나</span>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p>현재 입장한 사람이 없습니다.</p>
-            )}
-            <div className='dialog-actions'>
-              <button className='btn primary' onClick={closeParticipantListDialog}>닫기</button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <MiniGameDialog open={miniGameDialogOpen} onClose={closeMiniGameDialog} onSelect={handleMiniGameSelect} />
+      <ParticipantListDialog
+        entries={participantEntries}
+        myBrowserId={presenceBrowserIdRef.current}
+        open={participantListDialog.open}
+        onClose={closeParticipantListDialog}
+      />
       {activeView === VIEW_BOSS && timeDialog.open ? (
         <div className='dialog-backdrop' onClick={closeRemainingDialog}>
           <div className='dialog' onClick={(e) => e.stopPropagation()}>
@@ -3048,21 +2923,12 @@ export default function App() {
           </div>
         </div>
       ) : null}
-      {activeView === VIEW_BOSS && ttsNoticeDialogOpen ? (
-        <div className='dialog-backdrop' onClick={closeTtsNoticeDialog}>
-          <div className='dialog tts-notice-dialog' onClick={(e) => e.stopPropagation()}>
-            <h4>음성 알림 안내</h4>
-            <p>PC에서는 브라우저 특성상 음성이 간헐적으로 나오지 않을 수 있습니다. 모바일에서 접속을 추천드려요.</p>
-            <label className='dialog-check'>
-              <input type='checkbox' checked={ttsNoticeDontShow} onChange={(e) => setTtsNoticeDontShow(e.target.checked)} />
-              다시 알리지 않음
-            </label>
-            <div className='dialog-actions'>
-              <button className='btn primary' onClick={closeTtsNoticeDialog}>확인</button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <TtsNoticeDialog
+        dontShowAgain={ttsNoticeDontShow}
+        open={activeView === VIEW_BOSS && ttsNoticeDialogOpen}
+        onChangeDontShowAgain={setTtsNoticeDontShow}
+        onClose={closeTtsNoticeDialog}
+      />
       {role === 'admin' && roomSettingsDialog.open ? (
         <div className='dialog-backdrop' onClick={closeRoomSettingsDialog}>
           <div className='dialog room-settings-dialog' onClick={(e) => e.stopPropagation()}>
@@ -3176,7 +3042,7 @@ export default function App() {
                 <span>젠 주기</span>
                 <select className='input-text' value={form.interval} onChange={(e) => setForm((p) => ({ ...p, interval: e.target.value }))}>
                   <option value=''>젠 주기</option>
-                  {Array.from({ length: 24 }, (_, idx) => idx + 1).map((n) => (
+                  {HOUR_OPTIONS.map((n) => (
                     <option key={n} value={n}>{n}시간</option>
                   ))}
                 </select>

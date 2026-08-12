@@ -184,6 +184,7 @@ export default function App() {
   const [roomDataLoaded, setRoomDataLoaded] = useState(false)
   const [adjacentBossThresholdSec, setAdjacentBossThresholdSec] = useState(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC)
   const [adjacentBossThresholdInput, setAdjacentBossThresholdInput] = useState(String(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC))
+  const [autoSortEnabled, setAutoSortEnabled] = useState(false)
   const [fieldBossServerId, setFieldBossServerId] = useState(DEFAULT_FIELD_BOSS_SERVER_ID)
   const [, setFieldBossCache] = useState(null)
   const [timeDialog, setTimeDialog] = useState({
@@ -493,6 +494,7 @@ export default function App() {
       const sharedMemoUpdated = hadSharedMemoLoaded && nextSharedMemoUpdatedAt !== prevSharedMemoUpdatedAt
       setAdjacentBossThresholdSec(sec)
       setAdjacentBossThresholdInput(String(sec))
+      setAutoSortEnabled(settings.autoSortEnabled === true)
       setFieldBossServerId(nextFieldBossServerId)
       setChaseModeEnabled(settings.chaseModeEnabled === true)
       sharedMemoUpdatedAtRef.current = nextSharedMemoUpdatedAt
@@ -1057,6 +1059,40 @@ export default function App() {
   const updateRoomSettings = useCallback((payload) => {
     return repoUpdateRoomSettings(roomId, payload)
   }, [roomId])
+
+  const persistAutoSortOrder = useCallback(async (bossSnapshot, nowTs) => {
+    if (!roomId || role !== 'admin') return
+
+    const sorted = Object.entries(bossSnapshot || {}).sort((a, b) => {
+      const aBoss = a[1]
+      const bBoss = b[1]
+      const aTime = aBoss?.alertEnabled !== false
+        ? (getSpawnInfo(aBoss, nowTs).time ?? Number.MAX_SAFE_INTEGER)
+        : Number.MAX_SAFE_INTEGER
+      const bTime = bBoss?.alertEnabled !== false
+        ? (getSpawnInfo(bBoss, nowTs).time ?? Number.MAX_SAFE_INTEGER)
+        : Number.MAX_SAFE_INTEGER
+      return aTime - bTime || (Number(aBoss?.order) || 0) - (Number(bBoss?.order) || 0)
+    })
+
+    const updates = {}
+    sorted.forEach(([key, boss], index) => {
+      if (Number(boss?.order) !== index) {
+        updates[`${roomId}/bosses/${key}/order`] = index
+      }
+    })
+
+    if (Object.keys(updates).length) {
+      await saveOrder(updates)
+    }
+  }, [role, roomId, saveOrder])
+
+  useEffect(() => {
+    if (!autoSortEnabled || role !== 'admin' || !roomId) return
+    persistAutoSortOrder(bosses, now).catch((error) => {
+      console.warn('Failed to persist automatic boss order.', error)
+    })
+  }, [autoSortEnabled, bosses, now, persistAutoSortOrder, role, roomId])
 
   const syncFieldBossCacheToRoom = useCallback(async (serverIdOverride = null) => {
     if (!roomId || role !== 'admin') return
@@ -1998,20 +2034,12 @@ export default function App() {
   }
 
   const handleSort = async () => {
-    const nowTs = getServerNow()
-    const sorted = Object.entries(bosses).sort((a, b) => {
-      const aEnabled = a[1]?.alertEnabled !== false
-      const bEnabled = b[1]?.alertEnabled !== false
-      const aTime = aEnabled ? (getSpawnInfo(a[1], nowTs).time ?? Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER
-      const bTime = bEnabled ? (getSpawnInfo(b[1], nowTs).time ?? Number.MAX_SAFE_INTEGER) : Number.MAX_SAFE_INTEGER
-      return aTime - bTime
-    })
-
-    const updates = {}
-    sorted.forEach(([key], idx) => {
-      updates[`${roomId}/bosses/${key}/order`] = idx
-    })
-    await saveOrder(updates)
+    if (role !== 'admin' || !roomId) return
+    const nextEnabled = !autoSortEnabled
+    await updateRoomSettings({ autoSortEnabled: nextEnabled })
+    if (nextEnabled) {
+      await persistAutoSortOrder(bosses, getServerNow())
+    }
   }
 
   const handleUndo = async () => {
@@ -2948,7 +2976,14 @@ export default function App() {
 
               {role === 'admin' ? (
                 <section className='card controls'>
-                  <button className='btn' onClick={handleSort}>다음 젠 시간순 정렬</button>
+                  <button
+                    className={`btn sort-toggle-btn ${autoSortEnabled ? 'active' : ''}`}
+                    onClick={handleSort}
+                    aria-pressed={autoSortEnabled}
+                    title={autoSortEnabled ? '자동 정렬 켜짐' : '자동 정렬 꺼짐'}
+                  >
+                    다음 젠 시간순 정렬
+                  </button>
                   <button className='btn' disabled={!undoStack.length} onClick={handleUndo}>실행 취소</button>
                   <button className='btn' disabled={!redoStack.length} onClick={handleRedo}>다시 실행</button>
                   <span className='creator-credit'>제작자: [브리] 뿌띠</span>

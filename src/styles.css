@@ -1132,6 +1132,12 @@ tr.row-timer-disabled td.alert-cell {
   box-shadow: 0 0 0 1px rgba(255, 215, 99, 0.16);
 }
 
+.auto-sync-check {
+  color: #54e39a;
+  font-weight: 800;
+  text-shadow: 0 0 8px rgba(84, 227, 154, 0.32);
+}
+
 .map-icon-btn {
   margin-left: 8px;
   min-width: 36px;
@@ -1148,6 +1154,16 @@ tr.row-timer-disabled td.alert-cell {
   font-weight: 400;
   color: #d7e9ff;
   letter-spacing: 0.01em;
+}
+
+.next-time-text.auto-synced {
+  color: #54e39a;
+  font-weight: 700;
+  text-shadow: 0 0 12px rgba(84, 227, 154, 0.35);
+}
+
+.server-select {
+  min-width: 220px;
 }
 
 .chase-cell {

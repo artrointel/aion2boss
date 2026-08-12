@@ -105,6 +105,17 @@ import {
 import OverlayWindow from './desktop/OverlayWindow'
 import { useTheme } from './theme/theme'
 import { MiniGameDialog, ParticipantListDialog, TtsNoticeDialog } from './components/AppDialogs'
+import {
+  DEFAULT_FIELD_BOSS_SERVER_ID,
+  FIELD_BOSS_CACHE_SYNC_INTERVAL_MS,
+  FIELD_BOSS_OPTIONS,
+  FIELD_BOSS_REGIONS,
+  FIELD_BOSS_SERVERS,
+  fetchFieldBossPublicCache,
+  findFieldBossOption,
+  findFieldBossTarget,
+  normalizeFieldBossServerId
+} from './core/fieldBossCatalog'
 
 const WEB_APP_URL = 'https://artrointel.github.io/aion2boss/'
 const MAP_IMAGE_SRC = `${import.meta.env.BASE_URL}aion2boss.png`
@@ -173,6 +184,8 @@ export default function App() {
   const [roomDataLoaded, setRoomDataLoaded] = useState(false)
   const [adjacentBossThresholdSec, setAdjacentBossThresholdSec] = useState(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC)
   const [adjacentBossThresholdInput, setAdjacentBossThresholdInput] = useState(String(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC))
+  const [fieldBossServerId, setFieldBossServerId] = useState(DEFAULT_FIELD_BOSS_SERVER_ID)
+  const [, setFieldBossCache] = useState(null)
   const [timeDialog, setTimeDialog] = useState({
     open: false,
     key: '',
@@ -469,6 +482,7 @@ export default function App() {
     const unsubscribe = subscribeRoomSettings(roomId, (value) => {
       const settings = value || {}
       const sec = normalizeAdjacentBossThresholdSec(settings.adjacentBossThresholdSec)
+      const nextFieldBossServerId = normalizeFieldBossServerId(settings.fieldBossServerId)
       const nextSharedMemoHtml = sanitizeSharedMemoHtml(settings.sharedMemoHtml || '')
       const nextSharedMemoUpdatedAt = Number(settings.sharedMemoUpdatedAt) || 0
       const hadSharedMemoLoaded = sharedMemoLoadedRef.current
@@ -479,6 +493,7 @@ export default function App() {
       const sharedMemoUpdated = hadSharedMemoLoaded && nextSharedMemoUpdatedAt !== prevSharedMemoUpdatedAt
       setAdjacentBossThresholdSec(sec)
       setAdjacentBossThresholdInput(String(sec))
+      setFieldBossServerId(nextFieldBossServerId)
       setChaseModeEnabled(settings.chaseModeEnabled === true)
       sharedMemoUpdatedAtRef.current = nextSharedMemoUpdatedAt
       if (!sharedMemoDirtyRef.current || matchesPendingSharedMemo) {
@@ -612,6 +627,12 @@ export default function App() {
   const overlayCopyEligibleFilteredOrderedBosses = useMemo(() => {
     return getCopyEligibleBosses(overlayVisibleOrderedBosses, now, COPY_ORDER_WINDOW_MS)
   }, [overlayVisibleOrderedBosses, now])
+  const formFieldBossOptions = useMemo(() => {
+    const regionIndex = Math.trunc(Number(form.regionIndex))
+    return Number.isInteger(regionIndex) && regionIndex >= 0
+      ? FIELD_BOSS_OPTIONS.filter((option) => option.regionIndex === regionIndex)
+      : FIELD_BOSS_OPTIONS
+  }, [form.regionIndex])
   const activeFilteredOrderedBossCopyText = useMemo(() => {
     return buildChaseCopyText(copyEligibleFilteredOrderedBosses, (boss) => String(boss.name || '').trim())
   }, [copyEligibleFilteredOrderedBosses])
@@ -1037,6 +1058,37 @@ export default function App() {
     return repoUpdateRoomSettings(roomId, payload)
   }, [roomId])
 
+  const syncFieldBossCacheToRoom = useCallback(async (serverIdOverride = null) => {
+    if (!roomId || role !== 'admin') return
+
+    const cache = await fetchFieldBossPublicCache()
+    setFieldBossCache(cache)
+    const activeServerId = normalizeFieldBossServerId(serverIdOverride ?? fieldBossServerId)
+
+    const updates = {}
+    Object.entries(bosses || {}).forEach(([key, boss]) => {
+      if (boss?.manualSpawnOverride === true) return
+
+      const regionIndex = Math.trunc(Number(boss?.regionIndex))
+      const bossCode = Math.trunc(Number(boss?.bossCode))
+      if (!Number.isInteger(regionIndex) || !Number.isInteger(bossCode)) return
+      if (!findFieldBossOption(regionIndex, bossCode)) return
+
+      const targetAt = findFieldBossTarget(cache, activeServerId, regionIndex, bossCode)
+      if (!targetAt || Number(boss?.nextSpawnTimestamp) === targetAt) return
+
+      const intervalMs = Number(boss?.interval) > 0 ? Number(boss.interval) * 3600000 : 0
+      updates[`${roomId}/bosses/${key}/nextSpawnTimestamp`] = targetAt
+      updates[`${roomId}/bosses/${key}/lastKillTimestamp`] = intervalMs ? targetAt - intervalMs : null
+      updates[`${roomId}/bosses/${key}/autoFieldBossTargetAt`] = targetAt
+      updates[`${roomId}/bosses/${key}/autoFieldBossSyncedAt`] = getServerNow()
+    })
+
+    if (Object.keys(updates).length) {
+      await updateRoot(updates)
+    }
+  }, [bosses, fieldBossServerId, getServerNow, role, roomId, updateRoot])
+
   const queueSharedMemoSave = useCallback((html) => {
     if (!roomId) return
 
@@ -1069,6 +1121,24 @@ export default function App() {
       }
     }, 350)
   }, [getServerNow, roomId, updateRoomSettings])
+
+  useEffect(() => {
+    if (!roomId || role !== 'admin') return undefined
+
+    let disposed = false
+    const run = () => {
+      syncFieldBossCacheToRoom().catch((error) => {
+        if (!disposed) console.warn('Failed to sync field boss cache.', error)
+      })
+    }
+
+    run()
+    const timer = window.setInterval(run, FIELD_BOSS_CACHE_SYNC_INTERVAL_MS)
+    return () => {
+      disposed = true
+      window.clearInterval(timer)
+    }
+  }, [roomId, role, syncFieldBossCacheToRoom])
 
   const flushSharedMemoSave = useCallback(async () => {
     if (!roomId) return
@@ -1641,7 +1711,10 @@ export default function App() {
     pushHistory(timeDialog.key, boss)
     await updateBoss(timeDialog.key, {
       lastKillTimestamp,
-      nextSpawnTimestamp
+      nextSpawnTimestamp,
+      manualSpawnOverride: true,
+      autoFieldBossTargetAt: null,
+      autoFieldBossSyncedAt: null
     })
     closeRemainingDialog()
   }
@@ -1687,6 +1760,8 @@ export default function App() {
       kibelisk: normalizeKibeliskValue(boss.kibelisk),
       drop: boss.drop ?? '',
       interval: String(boss.interval ?? ''),
+      regionIndex: boss.regionIndex ?? '',
+      bossCode: boss.bossCode ?? '',
       mapX: boss.mapX ?? '',
       mapY: boss.mapY ?? ''
     })
@@ -1712,9 +1787,25 @@ export default function App() {
       kibelisk: kibelisk || null,
       drop: form.drop.trim(),
       interval,
+      regionIndex: form.regionIndex === '' ? null : Math.trunc(Number(form.regionIndex)),
+      bossCode: form.bossCode === '' ? null : Math.trunc(Number(form.bossCode)),
+      manualSpawnOverride: editingKey ? bosses[editingKey]?.manualSpawnOverride === true : false,
       alertEnabled: editingKey ? bosses[editingKey]?.alertEnabled !== false : true,
       mapX: form.mapX,
       mapY: form.mapY
+    }
+
+    const previousBoss = editingKey ? bosses[editingKey] : null
+    const previousRegionIndex = previousBoss?.regionIndex == null ? '' : String(previousBoss.regionIndex)
+    const previousBossCode = previousBoss?.bossCode == null ? '' : String(previousBoss.bossCode)
+    const nextRegionIndex = payload.regionIndex == null ? '' : String(payload.regionIndex)
+    const nextBossCode = payload.bossCode == null ? '' : String(payload.bossCode)
+    const fieldBossLinkChanged = previousBoss &&
+      (previousRegionIndex !== nextRegionIndex || previousBossCode !== nextBossCode)
+    if (!editingKey || fieldBossLinkChanged) {
+      payload.manualSpawnOverride = false
+      payload.autoFieldBossTargetAt = null
+      payload.autoFieldBossSyncedAt = null
     }
 
     const chaseTeams = editingKey ? normalizeChaseTeams(bosses[editingKey]?.chaseTeams) : []
@@ -1799,6 +1890,16 @@ export default function App() {
     setAdjacentBossThresholdInput(String(sec))
     if (role !== 'admin' || !roomId) return
     await updateRoomSettings({ adjacentBossThresholdSec: sec })
+  }
+
+  const saveFieldBossServer = async (event) => {
+    const serverId = normalizeFieldBossServerId(event.target.value)
+    setFieldBossServerId(serverId)
+    if (role !== 'admin' || !roomId) return
+    await updateRoomSettings({ fieldBossServerId: serverId })
+    syncFieldBossCacheToRoom(serverId).catch((error) => {
+      console.warn('Failed to sync field boss cache after server change.', error)
+    })
   }
 
   const handleAdjacentThresholdInputKeyDown = (event) => {
@@ -2575,6 +2676,21 @@ export default function App() {
             {role === 'admin' && showManagePanel ? (
               <div className='column-controls'>
                 <section className='pref-group'>
+                  <h4 className='pref-group-title'>서버 설정</h4>
+                  <div className='pref-row'>
+                    <span className='pref-row-label'>필드보스 서버</span>
+                    <div className='pref-row-options'>
+                      <select className='input-text server-select' value={fieldBossServerId} onChange={saveFieldBossServer}>
+                        {FIELD_BOSS_SERVERS.map((server) => (
+                          <option key={server.serverId} value={server.serverId}>
+                            {server.name} ({server.faction})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </section>
+                <section className='pref-group'>
                   <h4 className='pref-group-title'>개인 설정</h4>
                   <div className='pref-row'>
                     <span className='pref-row-label'>📋 정보 표시</span>
@@ -2673,6 +2789,11 @@ export default function App() {
                     const isTimerExcluded = boss.alertEnabled === false
                     const spawn = getSpawnInfo(boss, now)
                     const nextText = spawn.time ? formatDateTime(spawn.time) : '-'
+                    const autoSynced = Boolean(
+                      boss.manualSpawnOverride !== true &&
+                      boss.autoFieldBossSyncedAt != null &&
+                      Number(boss.autoFieldBossTargetAt) === Number(spawn.time)
+                    )
                     const mapReady = hasMapPoint(boss)
                     const syncNeeded = !isTimerExcluded && isSyncNeeded(boss, now)
                     const chaseTeams = normalizeChaseTeams(boss.chaseTeams)
@@ -2763,7 +2884,7 @@ export default function App() {
                             return (
                               <td key={key} style={buildCellStyle(key)}>
                                 <button
-                                  className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''}`}
+                                  className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''} ${autoSynced ? 'auto-synced' : ''}`}
                                   disabled={role !== 'admin' || isTimerExcluded}
                                   onClick={() => !isTimerExcluded && openRemainingDialog(boss)}
                                   title={isTimerExcluded ? '타이머 제외 상태입니다.' : (syncNeeded ? '싱크 필요: 남은 시간을 눌러 수정하세요.' : undefined)}
@@ -2773,6 +2894,7 @@ export default function App() {
                                     ...boss,
                                     effectiveTime: spawn.time ?? Number.MAX_SAFE_INTEGER
                                   })}
+                                  {autoSynced ? <span className='auto-sync-check' aria-label='자동갱신 완료' title='자동갱신 완료'> ✓</span> : null}
                                 </button>
                               </td>
                             )
@@ -2780,7 +2902,7 @@ export default function App() {
                           if (key === 'next') {
                             return (
                               <td key={key} style={buildCellStyle(key)}>
-                                <span className='next-time-text'>{nextText}</span>
+                                <span className={`next-time-text ${autoSynced ? 'auto-synced' : ''}`}>{nextText}</span>
                               </td>
                             )
                           }
@@ -3044,6 +3166,50 @@ export default function App() {
                   <option value=''>젠 주기</option>
                   {HOUR_OPTIONS.map((n) => (
                     <option key={n} value={n}>{n}시간</option>
+                  ))}
+                </select>
+              </label>
+              <label className='form-field form-field-location'>
+                <span>지역 인덱스</span>
+                <select
+                  className='input-text'
+                  value={form.regionIndex}
+                  onChange={(e) => {
+                    const regionIndex = e.target.value
+                    setForm((p) => ({
+                      ...p,
+                      regionIndex,
+                      bossCode: findFieldBossOption(regionIndex, p.bossCode) ? p.bossCode : ''
+                    }))
+                  }}
+                >
+                  <option value=''>자동 갱신 안함</option>
+                  {FIELD_BOSS_REGIONS.map((region, index) => (
+                    <option key={region.key} value={index}>
+                      {index} - {region.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className='form-field form-field-location'>
+                <span>보스 몬스터 코드</span>
+                <select
+                  className='input-text'
+                  value={form.bossCode === '' ? '' : `${form.regionIndex}:${form.bossCode}`}
+                  onChange={(e) => {
+                    if (!e.target.value) {
+                      setForm((p) => ({ ...p, bossCode: '' }))
+                      return
+                    }
+                    const [regionIndex, bossCode] = e.target.value.split(':')
+                    setForm((p) => ({ ...p, regionIndex, bossCode }))
+                  }}
+                >
+                  <option value=''>보스 선택 안함</option>
+                  {formFieldBossOptions.map((boss) => (
+                    <option key={`${boss.regionIndex}:${boss.bossCode}`} value={`${boss.regionIndex}:${boss.bossCode}`}>
+                      {boss.regionName} / {boss.name} ({boss.bossCode})
+                    </option>
                   ))}
                 </select>
               </label>

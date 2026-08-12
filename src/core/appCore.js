@@ -36,6 +36,8 @@ export const emptyForm = {
   kibelisk: '',
   drop: '',
   interval: '',
+  regionIndex: '',
+  bossCode: '',
   mapX: '',
   mapY: ''
 }

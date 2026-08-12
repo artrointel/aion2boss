@@ -149,6 +149,7 @@ export default function App() {
   const [roomId, setRoomId] = useState('')
   const [role, setRole] = useState(() => initialRecentRoomEntryRef.current.role)
   const [activeView, setActiveView] = useState(VIEW_BOSS)
+  const [bossDashboardTab, setBossDashboardTab] = useState('list')
   const [miniGameDialogOpen, setMiniGameDialogOpen] = useState(false)
   const [bosses, setBosses] = useState({})
   const [editingKey, setEditingKey] = useState(null)
@@ -694,6 +695,13 @@ export default function App() {
 
   const mainBoss = panelBosses[0] ?? null
   const nextBoss = panelBosses.length > 1 ? panelBosses[1] : null
+  const upcomingBosses = useMemo(() => {
+    const oneHourFromNow = now + 60 * 60 * 1000
+    return panelBosses.filter((boss) => boss.effectiveTime > now && boss.effectiveTime <= oneHourFromNow)
+  }, [now, panelBosses])
+  const getBossRegionName = useCallback((boss) => {
+    return findFieldBossOption(boss?.regionIndex, boss?.bossCode)?.regionName || '지역 미지정'
+  }, [])
   const overlayMainBoss = overlayPanelBosses[0] ?? null
   const overlayNextBoss = overlayPanelBosses.length > 1 ? overlayPanelBosses[1] : null
   const activeMainBoss = overlayMode ? overlayMainBoss : mainBoss
@@ -2284,6 +2292,10 @@ export default function App() {
         closeRemainingDialog()
         return
       }
+      if (isMapOpen) {
+        setIsMapOpen(false)
+        return
+      }
       if (ttsNoticeDialogOpen) {
         closeTtsNoticeDialog()
         return
@@ -2302,6 +2314,7 @@ export default function App() {
     chaseTeamDialog.open,
     closeParticipantListDialog,
     closeRoomSettingsDialog,
+    isMapOpen,
     participantListDialog.open,
     showForm,
     roomSettingsDialog.open,
@@ -2574,77 +2587,267 @@ export default function App() {
 
           {activeView === VIEW_BOSS ? (
             <>
-              <section className='hero card'>
-            <div className='hero-label'>NEXT BOSS</div>
-            <div className='boss-grid'>
-              <BossCard
-                title='PREV'
-                boss={prevBoss}
-                countdown={renderCountdown(prevBoss)}
-                syncNeeded={prevSyncNeeded}
-                onFly={() => hasMapPoint(prevBoss) && flyTo(prevBoss.mapX, prevBoss.mapY)}
-              />
+              <section className='card dashboard-commandbar'>
+                <nav className='dashboard-tabs' aria-label='보스 화면 탭'>
+                  <button
+                    type='button'
+                    className={`dashboard-tab ${bossDashboardTab === 'list' ? 'active' : ''}`}
+                    onClick={() => setBossDashboardTab('list')}
+                    aria-pressed={bossDashboardTab === 'list'}
+                  >
+                    전체 목록
+                  </button>
+                  <button
+                    type='button'
+                    className={`dashboard-tab ${bossDashboardTab === 'dashboard' ? 'active' : ''}`}
+                    onClick={() => setBossDashboardTab('dashboard')}
+                    aria-pressed={bossDashboardTab === 'dashboard'}
+                  >
+                    대시보드
+                  </button>
+                </nav>
 
-              <section className='boss-main'>
-                <h2 className='boss-main-name'>
-                  {mainBoss?.name ? `[${mainBoss.name}] 젠까지` : '대기 중...'}
-                </h2>
-                {mainSyncNeeded ? <p className='sync-help-text'>싱크를 맞춰주세요</p> : null}
-                <div className={`boss-main-time ${mainSyncNeeded ? 'sync-needed-time' : ''} ${mainBoss && mainBoss.effectiveTime - now < CONFIG.UI.WARNING_MS ? 'warning' : ''}`}>
-                  {renderCountdown(mainBoss)}
-                </div>
-                <div className='boss-main-actions'>
-                  {mainBoss?.location ? (
-                    <button
-                      className={`btn ${hasMapPoint(mainBoss) ? 'primary' : 'muted'}`}
-                      disabled={!hasMapPoint(mainBoss)}
-                      onClick={() => hasMapPoint(mainBoss) && flyTo(mainBoss.mapX, mainBoss.mapY)}
-                    >
-                      📍 {mainBoss.location}
+                <div className='dashboard-toolbar-main'>
+                  <select className='input-text filter-select' value={raceFilter} onChange={(e) => setRaceFilter(e.target.value)}>
+                    <option value='모두'>모두</option>
+                    <option value='천족'>천족</option>
+                    <option value='마족'>마족</option>
+                    <option value='기타'>기타</option>
+                  </select>
+                  {bossDashboardTab === 'dashboard' ? (
+                    <button className='btn ghost dashboard-map-button' onClick={() => setIsMapOpen(true)} aria-label='지도 열기' title='지도 열기'>
+                      🗺️
                     </button>
                   ) : null}
+                  {bossDashboardTab === 'list' ? (
+                    <>
+                      <button className='btn ghost copy-order-btn' onClick={handleCopyBossOrder} disabled={!canCopyBossOrder}>보스 순서 복사</button>
+                      <button className='btn ghost copy-order-btn' onClick={handleCopyKibeliskOrder} disabled={!canCopyKibeliskOrder}>키벨 순서 복사</button>
+                    </>
+                  ) : null}
                 </div>
-                <p className='boss-main-drop'>{mainBoss?.drop ? `ℹ️ ${mainBoss.drop}` : ''}</p>
+
+                {role === 'admin' ? (
+                  <div className='dashboard-toolbar-actions'>
+                    <button
+                      className={`btn ghost bell-btn ${ttsEnabled ? 'active' : ''}`}
+                      onClick={handleToggleTts}
+                      aria-label={ttsEnabled ? '음성 알림 끄기' : '음성 알림 켜기'}
+                      title={ttsEnabled ? '음성 알림 켜짐' : '음성 알림 꺼짐'}
+                    >
+                      🔔 알림
+                    </button>
+                    {bossDashboardTab === 'list' ? (
+                      <>
+                        <button
+                          className={`btn sort-toggle-btn ${autoSortEnabled ? 'active' : ''}`}
+                          onClick={handleSort}
+                          aria-pressed={autoSortEnabled}
+                          title={autoSortEnabled ? '자동 정렬 켜짐' : '자동 정렬 꺼짐'}
+                        >
+                          시간순 정렬
+                        </button>
+                        <button
+                          className={`btn ghost chase-toggle-btn ${chaseModeEnabled ? 'active' : ''}`}
+                          onClick={toggleChaseMode}
+                          title={chaseModeEnabled ? '추격 모드를 종료하고 모든 추격팀을 초기화합니다.' : '공유 추격팀 설정을 시작합니다.'}
+                        >
+                          {chaseModeEnabled ? '추격 종료' : '추격팀 설정'}
+                        </button>
+                        <button className='btn ghost' onClick={openCreateForm}>{showForm ? '폼 닫기' : '보스 추가'}</button>
+                        <button className='btn ghost' onClick={toggleManagePanel}>{showManagePanel ? '설정 닫기' : '설정'}</button>
+                        <button className='btn' disabled={!undoStack.length} onClick={handleUndo}>실행 취소</button>
+                        <button className='btn' disabled={!redoStack.length} onClick={handleRedo}>다시 실행</button>
+                      </>
+                    ) : null}
+                  </div>
+                ) : null}
               </section>
 
-              <BossCard
-                title='NEXT'
-                boss={nextBoss}
-                countdown={renderCountdown(nextBoss)}
-                syncNeeded={nextSyncNeeded}
-                onFly={() => hasMapPoint(nextBoss) && flyTo(nextBoss.mapX, nextBoss.mapY)}
-              />
-            </div>
+              {bossDashboardTab === 'dashboard' ? (
+              <section className='dashboard-overview'>
+                <section className='card live-panel dashboard-primary'>
+                  <div className='panel-head'>
+                    <span className='workspace-kicker'>LIVE TIMER</span>
+                    <strong>{mainBoss?.name || '대기 중'}</strong>
+                  </div>
+                  <section className='boss-main live-boss-card'>
+                    <h2 className='boss-main-name'>
+                      {mainBoss?.name ? `[${mainBoss.name}] 젠까지` : '대기 중...'}
+                    </h2>
+                    {mainBoss ? (
+                      <div className='live-boss-meta'>
+                        <span className='live-region'>{getBossRegionName(mainBoss)}</span>
+                        <span>키벨 {mainBoss.kibelisk || '-'}</span>
+                        <span>{mainBoss.location || '위치 정보 없음'}</span>
+                      </div>
+                    ) : null}
+                    {mainSyncNeeded ? <p className='sync-help-text'>싱크를 맞춰주세요</p> : null}
+                    <div className={`boss-main-time ${mainSyncNeeded ? 'sync-needed-time' : ''} ${mainBoss && mainBoss.effectiveTime - now < CONFIG.UI.WARNING_MS ? 'warning' : ''}`}>
+                      {renderCountdown(mainBoss)}
+                    </div>
+                    <div className='boss-main-actions'>
+                      {mainBoss?.location ? (
+                        <button
+                          className={`btn ghost live-map-btn ${hasMapPoint(mainBoss) ? '' : 'muted'}`}
+                          disabled={!hasMapPoint(mainBoss)}
+                          onClick={() => hasMapPoint(mainBoss) && flyTo(mainBoss.mapX, mainBoss.mapY)}
+                          aria-label={`${mainBoss.name} 지도 보기`}
+                          title={hasMapPoint(mainBoss) ? `${mainBoss.location} 지도 보기` : '지도 좌표 없음'}
+                        >
+                          🗺️
+                        </button>
+                      ) : null}
+                    </div>
+                    <p className='boss-main-drop'>{mainBoss?.drop ? `ℹ️ ${mainBoss.drop}` : ''}</p>
+                  </section>
 
-            <div className='map-wrap'>
-              {adjacentSpawnGroupLines.length ? (
-                <div className='adjacent-spawn-info'>
+                  <div className='timeline-strip'>
+                    <BossCard
+                      title='PREV'
+                      boss={prevBoss}
+                      countdown={renderCountdown(prevBoss)}
+                      syncNeeded={prevSyncNeeded}
+                      onFly={() => hasMapPoint(prevBoss) && flyTo(prevBoss.mapX, prevBoss.mapY)}
+                    />
+                    <BossCard
+                      title='NEXT'
+                      boss={nextBoss}
+                      countdown={renderCountdown(nextBoss)}
+                      syncNeeded={nextSyncNeeded}
+                      onFly={() => hasMapPoint(nextBoss) && flyTo(nextBoss.mapX, nextBoss.mapY)}
+                    />
+                  </div>
+                </section>
+
+                <section className='card boss-queue dashboard-queue'>
+                    <div className='panel-head'>
+                      <span className='workspace-kicker'>UP NEXT</span>
+                      <strong>1시간 이내 {upcomingBosses.length}개</strong>
+                    </div>
+                    <div className='queue-header' aria-hidden='true'>
+                      <span>지역 / 키벨</span>
+                      <span>남은 시간</span>
+                      <span>보스 / 위치</span>
+                    </div>
+                    <div className='boss-queue-list'>
+                      {upcomingBosses.length ? upcomingBosses.map((boss, index) => {
+                        const queueSyncNeeded = boss.alertEnabled !== false && isSyncNeeded(boss, now)
+                        return (
+                          <button
+                            key={`queue-${boss.key}`}
+                            type='button'
+                            className={`queue-item ${index === 0 ? 'active' : ''} ${queueSyncNeeded ? 'sync-needed' : ''}`}
+                            onClick={() => hasMapPoint(boss) && flyTo(boss.mapX, boss.mapY)}
+                            disabled={!hasMapPoint(boss)}
+                            title={hasMapPoint(boss) ? '지도 위치로 이동' : undefined}
+                          >
+                            <span className='queue-rank'>
+                              <span className='queue-region'>{getBossRegionName(boss)}</span>
+                              <span className='queue-kibel'>키벨 {boss.kibelisk || '-'}</span>
+                            </span>
+                            <span className='queue-time'>{renderCountdown(boss)}</span>
+                            <span className='queue-main'>
+                              <span className='queue-name' style={{ color: boss.color || undefined }}>{boss.name}</span>
+                              <span className='queue-meta'>
+                                <span>{boss.location || '-'}</span>
+                              </span>
+                            </span>
+                          </button>
+                        )
+                      }) : (
+                        <div className='queue-empty'>표시할 보스가 없습니다.</div>
+                      )}
+                    </div>
+                  </section>
+
+              </section>
+              ) : null}
+
+              {bossDashboardTab === 'dashboard' && adjacentSpawnGroupLines.length ? (
+                <section className='adjacent-spawn-info dashboard-alert'>
                   {adjacentSpawnGroupLines.map((line, idx) => (
                     <div key={`adjacent-line-${idx}`}>{line}</div>
                   ))}
-                </div>
+                </section>
               ) : null}
-              <div className='map-action-row'>
-                <button className='btn ghost' onClick={() => setIsMapOpen((v) => !v)}>
-                  {isMapOpen ? '지도 닫기' : '지도 열기'}
-                </button>
-                <button className='btn ghost shared-memo-legacy-toggle' onClick={toggleSharedMemo}>
-                  {sharedMemoOpen ? '공유메모 닫기' : '공유메모 열기'}
-                </button>
-              </div>
-              {isMapOpen ? (
-                <div
-                  className='map-viewport'
-                  style={{ aspectRatio: mapAspectRatio }}
-                  ref={mapViewportRef}
-                  onWheel={handleMapWheel}
-                  onMouseDown={handleMapMouseDown}
-                >
-                  <img ref={mapImgRef} src={MAP_IMAGE_SRC} alt='보스 지도' draggable='false' onLoad={handleMapImageLoad} />
-                </div>
-              ) : null}
-            </div>
-          </section>
+
+                  {bossDashboardTab === 'list' && role === 'admin' && showManagePanel ? (
+                    <section className='card settings-panel dashboard-settings-panel'>
+                      <div className='column-controls'>
+                        <section className='pref-group'>
+                          <h4 className='pref-group-title'>서버 설정</h4>
+                          <div className='pref-row'>
+                            <span className='pref-row-label'>필드보스 서버</span>
+                            <div className='pref-row-options'>
+                              <select className='input-text server-select' value={fieldBossServerId} onChange={saveFieldBossServer}>
+                                {FIELD_BOSS_SERVERS.map((server) => (
+                                  <option key={server.serverId} value={server.serverId}>
+                                    {server.name} ({server.faction})
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        </section>
+                        <section className='pref-group'>
+                          <h4 className='pref-group-title'>개인 설정</h4>
+                          <div className='pref-row'>
+                            <span className='pref-row-label'>📋 정보 표시</span>
+                            <div className='pref-row-options'>
+                              <label><input type='checkbox' checked={columnPrefs.alert} onChange={() => toggleColumnPref('alert')} /> 알림</label>
+                              <label><input type='checkbox' checked={columnPrefs.name} onChange={() => toggleColumnPref('name')} /> 보스명</label>
+                              <label><input type='checkbox' checked={columnPrefs.info} onChange={() => toggleColumnPref('info')} /> 정보</label>
+                              <label><input type='checkbox' checked={columnPrefs.location} onChange={() => toggleColumnPref('location')} /> 위치</label>
+                              <label><input type='checkbox' checked={columnPrefs.kibelisk} onChange={() => toggleColumnPref('kibelisk')} /> 키벨리스크</label>
+                              <label><input type='checkbox' checked={columnPrefs.remaining} onChange={() => toggleColumnPref('remaining')} /> 남은 시간</label>
+                              <label><input type='checkbox' checked={columnPrefs.next} onChange={() => toggleColumnPref('next')} /> 다음 젠 시간</label>
+                            </div>
+                          </div>
+                          <div className='pref-row'>
+                            <span className='pref-row-label'>시스템 알림</span>
+                            <div className='pref-row-options'>
+                              <label>
+                                <input
+                                  type='checkbox'
+                                  checked={systemNotificationsEnabled}
+                                  onChange={handleToggleSystemNotifications}
+                                />
+                                음성 알림 실패 시 사용
+                              </label>
+                            </div>
+                          </div>
+                          <div className='pref-row alert-controls'>
+                            <span className='pref-row-label'>🔔 알림 여부</span>
+                            <div className='pref-row-options'>
+                            {ALERT_MARKS.map((mark) => (
+                              <label key={mark.id}><input type='checkbox' checked={alertPrefs[mark.id]} onChange={() => toggleAlertPref(mark.id)} /> {mark.label}</label>
+                            ))}
+                            </div>
+                          </div>
+                        </section>
+                        <section className='pref-group'>
+                          <h4 className='pref-group-title'>전체 설정</h4>
+                          <div className='pref-row adjacent-threshold-controls'>
+                            <span className='pref-row-label'>👉 중첩 탐지 (초)</span>
+                            <div className='pref-row-options'>
+                              <input
+                                className='input-text adjacent-threshold-input'
+                                type='number'
+                                min={ADJACENT_BOSS_THRESHOLD_MIN_SEC}
+                                max={ADJACENT_BOSS_THRESHOLD_MAX_SEC}
+                                step='1'
+                                value={adjacentBossThresholdInput}
+                                onChange={handleAdjacentThresholdInputChange}
+                                onBlur={saveAdjacentThreshold}
+                                onKeyDown={handleAdjacentThresholdInputKeyDown}
+                              />
+                            </div>
+                          </div>
+                        </section>
+                      </div>
+                    </section>
+                  ) : null}
 
           <div className='shared-memo-floating'>
             {sharedMemoOpen ? (
@@ -2728,116 +2931,14 @@ export default function App() {
             </button>
           </div>
 
-          <section className='card status-card'>
+          {bossDashboardTab === 'list' ? (
+          <section className='card status-card boss-list-panel'>
             <div className='section-head'>
               <div className='section-left'>
-                <h3>보스 현황</h3>
-                <select className='input-text filter-select' value={raceFilter} onChange={(e) => setRaceFilter(e.target.value)}>
-                  <option value='모두'>모두</option>
-                  <option value='천족'>천족</option>
-                  <option value='마족'>마족</option>
-                  <option value='기타'>기타</option>
-                </select>
-                <button className='btn ghost copy-order-btn' onClick={handleCopyBossOrder} disabled={!canCopyBossOrder}>보스 순서 복사</button>
-                <button className='btn ghost copy-order-btn' onClick={handleCopyKibeliskOrder} disabled={!canCopyKibeliskOrder}>키벨리스크 순서 복사</button>
+                <h3>전체 보스 목록</h3>
+                <span className='list-count'>{filteredOrderedBosses.length}개 표시</span>
               </div>
-              {role === 'admin' ? (
-                <div className='section-actions'>
-                  <button
-                    className={`btn ghost bell-btn ${ttsEnabled ? 'active' : ''}`}
-                    onClick={handleToggleTts}
-                    aria-label={ttsEnabled ? '음성 알림 끄기' : '음성 알림 켜기'}
-                    title={ttsEnabled ? '음성 알림 켜짐' : '음성 알림 꺼짐'}
-                  >
-                    🔔
-                  </button>
-                  <button
-                    className={`btn ghost chase-toggle-btn ${chaseModeEnabled ? 'active' : ''}`}
-                    onClick={toggleChaseMode}
-                    title={chaseModeEnabled ? '추격 모드를 종료하고 모든 추격팀을 초기화합니다.' : '공유 추격팀 설정을 시작합니다.'}
-                  >
-                    {chaseModeEnabled ? '추격 종료' : '추격팀 설정'}
-                  </button>
-                  <button className='btn ghost' onClick={openCreateForm}>{showForm ? '폼 닫기' : '보스 추가'}</button>
-                  <button className='btn ghost' onClick={toggleManagePanel}>{showManagePanel ? '수정 닫기' : '수정'}</button>
-                </div>
-              ) : null}
             </div>
-
-            {role === 'admin' && showManagePanel ? (
-              <div className='column-controls'>
-                <section className='pref-group'>
-                  <h4 className='pref-group-title'>서버 설정</h4>
-                  <div className='pref-row'>
-                    <span className='pref-row-label'>필드보스 서버</span>
-                    <div className='pref-row-options'>
-                      <select className='input-text server-select' value={fieldBossServerId} onChange={saveFieldBossServer}>
-                        {FIELD_BOSS_SERVERS.map((server) => (
-                          <option key={server.serverId} value={server.serverId}>
-                            {server.name} ({server.faction})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                </section>
-                <section className='pref-group'>
-                  <h4 className='pref-group-title'>개인 설정</h4>
-                  <div className='pref-row'>
-                    <span className='pref-row-label'>📋 정보 표시</span>
-                    <div className='pref-row-options'>
-                      <label><input type='checkbox' checked={columnPrefs.alert} onChange={() => toggleColumnPref('alert')} /> 알림</label>
-                      <label><input type='checkbox' checked={columnPrefs.name} onChange={() => toggleColumnPref('name')} /> 보스명</label>
-                      <label><input type='checkbox' checked={columnPrefs.info} onChange={() => toggleColumnPref('info')} /> 정보</label>
-                      <label><input type='checkbox' checked={columnPrefs.location} onChange={() => toggleColumnPref('location')} /> 위치</label>
-                      <label><input type='checkbox' checked={columnPrefs.kibelisk} onChange={() => toggleColumnPref('kibelisk')} /> 키벨리스크</label>
-                      <label><input type='checkbox' checked={columnPrefs.remaining} onChange={() => toggleColumnPref('remaining')} /> 남은 시간</label>
-                      <label><input type='checkbox' checked={columnPrefs.next} onChange={() => toggleColumnPref('next')} /> 다음 젠 시간</label>
-                    </div>
-                  </div>
-                  <div className='pref-row'>
-                    <span className='pref-row-label'>시스템 알림</span>
-                    <div className='pref-row-options'>
-                      <label>
-                        <input
-                          type='checkbox'
-                          checked={systemNotificationsEnabled}
-                          onChange={handleToggleSystemNotifications}
-                        />
-                        음성 알림 실패 시 사용
-                      </label>
-                    </div>
-                  </div>
-                  <div className='pref-row alert-controls'>
-                    <span className='pref-row-label'>🔔 알림 여부</span>
-                    <div className='pref-row-options'>
-                    {ALERT_MARKS.map((mark) => (
-                      <label key={mark.id}><input type='checkbox' checked={alertPrefs[mark.id]} onChange={() => toggleAlertPref(mark.id)} /> {mark.label}</label>
-                    ))}
-                    </div>
-                  </div>
-                </section>
-                <section className='pref-group'>
-                  <h4 className='pref-group-title'>전체 설정</h4>
-                  <div className='pref-row adjacent-threshold-controls'>
-                    <span className='pref-row-label'>👉 중첩 탐지 (초)</span>
-                    <div className='pref-row-options'>
-                      <input
-                        className='input-text adjacent-threshold-input'
-                        type='number'
-                        min={ADJACENT_BOSS_THRESHOLD_MIN_SEC}
-                        max={ADJACENT_BOSS_THRESHOLD_MAX_SEC}
-                        step='1'
-                        value={adjacentBossThresholdInput}
-                        onChange={handleAdjacentThresholdInputChange}
-                        onBlur={saveAdjacentThreshold}
-                        onKeyDown={handleAdjacentThresholdInputKeyDown}
-                      />
-                    </div>
-                  </div>
-                </section>
-              </div>
-            ) : null}
 
             <div className='boss-table-card'>
               <div className='table-wrap' ref={tableWrapRef}>
@@ -3049,22 +3150,8 @@ export default function App() {
               </div>
             </div>
           </section>
+          ) : null}
 
-              {role === 'admin' ? (
-                <section className='card controls'>
-                  <button
-                    className={`btn sort-toggle-btn ${autoSortEnabled ? 'active' : ''}`}
-                    onClick={handleSort}
-                    aria-pressed={autoSortEnabled}
-                    title={autoSortEnabled ? '자동 정렬 켜짐' : '자동 정렬 꺼짐'}
-                  >
-                    다음 젠 시간순 정렬
-                  </button>
-                  <button className='btn' disabled={!undoStack.length} onClick={handleUndo}>실행 취소</button>
-                  <button className='btn' disabled={!redoStack.length} onClick={handleRedo}>다시 실행</button>
-                  <span className='creator-credit'>제작자: [브리] 뿌띠</span>
-                </section>
-              ) : null}
             </>
           ) : (
             <Suspense fallback={null}>
@@ -3123,6 +3210,25 @@ export default function App() {
                 <button type='submit' className='btn primary'>적용</button>
               </div>
             </form>
+          </div>
+        </div>
+      ) : null}
+      {activeView === VIEW_BOSS && isMapOpen ? (
+        <div className='dialog-backdrop map-dialog-backdrop' onClick={() => setIsMapOpen(false)}>
+          <div className='dialog map-dialog' onClick={(e) => e.stopPropagation()}>
+            <div className='map-dialog-head'>
+              <h4>보스 지도</h4>
+              <button type='button' className='btn ghost tiny' onClick={() => setIsMapOpen(false)}>닫기</button>
+            </div>
+            <div
+              className='map-viewport'
+              style={{ aspectRatio: mapAspectRatio }}
+              ref={mapViewportRef}
+              onWheel={handleMapWheel}
+              onMouseDown={handleMapMouseDown}
+            >
+              <img ref={mapImgRef} src={MAP_IMAGE_SRC} alt='보스 지도' draggable='false' onLoad={handleMapImageLoad} />
+            </div>
           </div>
         </div>
       ) : null}
@@ -3397,21 +3503,21 @@ export default function App() {
 function BossCard({ title, boss, countdown, syncNeeded, onFly }) {
   if (!boss || boss.effectiveTime === Number.MAX_SAFE_INTEGER) {
     return (
-      <section className='boss-side'>
-        <span className='muted'>{title}</span>
-        <strong>-</strong>
-        <span>--:--:--</span>
+      <section className='boss-side timeline-card'>
+        <span className='muted timeline-label'>{title}</span>
+        <strong className='timeline-name'>-</strong>
+        <span className='timeline-time'>--:--:--</span>
       </section>
     )
   }
 
   return (
-    <section className='boss-side'>
-      <span className='muted'>{title}</span>
-      <strong>{boss.name}</strong>
+    <section className='boss-side timeline-card'>
+      <span className='muted timeline-label'>{title}</span>
+      <strong className='timeline-name'>{boss.name}</strong>
       {syncNeeded ? <span className='sync-help-text'>싱크를 맞춰주세요</span> : null}
-      <span className={syncNeeded ? 'sync-needed-time' : ''}>{countdown}</span>
-      {boss.location ? <button className='btn tiny ghost' disabled={!hasMapPoint(boss)} onClick={onFly}>📍 {boss.location}</button> : null}
+      <span className={`timeline-time ${syncNeeded ? 'sync-needed-time' : ''}`}>{countdown}</span>
+      {boss.location ? <button className='btn tiny ghost timeline-location' disabled={!hasMapPoint(boss)} onClick={onFly}>📍 {boss.location}</button> : null}
     </section>
   )
 }

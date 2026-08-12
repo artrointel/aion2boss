@@ -69,6 +69,7 @@ import {
   loadRecentRoomEntry,
   loadRaceFilterFromCookie,
   loadSharedMemoSizeFromCookie,
+  loadSystemNotificationsEnabled,
   loadTtsEnabledFromCookie,
   loadTtsNoticeDismissed,
   normalizeSharedMemoSize,
@@ -81,6 +82,7 @@ import {
   saveRecentRoomEntry,
   saveRaceFilterToCookie,
   saveSharedMemoSizeToCookie,
+  saveSystemNotificationsEnabled,
   saveTtsEnabledToCookie,
   saveTtsNoticeDismissed
 } from './core/browserStorage'
@@ -177,6 +179,7 @@ export default function App() {
   const [sharedMemoResizing, setSharedMemoResizing] = useState('')
   const [sharedMemoSaveStatus, setSharedMemoSaveStatus] = useState('saved')
   const [ttsEnabled, setTtsEnabled] = useState(() => loadTtsEnabledFromCookie())
+  const [systemNotificationsEnabled, setSystemNotificationsEnabled] = useState(() => loadSystemNotificationsEnabled())
   const [alertPrefs, setAlertPrefs] = useState(() => loadAlertPrefsFromCookie())
   const [ttsNoticeDialogOpen, setTtsNoticeDialogOpen] = useState(false)
   const [ttsNoticeDontShow, setTtsNoticeDontShow] = useState(() => loadTtsNoticeDismissed())
@@ -270,8 +273,21 @@ export default function App() {
       || null
   }, [])
 
+  const showSystemNotification = useCallback((text, title = '보스 알림') => {
+    if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return false
+    new Notification(title, { body: text, tag: 'aion2boss-boss-alert', renotify: true })
+    return true
+  }, [])
+
   const speakTtsMessage = useCallback((text, options = {}) => {
-    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return false
+    const {
+      fallbackToNotification = false,
+      notificationTitle = '보스 알림',
+      allowSystemNotification = false
+    } = options
+    const fallback = () => fallbackToNotification && allowSystemNotification && showSystemNotification(text, notificationTitle)
+
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) return fallback()
 
     const {
       cancelCurrent = false,
@@ -294,9 +310,27 @@ export default function App() {
     utter.rate = rate
     utter.pitch = pitch
     utter.volume = volume
+    let settled = false
+    let startTimer = null
+    const finish = (didStart) => {
+      if (settled) return
+      settled = true
+      if (startTimer) window.clearTimeout(startTimer)
+      if (!didStart) fallback()
+    }
+    utter.onstart = () => finish(true)
+    utter.onend = () => finish(true)
+    utter.onerror = () => finish(false)
     window.speechSynthesis.speak(utter)
+    if (fallbackToNotification) {
+      startTimer = window.setTimeout(() => {
+        if (settled) return
+        window.speechSynthesis.cancel()
+        finish(false)
+      }, 1500)
+    }
     return true
-  }, [getPreferredTtsVoice])
+  }, [getPreferredTtsVoice, showSystemNotification])
 
   useEffect(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return undefined
@@ -736,6 +770,10 @@ export default function App() {
   }, [columnPrefs])
 
   useEffect(() => {
+    saveSystemNotificationsEnabled(systemNotificationsEnabled)
+  }, [systemNotificationsEnabled])
+
+  useEffect(() => {
     saveColumnWidthsToCookie(columnWidths)
   }, [columnWidths])
 
@@ -833,18 +871,31 @@ export default function App() {
       })
     }
 
+    let latestMark = null
     for (const mark of enabledAlertMarks) {
       if (prevState.prevRemainingMs > mark.ms && remainingMs <= mark.ms) {
         if (hasOtherBossInWindow(mark.ms)) {
           continue
         }
         const bossName = activeMainBoss.name || '보스'
-        speakTtsMessage(`${bossName}, ${mark.notice}`)
+        if (!latestMark || mark.ms < latestMark.ms) {
+          latestMark = mark
+        }
       }
     }
 
+    if (latestMark) {
+      const bossName = activeMainBoss.name || '蹂댁뒪'
+      speakTtsMessage(`${bossName}, ${latestMark.notice}`, {
+        cancelCurrent: true,
+        fallbackToNotification: true,
+        allowSystemNotification: systemNotificationsEnabled,
+        notificationTitle: bossName
+      })
+    }
+
     ttsStateRef.current = { ...prevState, prevRemainingMs: remainingMs }
-  }, [ttsEnabled, activeMainBoss, now, activeAlertBossList, enabledAlertMarks, speakTtsMessage])
+  }, [ttsEnabled, activeMainBoss, now, activeAlertBossList, enabledAlertMarks, speakTtsMessage, systemNotificationsEnabled])
 
   useEffect(() => {
     if (chaseModeEnabled) return
@@ -1901,6 +1952,18 @@ export default function App() {
     }
   }
 
+  const handleToggleSystemNotifications = async (event) => {
+    const enabled = event.target.checked
+    if (enabled && typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'default') {
+      const permission = await Notification.requestPermission()
+      if (permission !== 'granted') {
+        event.target.checked = false
+        return
+      }
+    }
+    setSystemNotificationsEnabled(enabled)
+  }
+
   const closeTtsNoticeDialog = useCallback(() => {
     setTtsNoticeDialogOpen(false)
   }, [])
@@ -2730,6 +2793,19 @@ export default function App() {
                       <label><input type='checkbox' checked={columnPrefs.kibelisk} onChange={() => toggleColumnPref('kibelisk')} /> 키벨리스크</label>
                       <label><input type='checkbox' checked={columnPrefs.remaining} onChange={() => toggleColumnPref('remaining')} /> 남은 시간</label>
                       <label><input type='checkbox' checked={columnPrefs.next} onChange={() => toggleColumnPref('next')} /> 다음 젠 시간</label>
+                    </div>
+                  </div>
+                  <div className='pref-row'>
+                    <span className='pref-row-label'>시스템 알림</span>
+                    <div className='pref-row-options'>
+                      <label>
+                        <input
+                          type='checkbox'
+                          checked={systemNotificationsEnabled}
+                          onChange={handleToggleSystemNotifications}
+                        />
+                        음성 알림 실패 시 사용
+                      </label>
                     </div>
                   </div>
                   <div className='pref-row alert-controls'>

@@ -14,6 +14,7 @@ import {
 import { readCookie, readLocalStorage, removeLocalStorage, writeCookie, writeLocalStorage } from './storage'
 
 const TTS_STORAGE_KEY = 'aion2boss_tts_enabled'
+const SYSTEM_NOTIFICATION_STORAGE_KEY = 'aion2boss_system_notifications_enabled'
 const TTS_NOTICE_DISMISS_KEY = 'aion2boss_tts_notice_dismissed'
 const OVERLAY_SCALE_STORAGE_KEY = 'aion2boss_overlay_scale'
 const ALERT_PREF_COOKIE_KEY = 'aion2boss_alert_prefs'
@@ -192,6 +193,14 @@ export function loadTtsEnabledFromCookie() {
 
 export function saveTtsEnabledToCookie(enabled) {
   writeCookie(TTS_STORAGE_KEY, enabled ? 'true' : 'false')
+}
+
+export function loadSystemNotificationsEnabled() {
+  return readCookie(SYSTEM_NOTIFICATION_STORAGE_KEY) === 'true'
+}
+
+export function saveSystemNotificationsEnabled(enabled) {
+  writeCookie(SYSTEM_NOTIFICATION_STORAGE_KEY, enabled ? 'true' : 'false')
 }
 
 export function loadAlertPrefsFromCookie() {

@@ -150,12 +150,19 @@ async function fetchFieldBossPublicCacheFromUrl(baseUrl) {
 }
 
 export async function fetchFieldBossPublicCache() {
-  try {
-    return await Promise.any(FIELD_BOSS_CACHE_URLS.map(fetchFieldBossPublicCacheFromUrl))
-  } catch (error) {
-    const errors = error instanceof AggregateError
-      ? error.errors.map((item) => item instanceof Error ? item.message : String(item))
-      : [error instanceof Error ? error.message : String(error)]
-    throw new Error(errors.join(' / '))
+  const results = await Promise.allSettled(FIELD_BOSS_CACHE_URLS.map(fetchFieldBossPublicCacheFromUrl))
+  const caches = results
+    .filter((result) => result.status === 'fulfilled')
+    .map((result) => result.value)
+    .sort((a, b) => Number(b?.generatedAt) - Number(a?.generatedAt))
+
+  if (caches.length) {
+    return caches[0]
   }
+
+  const errors = results.map((result) =>
+    result.status === 'rejected'
+      ? result.reason instanceof Error ? result.reason.message : String(result.reason)
+      : 'unknown error')
+  throw new Error(errors.join(' / '))
 }

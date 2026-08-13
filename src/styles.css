@@ -1132,10 +1132,21 @@ tr.row-timer-disabled td.alert-cell {
   box-shadow: 0 0 0 1px rgba(255, 215, 99, 0.16);
 }
 
+.time-cell-btn.sync-pending {
+  background: linear-gradient(180deg, rgba(57, 48, 20, 0.72), rgba(35, 31, 16, 0.86));
+  border-color: rgba(236, 190, 84, 0.72);
+  color: #f6d58a;
+}
+
 .auto-sync-check {
   color: #54e39a;
   font-weight: 800;
   text-shadow: 0 0 8px rgba(84, 227, 154, 0.32);
+}
+
+.sync-pending-mark {
+  color: #f6c85f;
+  text-shadow: 0 0 8px rgba(246, 200, 95, 0.24);
 }
 
 .map-icon-btn {
@@ -1160,6 +1171,12 @@ tr.row-timer-disabled td.alert-cell {
   color: #54e39a;
   font-weight: 700;
   text-shadow: 0 0 12px rgba(84, 227, 154, 0.35);
+}
+
+.next-time-text.sync-pending {
+  color: #f0c76b;
+  font-weight: 700;
+  text-shadow: 0 0 10px rgba(240, 199, 107, 0.22);
 }
 
 .sort-toggle-btn {

@@ -331,6 +331,18 @@
   color: var(--theme-amber);
 }
 
+:root[data-theme] .time-cell-btn.sync-pending {
+  border-color: color-mix(in srgb, var(--theme-amber) 72%, var(--theme-border));
+  background: color-mix(in srgb, var(--theme-amber-soft) 78%, var(--theme-panel));
+  color: var(--theme-amber);
+}
+
+:root[data-theme] .sync-pending-mark,
+:root[data-theme] .next-time-text.sync-pending {
+  color: var(--theme-amber);
+  text-shadow: none;
+}
+
 :root[data-theme] .map-icon-btn {
   border-color: var(--theme-border);
   background: var(--theme-blue-soft);

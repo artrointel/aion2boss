@@ -129,6 +129,48 @@ function loadRacingGamePage() {
   return racingGamePagePromise
 }
 
+function getFieldBossLink(boss) {
+  const regionIndex = Math.trunc(Number(boss?.regionIndex))
+  const bossCode = Math.trunc(Number(boss?.bossCode))
+  if (!Number.isInteger(regionIndex) || !Number.isInteger(bossCode)) return null
+  if (!findFieldBossOption(regionIndex, bossCode)) return null
+  return { regionIndex, bossCode }
+}
+
+function getFieldBossSyncState(boss, now) {
+  const link = getFieldBossLink(boss)
+  const rawTime = Number(boss?.nextSpawnTimestamp)
+  const hasRawTime = Number.isFinite(rawTime) && rawTime > 0
+  const manualProtected = boss?.manualSpawnOverride === true && hasRawTime && rawTime > now
+  const autoSynced = Boolean(
+    boss?.manualSpawnOverride !== true &&
+    boss?.autoFieldBossSyncedAt != null &&
+    Number(boss?.autoFieldBossTargetAt) === rawTime
+  )
+  const staleSynced = autoSynced && hasRawTime && rawTime <= now
+  const syncNeeded = !autoSynced && isSyncNeeded(boss, now)
+
+  return {
+    link,
+    autoSynced,
+    staleSynced,
+    manualProtected,
+    syncNeeded,
+    shouldPoll: Boolean(link && !manualProtected && (!autoSynced || rawTime <= now))
+  }
+}
+
+function buildFieldBossSyncPayload(boss, targetAt, syncedAt) {
+  const intervalMs = Number(boss?.interval) > 0 ? Number(boss.interval) * 3600000 : 0
+  return {
+    nextSpawnTimestamp: targetAt,
+    lastKillTimestamp: intervalMs ? targetAt - intervalMs : null,
+    manualSpawnOverride: false,
+    autoFieldBossTargetAt: targetAt,
+    autoFieldBossSyncedAt: syncedAt
+  }
+}
+
 const RacingGamePage = memo(lazy(loadRacingGamePage))
 
 export default function App() {
@@ -754,7 +796,7 @@ export default function App() {
   const syncNeededBosses = useMemo(() => {
     return orderedBosses
       .filter((boss) => boss.alertEnabled !== false)
-      .filter((boss) => isSyncNeeded(boss, now))
+      .filter((boss) => getFieldBossSyncState(boss, now).syncNeeded)
       .map((boss) => ({ name: boss.name, color: boss.color || '#ffadad' }))
   }, [orderedBosses, now])
   const shouldShowColumn = useCallback((key) => {
@@ -1157,28 +1199,32 @@ export default function App() {
   const syncFieldBossCacheToRoom = useCallback(async (serverIdOverride = null) => {
     if (!roomId || role !== 'admin') return
 
+    const syncedAt = getServerNow()
+    const forceSync = serverIdOverride != null
+    const syncCandidates = Object.entries(bosses || {})
+      .map(([key, boss]) => ({ key, boss, state: getFieldBossSyncState(boss, syncedAt) }))
+      .filter(({ boss, state }) => state.link && (
+        forceSync
+          ? !state.manualProtected
+          : state.shouldPoll
+      ))
+
+    if (!syncCandidates.length) return
+
     const cache = await fetchFieldBossPublicCache()
     setFieldBossCache(cache)
     const activeServerId = normalizeFieldBossServerId(serverIdOverride ?? fieldBossServerId)
-    const syncedAt = getServerNow()
 
     const updates = {}
-    Object.entries(bosses || {}).forEach(([key, boss]) => {
-      const regionIndex = Math.trunc(Number(boss?.regionIndex))
-      const bossCode = Math.trunc(Number(boss?.bossCode))
-      if (!Number.isInteger(regionIndex) || !Number.isInteger(bossCode)) return
-      if (!findFieldBossOption(regionIndex, bossCode)) return
-
+    syncCandidates.forEach(({ key, boss, state }) => {
+      const { regionIndex, bossCode } = state.link
       const targetAt = findFieldBossTarget(cache, activeServerId, regionIndex, bossCode)
       if (!targetAt || Number(boss?.nextSpawnTimestamp) === targetAt) return
-      if (boss?.manualSpawnOverride === true && Number(boss?.nextSpawnTimestamp) > syncedAt) return
 
-      const intervalMs = Number(boss?.interval) > 0 ? Number(boss.interval) * 3600000 : 0
-      updates[`${roomId}/bosses/${key}/nextSpawnTimestamp`] = targetAt
-      updates[`${roomId}/bosses/${key}/lastKillTimestamp`] = intervalMs ? targetAt - intervalMs : null
-      updates[`${roomId}/bosses/${key}/manualSpawnOverride`] = false
-      updates[`${roomId}/bosses/${key}/autoFieldBossTargetAt`] = targetAt
-      updates[`${roomId}/bosses/${key}/autoFieldBossSyncedAt`] = syncedAt
+      const payload = buildFieldBossSyncPayload(boss, targetAt, syncedAt)
+      Object.entries(payload).forEach(([field, value]) => {
+        updates[`${roomId}/bosses/${key}/${field}`] = value
+      })
     })
 
     if (Object.keys(updates).length) {
@@ -1823,9 +1869,8 @@ export default function App() {
     const boss = bosses[timeDialog.key]
     if (!boss) return closeRemainingDialog()
 
-    const regionIndex = Math.trunc(Number(boss.regionIndex))
-    const bossCode = Math.trunc(Number(boss.bossCode))
-    if (!Number.isInteger(regionIndex) || !Number.isInteger(bossCode) || !findFieldBossOption(regionIndex, bossCode)) {
+    const { link } = getFieldBossSyncState(boss, getServerNow())
+    if (!link) {
       window.alert('자동 싱크에 필요한 지역/보스 코드가 연결되어 있지 않습니다.')
       return
     }
@@ -1834,21 +1879,16 @@ export default function App() {
     try {
       const cache = await fetchFieldBossPublicCache()
       setFieldBossCache(cache)
+      const { regionIndex, bossCode } = link
       const targetAt = findFieldBossTarget(cache, fieldBossServerId, regionIndex, bossCode)
       if (!targetAt) {
         window.alert('현재 선택된 필드보스 서버에서 이 보스의 싱크 정보를 찾지 못했습니다.')
         return
       }
 
-      const intervalMs = Number(boss.interval) > 0 ? Number(boss.interval) * 3600000 : 0
+      const syncedAt = getServerNow()
       pushHistory(timeDialog.key, boss)
-      await updateBoss(timeDialog.key, {
-        nextSpawnTimestamp: targetAt,
-        lastKillTimestamp: intervalMs ? targetAt - intervalMs : null,
-        manualSpawnOverride: false,
-        autoFieldBossTargetAt: targetAt,
-        autoFieldBossSyncedAt: getServerNow()
-      })
+      await updateBoss(timeDialog.key, buildFieldBossSyncPayload(boss, targetAt, syncedAt))
       closeRemainingDialog()
     } catch (error) {
       console.warn('Failed to sync remaining time.', error)
@@ -2215,11 +2255,11 @@ export default function App() {
     return `${pad2(h)}:${pad2(m)}:${pad2(s)}`
   }
 
-  const mainSyncNeeded = mainBoss ? isSyncNeeded(mainBoss, now) : false
-  const prevSyncNeeded = prevBoss ? isSyncNeeded(prevBoss, now) : false
-  const nextSyncNeeded = nextBoss ? isSyncNeeded(nextBoss, now) : false
-  const overlayMainSyncNeeded = overlayMainBoss ? isSyncNeeded(overlayMainBoss, now) : false
-  const overlayNextSyncNeeded = overlayNextBoss ? isSyncNeeded(overlayNextBoss, now) : false
+  const mainSyncNeeded = mainBoss ? getFieldBossSyncState(mainBoss, now).syncNeeded : false
+  const prevSyncNeeded = prevBoss ? getFieldBossSyncState(prevBoss, now).syncNeeded : false
+  const nextSyncNeeded = nextBoss ? getFieldBossSyncState(nextBoss, now).syncNeeded : false
+  const overlayMainSyncNeeded = overlayMainBoss ? getFieldBossSyncState(overlayMainBoss, now).syncNeeded : false
+  const overlayNextSyncNeeded = overlayNextBoss ? getFieldBossSyncState(overlayNextBoss, now).syncNeeded : false
   const overlayEditorBosses = useMemo(() => {
     return overlayVisibleOrderedBosses
       .map((boss) => {
@@ -2233,7 +2273,7 @@ export default function App() {
         return {
           ...editorBoss,
           countdown: renderCountdown(editorBoss),
-          syncNeeded: boss.alertEnabled !== false && isSyncNeeded(boss, now),
+          syncNeeded: boss.alertEnabled !== false && getFieldBossSyncState(boss, now).syncNeeded,
           timerEditable: Boolean(boss.interval),
           highlightLabel: boss.key === overlayMainBoss?.key
             ? '현재'
@@ -2779,7 +2819,7 @@ export default function App() {
                     </div>
                     <div className='boss-queue-list'>
                       {upcomingBosses.length ? upcomingBosses.map((boss, index) => {
-                        const queueSyncNeeded = boss.alertEnabled !== false && isSyncNeeded(boss, now)
+                        const queueSyncNeeded = boss.alertEnabled !== false && getFieldBossSyncState(boss, now).syncNeeded
                         return (
                           <button
                             key={`queue-${boss.key}`}
@@ -3041,13 +3081,12 @@ export default function App() {
                     const isTimerExcluded = boss.alertEnabled === false
                     const spawn = getSpawnInfo(boss, now)
                     const nextText = spawn.time ? formatDateTime(spawn.time) : '-'
-                    const autoSynced = Boolean(
-                      boss.manualSpawnOverride !== true &&
-                      boss.autoFieldBossSyncedAt != null &&
-                      Number(boss.autoFieldBossTargetAt) === Number(spawn.time)
-                    )
+                    const syncState = getFieldBossSyncState(boss, now)
+                    const autoSynced = syncState.autoSynced
+                    const staleSynced = syncState.staleSynced
+                    const freshSynced = autoSynced && !staleSynced
                     const mapReady = hasMapPoint(boss)
-                    const syncNeeded = !isTimerExcluded && isSyncNeeded(boss, now)
+                    const syncNeeded = !isTimerExcluded && syncState.syncNeeded
                     const chaseTeams = normalizeChaseTeams(boss.chaseTeams)
                     const chaseBackground = chaseModeEnabled ? getChaseRowBackground(chaseTeams) : ''
                     const buildCellStyle = (key) => ({
@@ -3136,17 +3175,22 @@ export default function App() {
                             return (
                               <td key={key} style={buildCellStyle(key)}>
                                 <button
-                                  className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''} ${autoSynced ? 'auto-synced' : ''}`}
+                                  className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''} ${freshSynced ? 'auto-synced' : ''} ${staleSynced ? 'sync-pending' : ''}`}
                                   disabled={role !== 'admin' || isTimerExcluded}
                                   onClick={() => !isTimerExcluded && openRemainingDialog(boss)}
-                                  title={isTimerExcluded ? '타이머 제외 상태입니다.' : (syncNeeded ? '싱크 필요: 남은 시간을 눌러 수정하세요.' : undefined)}
+                                  title={isTimerExcluded
+                                    ? '타이머 제외 상태입니다.'
+                                    : staleSynced
+                                      ? '서버 기준으로 싱크됐지만 최신 갱신을 기다리는 중입니다.'
+                                      : (syncNeeded ? '싱크 필요: 남은 시간을 눌러 수정하세요.' : undefined)}
                                 >
                                   {syncNeeded ? '! ' : ''}
                                   {renderCountdown({
                                     ...boss,
                                     effectiveTime: spawn.time ?? Number.MAX_SAFE_INTEGER
                                   })}
-                                  {autoSynced ? <span className='auto-sync-check' aria-label='자동갱신 완료' title='자동갱신 완료'> ✓</span> : null}
+                                  {freshSynced ? <span className='auto-sync-check' aria-label='자동갱신 완료' title='자동갱신 완료'> ✓</span> : null}
+                                  {staleSynced ? <span className='auto-sync-check sync-pending-mark' aria-label='갱신 대기 중' title='서버 기준 싱크됨, 최신 갱신 대기 중'> ↻</span> : null}
                                 </button>
                               </td>
                             )
@@ -3154,7 +3198,7 @@ export default function App() {
                           if (key === 'next') {
                             return (
                               <td key={key} style={buildCellStyle(key)}>
-                                <span className={`next-time-text ${autoSynced ? 'auto-synced' : ''}`}>{nextText}</span>
+                                <span className={`next-time-text ${freshSynced ? 'auto-synced' : ''} ${staleSynced ? 'sync-pending' : ''}`}>{nextText}</span>
                               </td>
                             )
                           }

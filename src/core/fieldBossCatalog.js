@@ -5,7 +5,8 @@ export const FIELD_BOSS_CACHE_URLS = [
 
 export const FIELD_BOSS_CACHE_SCHEMA = 'notmeter-field-boss-public-cache-v1'
 export const DEFAULT_FIELD_BOSS_SERVER_ID = 1001
-export const FIELD_BOSS_CACHE_SYNC_INTERVAL_MS = 90 * 1000
+export const FIELD_BOSS_CACHE_SYNC_INTERVAL_MS = 30 * 1000
+const FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS = 5000
 
 const SERVER_NAMES_ELYOS = [
   '시엘', '네자칸', '바이젤', '카이시넬', '유스티엘', '아리엘', '프레기온', '메스람타에다',
@@ -124,24 +125,37 @@ export function findFieldBossTarget(cache, serverId, regionIndex, bossCode) {
   return Number.isSafeInteger(targetAt) && targetAt > 0 ? targetAt : null
 }
 
-export async function fetchFieldBossPublicCache() {
-  const errors = []
-  for (const baseUrl of FIELD_BOSS_CACHE_URLS) {
-    const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
-    try {
-      const response = await fetch(url, {
-        cache: 'no-store',
-        headers: { Accept: 'application/json' }
-      })
-      if (!response.ok) throw new Error(`HTTP ${response.status}`)
-      const cache = await response.json()
-      if (cache?.schema !== FIELD_BOSS_CACHE_SCHEMA || Number(cache.version) !== 1 || !Array.isArray(cache.servers)) {
-        throw new Error('invalid cache')
-      }
-      return cache
-    } catch (error) {
-      errors.push(`${baseUrl}: ${error instanceof Error ? error.message : String(error)}`)
+async function fetchFieldBossPublicCacheFromUrl(baseUrl) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS)
+  const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
+
+  try {
+    const response = await fetch(url, {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+      signal: controller.signal
+    })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    const cache = await response.json()
+    if (cache?.schema !== FIELD_BOSS_CACHE_SCHEMA || Number(cache.version) !== 1 || !Array.isArray(cache.servers)) {
+      throw new Error('invalid cache')
     }
+    return cache
+  } catch (error) {
+    throw new Error(`${baseUrl}: ${error instanceof Error ? error.message : String(error)}`)
+  } finally {
+    clearTimeout(timer)
   }
-  throw new Error(errors.join(' / '))
+}
+
+export async function fetchFieldBossPublicCache() {
+  try {
+    return await Promise.any(FIELD_BOSS_CACHE_URLS.map(fetchFieldBossPublicCacheFromUrl))
+  } catch (error) {
+    const errors = error instanceof AggregateError
+      ? error.errors.map((item) => item instanceof Error ? item.message : String(item))
+      : [error instanceof Error ? error.message : String(error)]
+    throw new Error(errors.join(' / '))
+  }
 }

@@ -197,7 +197,8 @@ export default function App() {
     name: '',
     h: 0,
     m: 0,
-    s: 0
+    s: 0,
+    syncing: false
   })
   const [syncNoticeDialog, setSyncNoticeDialog] = useState({
     open: false,
@@ -1159,11 +1160,10 @@ export default function App() {
     const cache = await fetchFieldBossPublicCache()
     setFieldBossCache(cache)
     const activeServerId = normalizeFieldBossServerId(serverIdOverride ?? fieldBossServerId)
+    const syncedAt = getServerNow()
 
     const updates = {}
     Object.entries(bosses || {}).forEach(([key, boss]) => {
-      if (boss?.manualSpawnOverride === true) return
-
       const regionIndex = Math.trunc(Number(boss?.regionIndex))
       const bossCode = Math.trunc(Number(boss?.bossCode))
       if (!Number.isInteger(regionIndex) || !Number.isInteger(bossCode)) return
@@ -1171,12 +1171,14 @@ export default function App() {
 
       const targetAt = findFieldBossTarget(cache, activeServerId, regionIndex, bossCode)
       if (!targetAt || Number(boss?.nextSpawnTimestamp) === targetAt) return
+      if (boss?.manualSpawnOverride === true && Number(boss?.nextSpawnTimestamp) > syncedAt) return
 
       const intervalMs = Number(boss?.interval) > 0 ? Number(boss.interval) * 3600000 : 0
       updates[`${roomId}/bosses/${key}/nextSpawnTimestamp`] = targetAt
       updates[`${roomId}/bosses/${key}/lastKillTimestamp`] = intervalMs ? targetAt - intervalMs : null
+      updates[`${roomId}/bosses/${key}/manualSpawnOverride`] = false
       updates[`${roomId}/bosses/${key}/autoFieldBossTargetAt`] = targetAt
-      updates[`${roomId}/bosses/${key}/autoFieldBossSyncedAt`] = getServerNow()
+      updates[`${roomId}/bosses/${key}/autoFieldBossSyncedAt`] = syncedAt
     })
 
     if (Object.keys(updates).length) {
@@ -1734,12 +1736,13 @@ export default function App() {
       name: boss.name || '',
       h: Math.min(clock.h, 24),
       m: clock.m,
-      s: clock.s
+      s: clock.s,
+      syncing: false
     })
   }
 
   const closeRemainingDialog = () => {
-    setTimeDialog({ open: false, key: '', name: '', h: 0, m: 0, s: 0 })
+    setTimeDialog({ open: false, key: '', name: '', h: 0, m: 0, s: 0, syncing: false })
   }
 
   const openChaseTeamDialog = (boss) => {
@@ -1787,6 +1790,7 @@ export default function App() {
   }
 
   const saveRemainingTime = async () => {
+    if (timeDialog.syncing) return
     const boss = bosses[timeDialog.key]
     if (!boss) return closeRemainingDialog()
     if (!boss.interval) {
@@ -1812,6 +1816,46 @@ export default function App() {
       autoFieldBossSyncedAt: null
     })
     closeRemainingDialog()
+  }
+
+  const syncRemainingTime = async () => {
+    if (timeDialog.syncing) return
+    const boss = bosses[timeDialog.key]
+    if (!boss) return closeRemainingDialog()
+
+    const regionIndex = Math.trunc(Number(boss.regionIndex))
+    const bossCode = Math.trunc(Number(boss.bossCode))
+    if (!Number.isInteger(regionIndex) || !Number.isInteger(bossCode) || !findFieldBossOption(regionIndex, bossCode)) {
+      window.alert('자동 싱크에 필요한 지역/보스 코드가 연결되어 있지 않습니다.')
+      return
+    }
+
+    setTimeDialog((prev) => ({ ...prev, syncing: true }))
+    try {
+      const cache = await fetchFieldBossPublicCache()
+      setFieldBossCache(cache)
+      const targetAt = findFieldBossTarget(cache, fieldBossServerId, regionIndex, bossCode)
+      if (!targetAt) {
+        window.alert('현재 선택된 필드보스 서버에서 이 보스의 싱크 정보를 찾지 못했습니다.')
+        return
+      }
+
+      const intervalMs = Number(boss.interval) > 0 ? Number(boss.interval) * 3600000 : 0
+      pushHistory(timeDialog.key, boss)
+      await updateBoss(timeDialog.key, {
+        nextSpawnTimestamp: targetAt,
+        lastKillTimestamp: intervalMs ? targetAt - intervalMs : null,
+        manualSpawnOverride: false,
+        autoFieldBossTargetAt: targetAt,
+        autoFieldBossSyncedAt: getServerNow()
+      })
+      closeRemainingDialog()
+    } catch (error) {
+      console.warn('Failed to sync remaining time.', error)
+      window.alert('싱크에 실패했습니다. 잠시 후 다시 시도해주세요.')
+    } finally {
+      setTimeDialog((prev) => prev.open ? { ...prev, syncing: false } : prev)
+    }
   }
 
   const submitRemainingTime = (e) => {
@@ -2495,7 +2539,10 @@ export default function App() {
           </div>
           <div className='dialog-actions'>
             <button type='button' className='btn ghost' onClick={closeRemainingDialog}>취소</button>
-            <button type='submit' className='btn primary'>적용</button>
+            <button type='button' className='btn ghost' onClick={syncRemainingTime} disabled={timeDialog.syncing}>
+              {timeDialog.syncing ? '싱크 중...' : '싱크하기'}
+            </button>
+            <button type='submit' className='btn primary' disabled={timeDialog.syncing}>적용</button>
           </div>
         </form>
       </div>
@@ -3207,7 +3254,10 @@ export default function App() {
               </div>
               <div className='dialog-actions'>
                 <button type='button' className='btn ghost' onClick={closeRemainingDialog}>취소</button>
-                <button type='submit' className='btn primary'>적용</button>
+                <button type='button' className='btn ghost' onClick={syncRemainingTime} disabled={timeDialog.syncing}>
+                  {timeDialog.syncing ? '싱크 중...' : '싱크하기'}
+                </button>
+                <button type='submit' className='btn primary' disabled={timeDialog.syncing}>적용</button>
               </div>
             </form>
           </div>

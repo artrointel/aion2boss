@@ -208,8 +208,6 @@ export default function App() {
   const [columnWidthsSeeded, setColumnWidthsSeeded] = useState(() => hasColumnWidthCookie())
   const [resizingColumn, setResizingColumn] = useState('')
   const [draggingColumn, setDraggingColumn] = useState('')
-  const [undoStack, setUndoStack] = useState([])
-  const [redoStack, setRedoStack] = useState([])
   const [serverOffsetMs, setServerOffsetMs] = useState(0)
   const [now, setNow] = useState(Date.now())
   const [dragKey, setDragKey] = useState(null)
@@ -304,6 +302,9 @@ export default function App() {
   const presenceJoinedAtRef = useRef(Date.now())
   const toastTimerRef = useRef(null)
   const skipTtsDisableCancelRef = useRef(false)
+  const bossesRef = useRef({})
+  const fieldBossServerIdRef = useRef(DEFAULT_FIELD_BOSS_SERVER_ID)
+  const fieldBossSyncInFlightRef = useRef(false)
 
   const getPreferredTtsVoice = useCallback(() => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) return null
@@ -548,7 +549,9 @@ export default function App() {
     if (!roomId) return undefined
 
     const unsubscribe = subscribeRoomBosses(roomId, (value) => {
-      setBosses(value || {})
+      const nextBosses = value || {}
+      bossesRef.current = nextBosses
+      setBosses(nextBosses)
       setRoomDataLoaded(true)
     })
 
@@ -573,6 +576,7 @@ export default function App() {
       setAdjacentBossThresholdSec(sec)
       setAdjacentBossThresholdInput(String(sec))
       setAutoSortEnabled(settings.autoSortEnabled === true)
+      fieldBossServerIdRef.current = nextFieldBossServerId
       setFieldBossServerId(nextFieldBossServerId)
       setChaseModeEnabled(settings.chaseModeEnabled === true)
       sharedMemoUpdatedAtRef.current = nextSharedMemoUpdatedAt
@@ -1197,11 +1201,13 @@ export default function App() {
   }, [autoSortEnabled, bosses, now, persistAutoSortOrder, role, roomId])
 
   const syncFieldBossCacheToRoom = useCallback(async (serverIdOverride = null) => {
-    if (!roomId || role !== 'admin') return
+    if (!roomId || role !== 'admin' || !roomDataLoaded) return
+    if (serverIdOverride == null && fieldBossSyncInFlightRef.current) return
 
     const syncedAt = getServerNow()
     const forceSync = serverIdOverride != null
-    const syncCandidates = Object.entries(bosses || {})
+    const snapshot = bossesRef.current || {}
+    const syncCandidates = Object.entries(snapshot)
       .map(([key, boss]) => ({ key, boss, state: getFieldBossSyncState(boss, syncedAt) }))
       .filter(({ boss, state }) => state.link && (
         forceSync
@@ -1211,26 +1217,38 @@ export default function App() {
 
     if (!syncCandidates.length) return
 
-    const cache = await fetchFieldBossPublicCache()
-    setFieldBossCache(cache)
-    const activeServerId = normalizeFieldBossServerId(serverIdOverride ?? fieldBossServerId)
+    fieldBossSyncInFlightRef.current = true
+    try {
+      const cache = await fetchFieldBossPublicCache(syncedAt)
+      setFieldBossCache(cache)
+      const activeServerId = normalizeFieldBossServerId(serverIdOverride ?? fieldBossServerIdRef.current)
+      const latestBosses = bossesRef.current || {}
 
-    const updates = {}
-    syncCandidates.forEach(({ key, boss, state }) => {
-      const { regionIndex, bossCode } = state.link
-      const targetAt = findFieldBossTarget(cache, activeServerId, regionIndex, bossCode)
-      if (!targetAt || Number(boss?.nextSpawnTimestamp) === targetAt) return
+      const updates = {}
+      syncCandidates.forEach(({ key, state }) => {
+        const boss = latestBosses[key]
+        const latestState = getFieldBossSyncState(boss, syncedAt)
+        if (!boss || !latestState.link || latestState.manualProtected) return
 
-      const payload = buildFieldBossSyncPayload(boss, targetAt, syncedAt)
-      Object.entries(payload).forEach(([field, value]) => {
-        updates[`${roomId}/bosses/${key}/${field}`] = value
+        const { regionIndex, bossCode } = latestState.link
+        if (regionIndex !== state.link.regionIndex || bossCode !== state.link.bossCode) return
+
+        const targetAt = findFieldBossTarget(cache, activeServerId, regionIndex, bossCode)
+        if (!targetAt || Number(boss?.nextSpawnTimestamp) === targetAt) return
+
+        const payload = buildFieldBossSyncPayload(boss, targetAt, syncedAt)
+        Object.entries(payload).forEach(([field, value]) => {
+          updates[`${roomId}/bosses/${key}/${field}`] = value
+        })
       })
-    })
 
-    if (Object.keys(updates).length) {
-      await updateRoot(updates)
+      if (Object.keys(updates).length) {
+        await updateRoot(updates)
+      }
+    } finally {
+      fieldBossSyncInFlightRef.current = false
     }
-  }, [bosses, fieldBossServerId, getServerNow, role, roomId, updateRoot])
+  }, [getServerNow, role, roomDataLoaded, roomId, updateRoot])
 
   const queueSharedMemoSave = useCallback((html) => {
     if (!roomId) return
@@ -1373,19 +1391,14 @@ export default function App() {
     setSharedMemoResizing(direction)
   }, [sharedMemoSize.height, sharedMemoSize.width])
 
-  const pushHistory = useCallback((key, data) => {
-    setUndoStack((prev) => [...prev, { key, data: { ...data } }])
-    setRedoStack([])
-  }, [])
-
   const enterRoom = useCallback((room) => {
     presenceJoinedAtRef.current = Date.now()
     setRoomPasswordInput('')
     setShowRoomPassword(false)
     setParticipantListDialog(EMPTY_PARTICIPANT_LIST_DIALOG)
+    bossesRef.current = {}
+    fieldBossSyncInFlightRef.current = false
     setRoomId(room)
-    setUndoStack([])
-    setRedoStack([])
     setEditingKey(null)
     setShowForm(false)
     setShowManagePanel(false)
@@ -1676,7 +1689,10 @@ export default function App() {
           [nextRoomName]: nextRoomData
         })
 
-        setBosses(nextRoomData.bosses || {})
+        const nextBosses = nextRoomData.bosses || {}
+        bossesRef.current = nextBosses
+        fieldBossServerIdRef.current = normalizeFieldBossServerId(nextSettings.fieldBossServerId)
+        setBosses(nextBosses)
         setRoomInput(nextRoomName)
         setRoomId(nextRoomName)
         setRoomDataLoaded(true)
@@ -1853,7 +1869,6 @@ export default function App() {
     const intervalMs = Number(boss.interval) * 3600000
     const lastKillTimestamp = nextSpawnTimestamp - intervalMs
 
-    pushHistory(timeDialog.key, boss)
     await updateBoss(timeDialog.key, {
       lastKillTimestamp,
       nextSpawnTimestamp,
@@ -1877,17 +1892,16 @@ export default function App() {
 
     setTimeDialog((prev) => ({ ...prev, syncing: true }))
     try {
-      const cache = await fetchFieldBossPublicCache()
+      const syncedAt = getServerNow()
+      const cache = await fetchFieldBossPublicCache(syncedAt)
       setFieldBossCache(cache)
       const { regionIndex, bossCode } = link
-      const targetAt = findFieldBossTarget(cache, fieldBossServerId, regionIndex, bossCode)
+      const targetAt = findFieldBossTarget(cache, fieldBossServerIdRef.current, regionIndex, bossCode)
       if (!targetAt) {
         window.alert('현재 선택된 필드보스 서버에서 이 보스의 싱크 정보를 찾지 못했습니다.')
         return
       }
 
-      const syncedAt = getServerNow()
-      pushHistory(timeDialog.key, boss)
       await updateBoss(timeDialog.key, buildFieldBossSyncPayload(boss, targetAt, syncedAt))
       closeRemainingDialog()
     } catch (error) {
@@ -2085,6 +2099,7 @@ export default function App() {
 
   const saveFieldBossServer = async (event) => {
     const serverId = normalizeFieldBossServerId(event.target.value)
+    fieldBossServerIdRef.current = serverId
     setFieldBossServerId(serverId)
     if (role !== 'admin' || !roomId) return
     await updateRoomSettings({ fieldBossServerId: serverId })
@@ -2195,34 +2210,6 @@ export default function App() {
     if (nextEnabled) {
       await persistAutoSortOrder(bosses, getServerNow())
     }
-  }
-
-  const handleUndo = async () => {
-    if (!undoStack.length) return
-
-    const action = undoStack[undoStack.length - 1]
-    const current = bosses[action.key]
-    setUndoStack((prev) => prev.slice(0, -1))
-    setRedoStack((prev) => [...prev, { key: action.key, data: { ...(current || {}) } }])
-
-    await updateBoss(action.key, {
-      lastKillTimestamp: action.data.lastKillTimestamp,
-      nextSpawnTimestamp: action.data.nextSpawnTimestamp
-    })
-  }
-
-  const handleRedo = async () => {
-    if (!redoStack.length) return
-
-    const action = redoStack[redoStack.length - 1]
-    const current = bosses[action.key]
-    setRedoStack((prev) => prev.slice(0, -1))
-    setUndoStack((prev) => [...prev, { key: action.key, data: { ...(current || {}) } }])
-
-    await updateBoss(action.key, {
-      lastKillTimestamp: action.data.lastKillTimestamp,
-      nextSpawnTimestamp: action.data.nextSpawnTimestamp
-    })
   }
 
   const handleDragStart = (key) => setDragKey(key)
@@ -2743,8 +2730,6 @@ export default function App() {
                         </button>
                         <button className='btn ghost' onClick={openCreateForm}>{showForm ? '폼 닫기' : '보스 추가'}</button>
                         <button className='btn ghost' onClick={toggleManagePanel}>{showManagePanel ? '설정 닫기' : '설정'}</button>
-                        <button className='btn' disabled={!undoStack.length} onClick={handleUndo}>실행 취소</button>
-                        <button className='btn' disabled={!redoStack.length} onClick={handleRedo}>다시 실행</button>
                       </>
                     ) : null}
                   </div>

@@ -7,6 +7,8 @@ export const FIELD_BOSS_CACHE_SCHEMA = 'notmeter-field-boss-public-cache-v1'
 export const DEFAULT_FIELD_BOSS_SERVER_ID = 1001
 export const FIELD_BOSS_CACHE_SYNC_INTERVAL_MS = 30 * 1000
 const FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS = 5000
+const FIELD_BOSS_CACHE_MAX_AGE_MS = 10 * 60 * 1000
+const FIELD_BOSS_CACHE_CLOCK_SKEW_MS = 60 * 1000
 
 const SERVER_NAMES_ELYOS = [
   '시엘', '네자칸', '바이젤', '카이시넬', '유스티엘', '아리엘', '프레기온', '메스람타에다',
@@ -149,11 +151,17 @@ async function fetchFieldBossPublicCacheFromUrl(baseUrl) {
   }
 }
 
-export async function fetchFieldBossPublicCache() {
+export async function fetchFieldBossPublicCache(nowMs = Date.now()) {
   const results = await Promise.allSettled(FIELD_BOSS_CACHE_URLS.map(fetchFieldBossPublicCacheFromUrl))
   const caches = results
     .filter((result) => result.status === 'fulfilled')
     .map((result) => result.value)
+    .filter((cache) => {
+      const generatedAtMs = Number(cache?.generatedAt) * 1000
+      if (!Number.isSafeInteger(generatedAtMs) || generatedAtMs <= 0) return false
+      const ageMs = nowMs - generatedAtMs
+      return ageMs <= FIELD_BOSS_CACHE_MAX_AGE_MS && ageMs >= -FIELD_BOSS_CACHE_CLOCK_SKEW_MS
+    })
     .sort((a, b) => Number(b?.generatedAt) - Number(a?.generatedAt))
 
   if (caches.length) {
@@ -164,5 +172,5 @@ export async function fetchFieldBossPublicCache() {
     result.status === 'rejected'
       ? result.reason instanceof Error ? result.reason.message : String(result.reason)
       : 'unknown error')
-  throw new Error(errors.join(' / '))
+  throw new Error([...errors, 'no fresh cache'].join(' / '))
 }

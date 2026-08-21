@@ -3,11 +3,17 @@ import https from 'node:https'
 import path from 'node:path'
 
 const SOURCE_URL = 'https://notmeter.112-168-140-142.sslip.io/field-boss/v1/public'
-const OUTPUT_PATHS = [
-  path.join('public', 'api', 'notmeter-field-boss-public.json'),
-  path.join('docs', 'api', 'notmeter-field-boss-public.json')
-]
-const TIMEOUT_MS = 60_000
+const OUTPUT_PATHS = (process.env.FIELD_BOSS_CACHE_OUTPUT_PATHS || path.join('.field-boss-cache', 'api', 'notmeter-field-boss-public.json'))
+  .split(path.delimiter)
+  .map((outputPath) => outputPath.trim())
+  .filter(Boolean)
+const TIMEOUT_MS = Number(process.env.FIELD_BOSS_CACHE_TIMEOUT_MS) || 120_000
+const RETRY_COUNT = Number(process.env.FIELD_BOSS_CACHE_RETRY_COUNT) || 3
+const RETRY_DELAY_MS = Number(process.env.FIELD_BOSS_CACHE_RETRY_DELAY_MS) || 10_000
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 async function fetchJson(url) {
   const targetUrl = new URL(url)
@@ -15,7 +21,12 @@ async function fetchJson(url) {
 
   const body = await new Promise((resolve, reject) => {
     const request = https.get(targetUrl, {
-      headers: { Accept: 'application/json' },
+      family: 4,
+      headers: {
+        Accept: 'application/json',
+        Origin: 'https://not4you-dev.github.io',
+        'User-Agent': 'aion2boss-field-boss-cache-mirror/1.0'
+      },
       timeout: TIMEOUT_MS
     }, (response) => {
       let responseBody = ''
@@ -40,6 +51,25 @@ async function fetchJson(url) {
   return JSON.parse(body)
 }
 
+async function fetchJsonWithRetry(url) {
+  let lastError = null
+
+  for (let attempt = 1; attempt <= RETRY_COUNT; attempt += 1) {
+    try {
+      console.log(`Fetching field boss cache, attempt ${attempt}/${RETRY_COUNT}.`)
+      return await fetchJson(url)
+    } catch (error) {
+      lastError = error
+      console.warn(`Attempt ${attempt}/${RETRY_COUNT} failed: ${error instanceof Error ? error.message : String(error)}`)
+      if (attempt < RETRY_COUNT) {
+        await wait(RETRY_DELAY_MS)
+      }
+    }
+  }
+
+  throw lastError
+}
+
 function validateFieldBossCache(cache) {
   if (
     cache?.schema !== 'notmeter-field-boss-public-cache-v1' ||
@@ -51,7 +81,7 @@ function validateFieldBossCache(cache) {
   }
 }
 
-const cache = await fetchJson(SOURCE_URL)
+const cache = await fetchJsonWithRetry(SOURCE_URL)
 validateFieldBossCache(cache)
 
 const mirroredCache = {

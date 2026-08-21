@@ -15,6 +15,7 @@ concurrency:
 jobs:
   mirror:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -26,9 +27,20 @@ jobs:
 
       - name: Mirror NotMeter field boss cache
         run: node scripts/mirror-field-boss-cache.mjs
+        env:
+          FIELD_BOSS_CACHE_TIMEOUT_MS: '120000'
+          FIELD_BOSS_CACHE_RETRY_COUNT: '3'
+          FIELD_BOSS_CACHE_RETRY_DELAY_MS: '10000'
 
-      - name: Commit mirrored cache
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: '필드보스 캐시 미러링'
-          file_pattern: 'public/api/notmeter-field-boss-public.json docs/api/notmeter-field-boss-public.json'
+      - name: Publish mirror branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          cd .field-boss-cache
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B field-boss-cache
+          git add api/notmeter-field-boss-public.json
+          git commit -m "Mirror field boss cache"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:field-boss-cache

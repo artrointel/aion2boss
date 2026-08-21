@@ -1,6 +1,6 @@
 export const FIELD_BOSS_CACHE_PRIMARY_URL = 'https://notmeter.112-168-140-142.sslip.io/field-boss/v1/public'
 const FIELD_BOSS_CACHE_DEV_PROXY_URL = '/api/notmeter-field-boss-public'
-const FIELD_BOSS_CACHE_MIRROR_URL = `${import.meta.env.BASE_URL}api/notmeter-field-boss-public.json`
+const FIELD_BOSS_CACHE_MIRROR_URL = 'https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json'
 export const FIELD_BOSS_CACHE_SOURCE_VERSION = 'vps-public-v1'
 
 export const FIELD_BOSS_CACHE_URLS = [

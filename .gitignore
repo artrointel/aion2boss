@@ -3,3 +3,4 @@ dist/
 .vite/
 src/legacyScript.raw.js
 release/
+.field-boss-cache/

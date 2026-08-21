@@ -25,29 +25,10 @@ jobs:
         with:
           node-version: 20
 
-      - name: Diagnose NotMeter local cache access
-        shell: cmd
-        env:
-          FIELD_BOSS_LOCAL_CACHE_PATH: ${{ vars.FIELD_BOSS_LOCAL_CACHE_PATH || 'C:\Users\battl\AppData\Local\Not4You-Meter\field-boss-server-cache.json' }}
-        run: |
-          whoami
-          echo FIELD_BOSS_LOCAL_CACHE_PATH=%FIELD_BOSS_LOCAL_CACHE_PATH%
-          if exist "%FIELD_BOSS_LOCAL_CACHE_PATH%" (
-            echo NotMeter cache file exists.
-            dir "%FIELD_BOSS_LOCAL_CACHE_PATH%"
-          ) else (
-            echo NotMeter cache file is not visible to this runner account.
-            if exist "C:\Users\battl\AppData\Local\Not4You-Meter" (
-              dir "C:\Users\battl\AppData\Local\Not4You-Meter"
-            ) else (
-              echo NotMeter directory is not visible to this runner account.
-            )
-          )
-
       - name: Mirror local NotMeter field boss cache
         shell: cmd
         env:
-          FIELD_BOSS_LOCAL_CACHE_PATH: ${{ vars.FIELD_BOSS_LOCAL_CACHE_PATH || 'C:\Users\battl\AppData\Local\Not4You-Meter\field-boss-server-cache.json' }}
+          FIELD_BOSS_LOCAL_CACHE_PATH: ${{ vars.FIELD_BOSS_LOCAL_CACHE_PATH }}
         run: node scripts/mirror-local-field-boss-cache.mjs
 
       - name: Publish mirror branch

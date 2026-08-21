@@ -8,7 +8,6 @@ const rendererDistPath = path.join(__dirname, '..', 'dist')
 const preloadPath = path.join(__dirname, 'preload.cjs')
 const devServerUrl = process.env.VITE_DEV_SERVER_URL
 const defaultOverlayOpacity = 0.94
-const fieldBossPublicCacheOrigin = 'https://notmeter.112-168-140-142.sslip.io'
 const MIN_OVERLAY_SIZE = {
   width: 120,
   height: 48
@@ -161,36 +160,6 @@ ipcMain.handle('desktop:open-external-url', async (_event, url) => {
     return true
   } catch {
     return false
-  }
-})
-
-ipcMain.handle('desktop:fetch-field-boss-public-cache', async (_event, url, timeoutMs) => {
-  const targetUrl = new URL(String(url || ''))
-  if (targetUrl.origin !== fieldBossPublicCacheOrigin || targetUrl.pathname !== '/field-boss/v1/public') {
-    throw new Error('unsupported field boss cache URL')
-  }
-
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), Math.max(1000, Math.min(60000, Number(timeoutMs) || 30000)))
-
-  try {
-    const response = await fetch(targetUrl, {
-      cache: 'no-store',
-      headers: { Accept: 'application/json' },
-      signal: controller.signal
-    })
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    const cache = await response.json()
-    if (
-      cache?.schema !== 'notmeter-field-boss-public-cache-v1' ||
-      Number(cache.version) !== 1 ||
-      !Array.isArray(cache.servers)
-    ) {
-      throw new Error('invalid cache')
-    }
-    return cache
-  } finally {
-    clearTimeout(timer)
   }
 })
 

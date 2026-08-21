@@ -10,6 +10,5 @@ contextBridge.exposeInMainWorld('aion2bossDesktop', {
   endWindowDrag: () => ipcRenderer.invoke('desktop:end-window-drag'),
   minimizeWindow: () => ipcRenderer.invoke('desktop:minimize-window'),
   closeWindow: () => ipcRenderer.invoke('desktop:close-window'),
-  openExternalUrl: (url) => ipcRenderer.invoke('desktop:open-external-url', url),
-  fetchFieldBossPublicCache: (url, timeoutMs) => ipcRenderer.invoke('desktop:fetch-field-boss-public-cache', url, timeoutMs)
+  openExternalUrl: (url) => ipcRenderer.invoke('desktop:open-external-url', url)
 })

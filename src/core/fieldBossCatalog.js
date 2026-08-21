@@ -1,9 +1,5 @@
-export const FIELD_BOSS_CACHE_PRIMARY_URL = 'https://notmeter.112-168-140-142.sslip.io/field-boss/v1/public'
-const FIELD_BOSS_CACHE_DEV_PROXY_URL = '/api/notmeter-field-boss-public'
 const FIELD_BOSS_CACHE_MIRROR_URL = 'https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json'
-const FIELD_BOSS_CACHE_REF_URL = 'https://api.github.com/repos/Not4You-Dev/NotMeter-Update/git/ref/heads/main'
-const FIELD_BOSS_CACHE_IMMUTABLE_ROOT = 'https://raw.githubusercontent.com/Not4You-Dev/NotMeter-Update'
-export const FIELD_BOSS_CACHE_SOURCE_VERSION = 'vps-public-v1'
+export const FIELD_BOSS_CACHE_SOURCE_VERSION = 'notmeter-local-mirror-v1'
 
 export const FIELD_BOSS_CACHE_URLS = [
   FIELD_BOSS_CACHE_MIRROR_URL,
@@ -15,7 +11,6 @@ export const FIELD_BOSS_CACHE_SCHEMA = 'notmeter-field-boss-public-cache-v1'
 export const DEFAULT_FIELD_BOSS_SERVER_ID = 1001
 export const FIELD_BOSS_CACHE_SYNC_INTERVAL_MS = 30 * 1000
 const FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS = 8000
-const FIELD_BOSS_CACHE_PRIMARY_FETCH_TIMEOUT_MS = 8000
 const FIELD_BOSS_CACHE_MAX_AGE_MS = 2 * 60 * 60 * 1000
 const FIELD_BOSS_CACHE_CLOCK_SKEW_MS = 60 * 1000
 
@@ -154,25 +149,7 @@ function isUsableFieldBossCache(cache, nowMs, serverId = null) {
     hasFieldBossCacheServer(cache, serverId)
 }
 
-function getFieldBossPrimaryUrl() {
-  if (typeof globalThis.window?.aion2bossDesktop?.fetchFieldBossPublicCache === 'function') {
-    return FIELD_BOSS_CACHE_PRIMARY_URL
-  }
-  return import.meta.env.DEV ? FIELD_BOSS_CACHE_DEV_PROXY_URL : null
-}
-
-async function fetchFieldBossPublicCacheFromDesktop(baseUrl, timeoutMs) {
-  const desktopApi = globalThis.window?.aion2bossDesktop
-  if (baseUrl !== FIELD_BOSS_CACHE_PRIMARY_URL || typeof desktopApi?.fetchFieldBossPublicCache !== 'function') {
-    return null
-  }
-  return desktopApi.fetchFieldBossPublicCache(`${baseUrl}?v=${Date.now()}`, timeoutMs)
-}
-
 async function fetchFieldBossPublicCacheFromUrl(baseUrl, timeoutMs = FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS) {
-  const desktopCache = await fetchFieldBossPublicCacheFromDesktop(baseUrl, timeoutMs)
-  if (desktopCache) return desktopCache
-
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), timeoutMs)
   const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
@@ -196,66 +173,7 @@ async function fetchFieldBossPublicCacheFromUrl(baseUrl, timeoutMs = FIELD_BOSS_
   }
 }
 
-function getFieldBossCacheUrlForRevision(revision) {
-  return `${FIELD_BOSS_CACHE_IMMUTABLE_ROOT}/${revision}/presence/notmeter-field-boss-public.json`
-}
-
-async function fetchFieldBossCacheRevision(timeoutMs = FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS) {
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), timeoutMs)
-  const url = `${FIELD_BOSS_CACHE_REF_URL}?v=${Date.now()}`
-
-  try {
-    const response = await fetch(url, {
-      cache: 'no-store',
-      headers: { Accept: 'application/vnd.github+json' },
-      signal: controller.signal
-    })
-    if (!response.ok) throw new Error(`HTTP ${response.status}`)
-    const reference = await response.json()
-    const revision = String(reference?.object?.sha || '').trim().toLowerCase()
-    if (!/^[0-9a-f]{40}$/.test(revision)) throw new Error('invalid branch revision')
-    return revision
-  } catch (error) {
-    throw new Error(`${FIELD_BOSS_CACHE_REF_URL}: ${error instanceof Error ? error.message : String(error)}`)
-  } finally {
-    clearTimeout(timer)
-  }
-}
-
 export async function fetchFieldBossPublicCache(nowMs = Date.now(), serverId = null) {
-  const errors = []
-  const primaryUrl = getFieldBossPrimaryUrl()
-
-  if (primaryUrl) {
-    try {
-      const cache = await fetchFieldBossPublicCacheFromUrl(
-        primaryUrl,
-        FIELD_BOSS_CACHE_PRIMARY_FETCH_TIMEOUT_MS
-      )
-      if (isUsableFieldBossCache(cache, nowMs, serverId)) {
-        return cache
-      }
-      errors.push(`${primaryUrl}: stale, empty, or missing server ${serverId ?? 'any'}`)
-    } catch (error) {
-      errors.push(error instanceof Error ? error.message : String(error))
-    }
-  }
-
-  if (primaryUrl) {
-    try {
-      const revision = await fetchFieldBossCacheRevision()
-      const immutableUrl = getFieldBossCacheUrlForRevision(revision)
-      const cache = await fetchFieldBossPublicCacheFromUrl(immutableUrl)
-      if (isUsableFieldBossCache(cache, nowMs, serverId)) {
-        return cache
-      }
-      errors.push(`${immutableUrl}: stale, empty, or missing server ${serverId ?? 'any'}`)
-    } catch (error) {
-      errors.push(error instanceof Error ? error.message : String(error))
-    }
-  }
-
   const results = await Promise.allSettled(FIELD_BOSS_CACHE_URLS.map((url) => fetchFieldBossPublicCacheFromUrl(url)))
   const caches = results
     .filter((result) => result.status === 'fulfilled')
@@ -271,5 +189,5 @@ export async function fetchFieldBossPublicCache(nowMs = Date.now(), serverId = n
     result.status === 'rejected'
       ? result.reason instanceof Error ? result.reason.message : String(result.reason)
       : 'unknown error')
-  throw new Error([...errors, ...fallbackErrors, 'no fresh cache'].join(' / '))
+  throw new Error([...fallbackErrors, 'no fresh cache'].join(' / '))
 }

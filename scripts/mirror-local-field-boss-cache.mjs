@@ -10,6 +10,14 @@ const DEFAULT_LOCAL_CACHE_PATH = path.join(
 const LOCAL_CACHE_PATH = process.env.FIELD_BOSS_LOCAL_CACHE_PATH || ''
 const EXISTING_MIRROR_URL = process.env.FIELD_BOSS_EXISTING_MIRROR_URL ||
   'https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json'
+const NOTMETER_PUBLIC_CACHE_URLS = (process.env.FIELD_BOSS_NOTMETER_PUBLIC_CACHE_URLS ||
+  [
+    'https://raw.githubusercontent.com/Not4You-Dev/NotMeter-Update/main/presence/notmeter-field-boss-public.json',
+    'https://cdn.jsdelivr.net/gh/Not4You-Dev/NotMeter-Update@main/presence/notmeter-field-boss-public.json'
+  ].join(path.delimiter))
+  .split(path.delimiter)
+  .map((url) => url.trim())
+  .filter(Boolean)
 const FETCH_TIMEOUT_MS = Number(process.env.FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS) || 8000
 const OUTPUT_PATHS = (process.env.FIELD_BOSS_CACHE_OUTPUT_PATHS || path.join('.field-boss-cache', 'api', 'notmeter-field-boss-public.json'))
   .split(path.delimiter)
@@ -103,26 +111,38 @@ function validatePublicCache(cache) {
     Array.isArray(cache.servers)
 }
 
-async function fetchExistingMirror() {
+async function fetchPublicCache(url, label) {
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
 
   try {
-    const response = await fetch(`${EXISTING_MIRROR_URL}${EXISTING_MIRROR_URL.includes('?') ? '&' : '?'}v=${Date.now()}`, {
+    const response = await fetch(`${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}`, {
       cache: 'no-store',
       headers: { Accept: 'application/json' },
       signal: controller.signal
     })
     if (!response.ok) throw new Error(`HTTP ${response.status}`)
     const cache = await response.json()
-    if (!validatePublicCache(cache)) throw new Error('invalid existing mirror')
+    if (!validatePublicCache(cache)) throw new Error('invalid public cache')
     return cache
   } catch (error) {
-    console.warn(`Existing mirror unavailable; creating local-only cache: ${error instanceof Error ? error.message : String(error)}`)
+    console.warn(`${label} unavailable: ${error instanceof Error ? error.message : String(error)}`)
     return null
   } finally {
     clearTimeout(timer)
   }
+}
+
+function fetchExistingMirror() {
+  return fetchPublicCache(EXISTING_MIRROR_URL, 'Existing mirror')
+}
+
+async function fetchNotMeterPublicCaches() {
+  const results = await Promise.all(NOTMETER_PUBLIC_CACHE_URLS.map(async (url) => ({
+    url,
+    cache: await fetchPublicCache(url, `NotMeter public cache ${url}`)
+  })))
+  return results.filter((result) => result.cache)
 }
 
 function convertLocalServer(server) {
@@ -142,22 +162,74 @@ function convertLocalServer(server) {
   }
 }
 
-function mergeCaches(existingCache, localCache) {
-  const serversById = new Map()
-  if (Array.isArray(existingCache?.servers)) {
-    existingCache.servers.forEach((server) => {
-      const serverId = normalizeInteger(server?.serverId)
-      if (serverId > 0) serversById.set(serverId, server)
-    })
+function useNewerServer(current, candidate) {
+  if (!current) return true
+  const currentGeneratedAt = normalizeInteger(current.generatedAt)
+  const candidateGeneratedAt = normalizeInteger(candidate.generatedAt)
+  if (candidateGeneratedAt !== currentGeneratedAt) {
+    return candidateGeneratedAt > currentGeneratedAt
   }
 
-  localCache.servers.map(convertLocalServer).forEach((server) => {
-    serversById.set(server.serverId, server)
+  const currentEntryCount = (current.regions || []).reduce((sum, region) =>
+    sum + (Array.isArray(region?.entries) ? region.entries.length : 0), 0)
+  const candidateEntryCount = (candidate.regions || []).reduce((sum, region) =>
+    sum + (Array.isArray(region?.entries) ? region.entries.length : 0), 0)
+  return candidateEntryCount > currentEntryCount
+}
+
+function addPublicServers(serversById, cache, sourceLabel) {
+  if (!Array.isArray(cache?.servers)) return
+
+  cache.servers.forEach((server) => {
+    const serverId = normalizeInteger(server?.serverId)
+    if (serverId <= 0) return
+
+    const candidate = {
+      ...server,
+      serverId,
+      mirroredSource: sourceLabel
+    }
+    if (useNewerServer(serversById.get(serverId), candidate)) {
+      serversById.set(serverId, candidate)
+    }
   })
+}
+
+function addLocalServers(serversById, localCache) {
+  localCache.servers.map(convertLocalServer).forEach((server) => {
+    const candidate = {
+      ...server,
+      mirroredSource: localCache.sourcePath
+    }
+    if (useNewerServer(serversById.get(server.serverId), candidate)) {
+      serversById.set(server.serverId, candidate)
+    }
+  })
+}
+
+function stripMirrorMetadata(server) {
+  const { mirroredSource, ...publicServer } = server
+  return publicServer
+}
+
+function mergeCaches(existingCache, notMeterPublicCaches, localCache) {
+  const serversById = new Map()
+
+  addPublicServers(serversById, existingCache, EXISTING_MIRROR_URL)
+  notMeterPublicCaches.forEach(({ cache, url }) => {
+    addPublicServers(serversById, cache, url)
+  })
+  addLocalServers(serversById, localCache)
 
   const servers = Array.from(serversById.values())
     .sort((a, b) => normalizeInteger(a.serverId) - normalizeInteger(b.serverId))
+    .map(stripMirrorMetadata)
   const generatedAt = servers.reduce((max, server) => Math.max(max, normalizeInteger(server.generatedAt)), 0)
+  const sourceCount = Array.from(serversById.values()).reduce((counts, server) => {
+    const source = server.mirroredSource || 'unknown'
+    counts[source] = (counts[source] || 0) + 1
+    return counts
+  }, {})
 
   return {
     schema: 'notmeter-field-boss-public-cache-v1',
@@ -167,7 +239,12 @@ function mergeCaches(existingCache, localCache) {
     maximumRegions: 6,
     servers,
     mirroredAt: Math.floor(Date.now() / 1000),
-    mirroredFrom: localCache.sourcePath
+    mirroredFrom: {
+      existingMirror: EXISTING_MIRROR_URL,
+      notMeterPublicCaches: NOTMETER_PUBLIC_CACHE_URLS,
+      localCache: localCache.sourcePath,
+      selectedServerCounts: sourceCount
+    }
   }
 }
 
@@ -176,8 +253,11 @@ const localCache = JSON.parse(await readFile(resolvedLocalCachePath, 'utf8'))
 localCache.sourcePath = resolvedLocalCachePath
 validateLocalSnapshotCache(localCache)
 
-const existingCache = await fetchExistingMirror()
-const mirroredCache = mergeCaches(existingCache, localCache)
+const [existingCache, notMeterPublicCaches] = await Promise.all([
+  fetchExistingMirror(),
+  fetchNotMeterPublicCaches()
+])
+const mirroredCache = mergeCaches(existingCache, notMeterPublicCaches, localCache)
 const body = `${JSON.stringify(mirroredCache, null, 2)}\n`
 
 await Promise.all(OUTPUT_PATHS.map(async (outputPath) => {
@@ -186,4 +266,4 @@ await Promise.all(OUTPUT_PATHS.map(async (outputPath) => {
 }))
 
 const localServerIds = localCache.servers.map((server) => normalizeInteger(server.serverId)).join(', ')
-console.log(`Mirrored local NotMeter field boss servers [${localServerIds}] into ${mirroredCache.servers.length} total servers.`)
+console.log(`Mirrored NotMeter field boss cache with local servers [${localServerIds}] into ${mirroredCache.servers.length} total servers.`)

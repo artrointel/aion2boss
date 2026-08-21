@@ -1,5 +1,5 @@
 const FIELD_BOSS_CACHE_MIRROR_URL = 'https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json'
-export const FIELD_BOSS_CACHE_SOURCE_VERSION = 'notmeter-local-mirror-v1'
+export const FIELD_BOSS_CACHE_SOURCE_VERSION = 'notmeter-source-mirror-v2'
 
 export const FIELD_BOSS_CACHE_URLS = [
   FIELD_BOSS_CACHE_MIRROR_URL,
@@ -124,11 +124,23 @@ export function findFieldBossOption(regionIndex, bossCode) {
 }
 
 export function findFieldBossTarget(cache, serverId, regionIndex, bossCode) {
+  return findFieldBossTargetInfo(cache, serverId, regionIndex, bossCode)?.targetAt || null
+}
+
+export function findFieldBossTargetInfo(cache, serverId, regionIndex, bossCode) {
   const server = cache?.servers?.find((item) => Number(item.serverId) === Number(serverId))
   const region = server?.regions?.find((item) => Number(item.region) === Number(regionIndex))
   const entry = region?.entries?.find((item) => Number(item.bossCode) === Number(bossCode))
   const targetAt = Number(entry?.targetAt)
-  return Number.isSafeInteger(targetAt) && targetAt > 0 ? targetAt : null
+  if (!Number.isSafeInteger(targetAt) || targetAt <= 0) return null
+
+  const source = entry?.source || region?.source || server?.source || null
+  const sourceUpdatedAt = Number(source?.updatedAt ?? server?.generatedAt ?? cache?.generatedAt)
+  return {
+    targetAt,
+    sourceName: typeof source?.name === 'string' && source.name.trim() ? source.name.trim() : null,
+    sourceUpdatedAt: Number.isSafeInteger(sourceUpdatedAt) && sourceUpdatedAt > 0 ? sourceUpdatedAt : null
+  }
 }
 
 function isFreshFieldBossCache(cache, nowMs) {

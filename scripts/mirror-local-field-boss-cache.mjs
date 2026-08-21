@@ -8,6 +8,8 @@ const DEFAULT_LOCAL_CACHE_PATH = path.join(
   'field-boss-server-cache.json'
 )
 const LOCAL_CACHE_PATH = process.env.FIELD_BOSS_LOCAL_CACHE_PATH || ''
+const NOTMETER_VPS_CACHE_URL = process.env.FIELD_BOSS_NOTMETER_VPS_CACHE_URL ||
+  'https://notmeter.112-168-140-142.sslip.io/field-boss/v1/public'
 const EXISTING_MIRROR_URL = process.env.FIELD_BOSS_EXISTING_MIRROR_URL ||
   'https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json'
 const NOTMETER_PUBLIC_CACHE_URLS = (process.env.FIELD_BOSS_NOTMETER_PUBLIC_CACHE_URLS ||
@@ -23,6 +25,18 @@ const OUTPUT_PATHS = (process.env.FIELD_BOSS_CACHE_OUTPUT_PATHS || path.join('.f
   .split(path.delimiter)
   .map((outputPath) => outputPath.trim())
   .filter(Boolean)
+const SOURCE_NAMES = {
+  vps: 'NotMeter VPS API',
+  local: 'Artrointel Local NotMeter',
+  public: 'NotMeter Public JSON',
+  mirror: 'NotMeter Cache Mirror'
+}
+const SOURCE_PRIORITY = {
+  [SOURCE_NAMES.vps]: 0,
+  [SOURCE_NAMES.local]: 1,
+  [SOURCE_NAMES.public]: 2,
+  [SOURCE_NAMES.mirror]: 3
+}
 
 function normalizeInteger(value, fallback = 0) {
   const number = Math.trunc(Number(value))
@@ -134,7 +148,11 @@ async function fetchPublicCache(url, label) {
 }
 
 function fetchExistingMirror() {
-  return fetchPublicCache(EXISTING_MIRROR_URL, 'Existing mirror')
+  return fetchPublicCache(EXISTING_MIRROR_URL, SOURCE_NAMES.mirror)
+}
+
+function fetchNotMeterVpsCache() {
+  return fetchPublicCache(NOTMETER_VPS_CACHE_URL, SOURCE_NAMES.vps)
 }
 
 async function fetchNotMeterPublicCaches() {
@@ -174,10 +192,23 @@ function useNewerServer(current, candidate) {
     sum + (Array.isArray(region?.entries) ? region.entries.length : 0), 0)
   const candidateEntryCount = (candidate.regions || []).reduce((sum, region) =>
     sum + (Array.isArray(region?.entries) ? region.entries.length : 0), 0)
-  return candidateEntryCount > currentEntryCount
+  if (candidateEntryCount !== currentEntryCount) {
+    return candidateEntryCount > currentEntryCount
+  }
+
+  return (SOURCE_PRIORITY[candidate.mirroredSource?.name] ?? 99) <
+    (SOURCE_PRIORITY[current.mirroredSource?.name] ?? 99)
 }
 
-function addPublicServers(serversById, cache, sourceLabel) {
+function createSource(name, url, updatedAt) {
+  return {
+    name,
+    updatedAt: normalizeInteger(updatedAt),
+    ...(url ? { url } : {})
+  }
+}
+
+function addPublicServers(serversById, cache, sourceName, sourceUrl) {
   if (!Array.isArray(cache?.servers)) return
 
   cache.servers.forEach((server) => {
@@ -187,7 +218,8 @@ function addPublicServers(serversById, cache, sourceLabel) {
     const candidate = {
       ...server,
       serverId,
-      mirroredSource: sourceLabel
+      source: createSource(sourceName, sourceUrl, server?.generatedAt),
+      mirroredSource: createSource(sourceName, sourceUrl, server?.generatedAt)
     }
     if (useNewerServer(serversById.get(serverId), candidate)) {
       serversById.set(serverId, candidate)
@@ -199,7 +231,8 @@ function addLocalServers(serversById, localCache) {
   localCache.servers.map(convertLocalServer).forEach((server) => {
     const candidate = {
       ...server,
-      mirroredSource: localCache.sourcePath
+      source: createSource(SOURCE_NAMES.local, localCache.sourcePath, server.generatedAt),
+      mirroredSource: createSource(SOURCE_NAMES.local, localCache.sourcePath, server.generatedAt)
     }
     if (useNewerServer(serversById.get(server.serverId), candidate)) {
       serversById.set(server.serverId, candidate)
@@ -212,12 +245,13 @@ function stripMirrorMetadata(server) {
   return publicServer
 }
 
-function mergeCaches(existingCache, notMeterPublicCaches, localCache) {
+function mergeCaches(existingCache, notMeterVpsCache, notMeterPublicCaches, localCache) {
   const serversById = new Map()
 
-  addPublicServers(serversById, existingCache, EXISTING_MIRROR_URL)
+  addPublicServers(serversById, existingCache, SOURCE_NAMES.mirror, EXISTING_MIRROR_URL)
+  addPublicServers(serversById, notMeterVpsCache, SOURCE_NAMES.vps, NOTMETER_VPS_CACHE_URL)
   notMeterPublicCaches.forEach(({ cache, url }) => {
-    addPublicServers(serversById, cache, url)
+    addPublicServers(serversById, cache, SOURCE_NAMES.public, url)
   })
   addLocalServers(serversById, localCache)
 
@@ -226,7 +260,7 @@ function mergeCaches(existingCache, notMeterPublicCaches, localCache) {
     .map(stripMirrorMetadata)
   const generatedAt = servers.reduce((max, server) => Math.max(max, normalizeInteger(server.generatedAt)), 0)
   const sourceCount = Array.from(serversById.values()).reduce((counts, server) => {
-    const source = server.mirroredSource || 'unknown'
+    const source = server.mirroredSource?.name || 'unknown'
     counts[source] = (counts[source] || 0) + 1
     return counts
   }, {})
@@ -240,9 +274,12 @@ function mergeCaches(existingCache, notMeterPublicCaches, localCache) {
     servers,
     mirroredAt: Math.floor(Date.now() / 1000),
     mirroredFrom: {
-      existingMirror: EXISTING_MIRROR_URL,
-      notMeterPublicCaches: NOTMETER_PUBLIC_CACHE_URLS,
-      localCache: localCache.sourcePath,
+      sources: {
+        [SOURCE_NAMES.vps]: NOTMETER_VPS_CACHE_URL,
+        [SOURCE_NAMES.local]: localCache.sourcePath,
+        [SOURCE_NAMES.public]: NOTMETER_PUBLIC_CACHE_URLS,
+        [SOURCE_NAMES.mirror]: EXISTING_MIRROR_URL
+      },
       selectedServerCounts: sourceCount
     }
   }
@@ -253,11 +290,12 @@ const localCache = JSON.parse(await readFile(resolvedLocalCachePath, 'utf8'))
 localCache.sourcePath = resolvedLocalCachePath
 validateLocalSnapshotCache(localCache)
 
-const [existingCache, notMeterPublicCaches] = await Promise.all([
+const [existingCache, notMeterVpsCache, notMeterPublicCaches] = await Promise.all([
   fetchExistingMirror(),
+  fetchNotMeterVpsCache(),
   fetchNotMeterPublicCaches()
 ])
-const mirroredCache = mergeCaches(existingCache, notMeterPublicCaches, localCache)
+const mirroredCache = mergeCaches(existingCache, notMeterVpsCache, notMeterPublicCaches, localCache)
 const body = `${JSON.stringify(mirroredCache, null, 2)}\n`
 
 await Promise.all(OUTPUT_PATHS.map(async (outputPath) => {

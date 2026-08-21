@@ -116,7 +116,7 @@ import {
   FIELD_BOSS_SERVERS,
   fetchFieldBossPublicCache,
   findFieldBossOption,
-  findFieldBossTarget,
+  findFieldBossTargetInfo,
   normalizeFieldBossServerId
 } from './core/fieldBossCatalog'
 
@@ -162,7 +162,28 @@ function getFieldBossSyncState(boss, now) {
   }
 }
 
-function buildFieldBossSyncPayload(boss, targetAt, syncedAt) {
+function formatFieldBossSourceUpdatedAt(value) {
+  const seconds = Number(value)
+  if (!Number.isSafeInteger(seconds) || seconds <= 0) return '-'
+  const date = new Date(seconds * 1000)
+  return `${pad2(date.getMonth() + 1)}/${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`
+}
+
+function buildFieldBossSourceCard(boss) {
+  const sourceName = typeof boss?.autoFieldBossSourceName === 'string' && boss.autoFieldBossSourceName.trim()
+    ? boss.autoFieldBossSourceName.trim()
+    : null
+  const sourceUpdatedAt = Number(boss?.autoFieldBossSourceUpdatedAt)
+  if (!sourceName && !Number.isSafeInteger(sourceUpdatedAt)) return null
+
+  return {
+    sourceName: sourceName || 'Unknown',
+    updatedText: formatFieldBossSourceUpdatedAt(sourceUpdatedAt)
+  }
+}
+
+function buildFieldBossSyncPayload(boss, targetInfo, syncedAt) {
+  const targetAt = Number(targetInfo?.targetAt ?? targetInfo)
   const intervalMs = Number(boss?.interval) > 0 ? Number(boss.interval) * 3600000 : 0
   return {
     nextSpawnTimestamp: targetAt,
@@ -170,6 +191,8 @@ function buildFieldBossSyncPayload(boss, targetAt, syncedAt) {
     manualSpawnOverride: false,
     autoFieldBossTargetAt: targetAt,
     autoFieldBossSyncedAt: syncedAt,
+    autoFieldBossSourceName: targetInfo?.sourceName || null,
+    autoFieldBossSourceUpdatedAt: targetInfo?.sourceUpdatedAt || null,
     autoFieldBossSourceVersion: FIELD_BOSS_CACHE_SOURCE_VERSION
   }
 }
@@ -1236,10 +1259,10 @@ export default function App() {
         const { regionIndex, bossCode } = latestState.link
         if (regionIndex !== state.link.regionIndex || bossCode !== state.link.bossCode) return
 
-        const targetAt = findFieldBossTarget(cache, activeServerId, regionIndex, bossCode)
-        if (!targetAt) return
+        const targetInfo = findFieldBossTargetInfo(cache, activeServerId, regionIndex, bossCode)
+        if (!targetInfo) return
 
-        const payload = buildFieldBossSyncPayload(boss, targetAt, syncedAt)
+        const payload = buildFieldBossSyncPayload(boss, targetInfo, syncedAt)
         Object.entries(payload).forEach(([field, value]) => {
           if (boss?.[field] !== value) {
             updates[`${roomId}/bosses/${key}/${field}`] = value
@@ -1880,6 +1903,8 @@ export default function App() {
       manualSpawnOverride: true,
       autoFieldBossTargetAt: null,
       autoFieldBossSyncedAt: null,
+      autoFieldBossSourceName: null,
+      autoFieldBossSourceUpdatedAt: null,
       autoFieldBossSourceVersion: null
     })
     closeRemainingDialog()
@@ -1902,13 +1927,13 @@ export default function App() {
       const cache = await fetchFieldBossPublicCache(syncedAt, fieldBossServerIdRef.current)
       setFieldBossCache(cache)
       const { regionIndex, bossCode } = link
-      const targetAt = findFieldBossTarget(cache, fieldBossServerIdRef.current, regionIndex, bossCode)
-      if (!targetAt) {
+      const targetInfo = findFieldBossTargetInfo(cache, fieldBossServerIdRef.current, regionIndex, bossCode)
+      if (!targetInfo) {
         window.alert('현재 선택된 필드보스 서버에서 이 보스의 싱크 정보를 찾지 못했습니다.')
         return
       }
 
-      await updateBoss(timeDialog.key, buildFieldBossSyncPayload(boss, targetAt, syncedAt))
+      await updateBoss(timeDialog.key, buildFieldBossSyncPayload(boss, targetInfo, syncedAt))
       closeRemainingDialog()
     } catch (error) {
       console.warn('Failed to sync remaining time.', error)
@@ -2005,6 +2030,8 @@ export default function App() {
       payload.manualSpawnOverride = false
       payload.autoFieldBossTargetAt = null
       payload.autoFieldBossSyncedAt = null
+      payload.autoFieldBossSourceName = null
+      payload.autoFieldBossSourceUpdatedAt = null
       payload.autoFieldBossSourceVersion = null
     }
 
@@ -3077,6 +3104,7 @@ export default function App() {
                     const autoSynced = syncState.autoSynced
                     const staleSynced = syncState.staleSynced
                     const freshSynced = autoSynced && !staleSynced
+                    const sourceCard = autoSynced ? buildFieldBossSourceCard(boss) : null
                     const mapReady = hasMapPoint(boss)
                     const syncNeeded = !isTimerExcluded && syncState.syncNeeded
                     const chaseTeams = normalizeChaseTeams(boss.chaseTeams)
@@ -3166,24 +3194,39 @@ export default function App() {
                           if (key === 'remaining') {
                             return (
                               <td key={key} style={buildCellStyle(key)}>
-                                <button
-                                  className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''} ${freshSynced ? 'auto-synced' : ''} ${staleSynced ? 'sync-pending' : ''}`}
-                                  disabled={role !== 'admin' || isTimerExcluded}
-                                  onClick={() => !isTimerExcluded && openRemainingDialog(boss)}
-                                  title={isTimerExcluded
-                                    ? '타이머 제외 상태입니다.'
-                                    : staleSynced
-                                      ? '서버 기준으로 싱크됐지만 최신 갱신을 기다리는 중입니다.'
-                                      : (syncNeeded ? '싱크 필요: 남은 시간을 눌러 수정하세요.' : undefined)}
-                                >
-                                  {syncNeeded ? '! ' : ''}
-                                  {renderCountdown({
-                                    ...boss,
-                                    effectiveTime: spawn.time ?? Number.MAX_SAFE_INTEGER
-                                  })}
-                                  {freshSynced ? <span className='auto-sync-check' aria-label='자동갱신 완료' title='자동갱신 완료'> ✓</span> : null}
-                                  {staleSynced ? <span className='auto-sync-check sync-pending-mark' aria-label='갱신 대기 중' title='서버 기준 싱크됨, 최신 갱신 대기 중'> ↻</span> : null}
-                                </button>
+                                <span className='field-boss-source-wrap'>
+                                  <button
+                                    className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''} ${freshSynced ? 'auto-synced' : ''} ${staleSynced ? 'sync-pending' : ''}`}
+                                    disabled={role !== 'admin' || isTimerExcluded}
+                                    onClick={() => !isTimerExcluded && openRemainingDialog(boss)}
+                                    title={isTimerExcluded
+                                      ? '타이머 제외 상태입니다.'
+                                      : staleSynced
+                                        ? '서버 기준으로 싱크됐지만 최신 갱신을 기다리는 중입니다.'
+                                        : (syncNeeded ? '싱크 필요: 남은 시간을 눌러 수정하세요.' : undefined)}
+                                  >
+                                    {syncNeeded ? '! ' : ''}
+                                    {renderCountdown({
+                                      ...boss,
+                                      effectiveTime: spawn.time ?? Number.MAX_SAFE_INTEGER
+                                    })}
+                                    {freshSynced ? <span className='auto-sync-check' aria-label='자동갱신 완료' title='자동갱신 완료'> ✓</span> : null}
+                                    {staleSynced ? <span className='auto-sync-check sync-pending-mark' aria-label='갱신 대기 중' title='서버 기준 싱크됨, 최신 갱신 대기 중'> ↻</span> : null}
+                                    {sourceCard ? <span className='field-boss-source-badge'>SRC</span> : null}
+                                  </button>
+                                  {sourceCard ? (
+                                    <span className='field-boss-source-card' role='tooltip'>
+                                      <span className='field-boss-source-card-row'>
+                                        <span>SOURCE</span>
+                                        <strong>{sourceCard.sourceName}</strong>
+                                      </span>
+                                      <span className='field-boss-source-card-row'>
+                                        <span>UPDATED</span>
+                                        <strong>{sourceCard.updatedText}</strong>
+                                      </span>
+                                    </span>
+                                  ) : null}
+                                </span>
                               </td>
                             )
                           }

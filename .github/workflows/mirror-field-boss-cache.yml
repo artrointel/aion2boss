@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 concurrency:
-  group: mirror-field-boss-cache
-  cancel-in-progress: true
+  group: field-boss-cache-publish
+  cancel-in-progress: false
 
 jobs:
   mirror:
@@ -28,9 +28,10 @@ jobs:
       - name: Mirror NotMeter field boss cache
         run: node scripts/mirror-field-boss-cache.mjs
         env:
-          FIELD_BOSS_CACHE_TIMEOUT_MS: '120000'
-          FIELD_BOSS_CACHE_RETRY_COUNT: '3'
-          FIELD_BOSS_CACHE_RETRY_DELAY_MS: '10000'
+          FIELD_BOSS_CACHE_TIMEOUT_MS: '8000'
+          FIELD_BOSS_CACHE_RETRY_COUNT: '1'
+          FIELD_BOSS_CACHE_RETRY_DELAY_MS: '1000'
+          FIELD_BOSS_CACHE_MIN_SERVER_COUNT: '40'
 
       - name: Publish mirror branch
         env:

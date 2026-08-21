@@ -1222,9 +1222,9 @@ export default function App() {
 
     fieldBossSyncInFlightRef.current = true
     try {
-      const cache = await fetchFieldBossPublicCache(syncedAt)
-      setFieldBossCache(cache)
       const activeServerId = normalizeFieldBossServerId(serverIdOverride ?? fieldBossServerIdRef.current)
+      const cache = await fetchFieldBossPublicCache(syncedAt, activeServerId)
+      setFieldBossCache(cache)
       const latestBosses = bossesRef.current || {}
 
       const updates = {}
@@ -1899,7 +1899,7 @@ export default function App() {
     setTimeDialog((prev) => ({ ...prev, syncing: true }))
     try {
       const syncedAt = getServerNow()
-      const cache = await fetchFieldBossPublicCache(syncedAt)
+      const cache = await fetchFieldBossPublicCache(syncedAt, fieldBossServerIdRef.current)
       setFieldBossCache(cache)
       const { regionIndex, bossCode } = link
       const targetAt = findFieldBossTarget(cache, fieldBossServerIdRef.current, regionIndex, bossCode)

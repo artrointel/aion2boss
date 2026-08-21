@@ -1156,24 +1156,9 @@ tr.row-timer-disabled td.alert-cell {
   justify-content: center;
 }
 
-.field-boss-source-badge {
-  margin-left: 6px;
-  padding: 1px 4px;
-  border: 1px solid rgba(126, 194, 239, 0.56);
-  border-radius: 5px;
-  background: rgba(14, 29, 47, 0.82);
-  color: #9ed7ff;
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0;
-  line-height: 1.2;
-}
-
 .field-boss-source-card {
-  position: absolute;
-  left: 50%;
-  top: calc(100% + 8px);
-  z-index: 20;
+  position: fixed;
+  z-index: 100;
   min-width: 188px;
   padding: 9px 10px;
   border: 1px solid rgba(91, 132, 174, 0.76);
@@ -1183,14 +1168,15 @@ tr.row-timer-disabled td.alert-cell {
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.34);
   opacity: 0;
   pointer-events: none;
-  transform: translateX(-50%) translateY(4px);
+  transform: translateY(4px);
   transition: opacity 0.14s ease, transform 0.14s ease;
 }
 
 .field-boss-source-wrap:hover .field-boss-source-card,
 .field-boss-source-wrap:focus-within .field-boss-source-card {
+  margin-top: 8px;
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(0);
 }
 
 .field-boss-source-card-row {

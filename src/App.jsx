@@ -3212,7 +3212,6 @@ export default function App() {
                                     })}
                                     {freshSynced ? <span className='auto-sync-check' aria-label='자동갱신 완료' title='자동갱신 완료'> ✓</span> : null}
                                     {staleSynced ? <span className='auto-sync-check sync-pending-mark' aria-label='갱신 대기 중' title='서버 기준 싱크됨, 최신 갱신 대기 중'> ↻</span> : null}
-                                    {sourceCard ? <span className='field-boss-source-badge'>SRC</span> : null}
                                   </button>
                                   {sourceCard ? (
                                     <span className='field-boss-source-card' role='tooltip'>

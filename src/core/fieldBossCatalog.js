@@ -1,5 +1,6 @@
 export const FIELD_BOSS_CACHE_PRIMARY_URL = 'https://notmeter.112-168-140-142.sslip.io/field-boss/v1/public'
 const FIELD_BOSS_CACHE_DEV_PROXY_URL = '/api/notmeter-field-boss-public'
+const FIELD_BOSS_CACHE_MIRROR_URL = `${import.meta.env.BASE_URL}api/notmeter-field-boss-public.json`
 export const FIELD_BOSS_CACHE_SOURCE_VERSION = 'vps-public-v1'
 
 export const FIELD_BOSS_CACHE_URLS = [
@@ -12,7 +13,7 @@ export const DEFAULT_FIELD_BOSS_SERVER_ID = 1001
 export const FIELD_BOSS_CACHE_SYNC_INTERVAL_MS = 30 * 1000
 const FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS = 5000
 const FIELD_BOSS_CACHE_PRIMARY_FETCH_TIMEOUT_MS = 45000
-const FIELD_BOSS_CACHE_MAX_AGE_MS = 10 * 60 * 1000
+const FIELD_BOSS_CACHE_MAX_AGE_MS = 20 * 60 * 1000
 const FIELD_BOSS_CACHE_CLOCK_SKEW_MS = 60 * 1000
 
 const SERVER_NAMES_ELYOS = [
@@ -140,7 +141,10 @@ function isFreshFieldBossCache(cache, nowMs) {
 }
 
 function getFieldBossPrimaryUrl() {
-  return import.meta.env.DEV ? FIELD_BOSS_CACHE_DEV_PROXY_URL : FIELD_BOSS_CACHE_PRIMARY_URL
+  if (typeof globalThis.window?.aion2bossDesktop?.fetchFieldBossPublicCache === 'function') {
+    return FIELD_BOSS_CACHE_PRIMARY_URL
+  }
+  return import.meta.env.DEV ? FIELD_BOSS_CACHE_DEV_PROXY_URL : FIELD_BOSS_CACHE_MIRROR_URL
 }
 
 async function fetchFieldBossPublicCacheFromDesktop(baseUrl, timeoutMs) {

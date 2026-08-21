@@ -182,6 +182,29 @@ function buildFieldBossSourceCard(boss) {
   }
 }
 
+function positionFieldBossSourceCard(anchor) {
+  const card = anchor?.querySelector?.('.field-boss-source-card')
+  if (!card || typeof window === 'undefined') return
+
+  const gap = 8
+  const edge = 8
+  const anchorRect = anchor.getBoundingClientRect()
+  const cardRect = card.getBoundingClientRect()
+  const cardWidth = cardRect.width || 188
+  const cardHeight = cardRect.height || 48
+  let left = anchorRect.right + gap
+  if (left + cardWidth > window.innerWidth - edge) {
+    left = anchorRect.left - cardWidth - gap
+  }
+  const top = Math.min(
+    Math.max(edge, anchorRect.top + (anchorRect.height / 2) - (cardHeight / 2)),
+    window.innerHeight - cardHeight - edge
+  )
+
+  card.style.setProperty('--field-boss-source-card-left', `${Math.max(edge, left)}px`)
+  card.style.setProperty('--field-boss-source-card-top', `${Math.max(edge, top)}px`)
+}
+
 function buildFieldBossSyncPayload(boss, targetInfo, syncedAt) {
   const targetAt = Number(targetInfo?.targetAt ?? targetInfo)
   const intervalMs = Number(boss?.interval) > 0 ? Number(boss.interval) * 3600000 : 0
@@ -3194,7 +3217,11 @@ export default function App() {
                           if (key === 'remaining') {
                             return (
                               <td key={key} style={buildCellStyle(key)}>
-                                <span className='field-boss-source-wrap'>
+                                <span
+                                  className='field-boss-source-wrap'
+                                  onMouseEnter={(event) => positionFieldBossSourceCard(event.currentTarget)}
+                                  onFocus={(event) => positionFieldBossSourceCard(event.currentTarget)}
+                                >
                                   <button
                                     className={`btn tiny ghost time-cell-btn ${syncNeeded ? 'sync-needed' : ''} ${freshSynced ? 'auto-synced' : ''} ${staleSynced ? 'sync-pending' : ''}`}
                                     disabled={role !== 'admin' || isTimerExcluded}

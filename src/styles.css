@@ -1158,6 +1158,8 @@ tr.row-timer-disabled td.alert-cell {
 
 .field-boss-source-card {
   position: fixed;
+  left: var(--field-boss-source-card-left, -9999px);
+  top: var(--field-boss-source-card-top, -9999px);
   z-index: 100;
   min-width: 188px;
   padding: 9px 10px;
@@ -1168,15 +1170,14 @@ tr.row-timer-disabled td.alert-cell {
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.34);
   opacity: 0;
   pointer-events: none;
-  transform: translateY(4px);
+  transform: translateX(4px);
   transition: opacity 0.14s ease, transform 0.14s ease;
 }
 
 .field-boss-source-wrap:hover .field-boss-source-card,
 .field-boss-source-wrap:focus-within .field-boss-source-card {
-  margin-top: 8px;
   opacity: 1;
-  transform: translateY(0);
+  transform: translateX(0);
 }
 
 .field-boss-source-card-row {

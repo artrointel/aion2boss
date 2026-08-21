@@ -1,3 +1,7 @@
+export const FIELD_BOSS_CACHE_PRIMARY_URL = 'https://notmeter.112-168-140-142.sslip.io/field-boss/v1/public'
+const FIELD_BOSS_CACHE_DEV_PROXY_URL = '/api/notmeter-field-boss-public'
+export const FIELD_BOSS_CACHE_SOURCE_VERSION = 'vps-public-v1'
+
 export const FIELD_BOSS_CACHE_URLS = [
   'https://raw.githubusercontent.com/Not4You-Dev/NotMeter-Update/main/presence/notmeter-field-boss-public.json',
   'https://cdn.jsdelivr.net/gh/Not4You-Dev/NotMeter-Update@main/presence/notmeter-field-boss-public.json'
@@ -7,6 +11,7 @@ export const FIELD_BOSS_CACHE_SCHEMA = 'notmeter-field-boss-public-cache-v1'
 export const DEFAULT_FIELD_BOSS_SERVER_ID = 1001
 export const FIELD_BOSS_CACHE_SYNC_INTERVAL_MS = 30 * 1000
 const FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS = 5000
+const FIELD_BOSS_CACHE_PRIMARY_FETCH_TIMEOUT_MS = 45000
 const FIELD_BOSS_CACHE_MAX_AGE_MS = 10 * 60 * 1000
 const FIELD_BOSS_CACHE_CLOCK_SKEW_MS = 60 * 1000
 
@@ -127,9 +132,31 @@ export function findFieldBossTarget(cache, serverId, regionIndex, bossCode) {
   return Number.isSafeInteger(targetAt) && targetAt > 0 ? targetAt : null
 }
 
-async function fetchFieldBossPublicCacheFromUrl(baseUrl) {
+function isFreshFieldBossCache(cache, nowMs) {
+  const generatedAtMs = Number(cache?.generatedAt) * 1000
+  if (!Number.isSafeInteger(generatedAtMs) || generatedAtMs <= 0) return false
+  const ageMs = nowMs - generatedAtMs
+  return ageMs <= FIELD_BOSS_CACHE_MAX_AGE_MS && ageMs >= -FIELD_BOSS_CACHE_CLOCK_SKEW_MS
+}
+
+function getFieldBossPrimaryUrl() {
+  return import.meta.env.DEV ? FIELD_BOSS_CACHE_DEV_PROXY_URL : FIELD_BOSS_CACHE_PRIMARY_URL
+}
+
+async function fetchFieldBossPublicCacheFromDesktop(baseUrl, timeoutMs) {
+  const desktopApi = globalThis.window?.aion2bossDesktop
+  if (baseUrl !== FIELD_BOSS_CACHE_PRIMARY_URL || typeof desktopApi?.fetchFieldBossPublicCache !== 'function') {
+    return null
+  }
+  return desktopApi.fetchFieldBossPublicCache(`${baseUrl}?v=${Date.now()}`, timeoutMs)
+}
+
+async function fetchFieldBossPublicCacheFromUrl(baseUrl, timeoutMs = FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS) {
+  const desktopCache = await fetchFieldBossPublicCacheFromDesktop(baseUrl, timeoutMs)
+  if (desktopCache) return desktopCache
+
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
   const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}v=${Date.now()}`
 
   try {
@@ -152,16 +179,26 @@ async function fetchFieldBossPublicCacheFromUrl(baseUrl) {
 }
 
 export async function fetchFieldBossPublicCache(nowMs = Date.now()) {
-  const results = await Promise.allSettled(FIELD_BOSS_CACHE_URLS.map(fetchFieldBossPublicCacheFromUrl))
+  const primaryErrors = []
+
+  try {
+    const cache = await fetchFieldBossPublicCacheFromUrl(
+      getFieldBossPrimaryUrl(),
+      FIELD_BOSS_CACHE_PRIMARY_FETCH_TIMEOUT_MS
+    )
+    if (isFreshFieldBossCache(cache, nowMs) && cache.servers.length > 0) {
+      return cache
+    }
+    primaryErrors.push(`${getFieldBossPrimaryUrl()}: stale or empty cache`)
+  } catch (error) {
+    primaryErrors.push(error instanceof Error ? error.message : String(error))
+  }
+
+  const results = await Promise.allSettled(FIELD_BOSS_CACHE_URLS.map((url) => fetchFieldBossPublicCacheFromUrl(url)))
   const caches = results
     .filter((result) => result.status === 'fulfilled')
     .map((result) => result.value)
-    .filter((cache) => {
-      const generatedAtMs = Number(cache?.generatedAt) * 1000
-      if (!Number.isSafeInteger(generatedAtMs) || generatedAtMs <= 0) return false
-      const ageMs = nowMs - generatedAtMs
-      return ageMs <= FIELD_BOSS_CACHE_MAX_AGE_MS && ageMs >= -FIELD_BOSS_CACHE_CLOCK_SKEW_MS
-    })
+    .filter((cache) => isFreshFieldBossCache(cache, nowMs) && cache.servers.length > 0)
     .sort((a, b) => Number(b?.generatedAt) - Number(a?.generatedAt))
 
   if (caches.length) {
@@ -172,5 +209,5 @@ export async function fetchFieldBossPublicCache(nowMs = Date.now()) {
     result.status === 'rejected'
       ? result.reason instanceof Error ? result.reason.message : String(result.reason)
       : 'unknown error')
-  throw new Error([...errors, 'no fresh cache'].join(' / '))
+  throw new Error([...primaryErrors, ...errors, 'no fresh cache'].join(' / '))
 }

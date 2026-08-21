@@ -109,6 +109,7 @@ import { useTheme } from './theme/theme'
 import { MiniGameDialog, ParticipantListDialog, TtsNoticeDialog } from './components/AppDialogs'
 import {
   DEFAULT_FIELD_BOSS_SERVER_ID,
+  FIELD_BOSS_CACHE_SOURCE_VERSION,
   FIELD_BOSS_CACHE_SYNC_INTERVAL_MS,
   FIELD_BOSS_OPTIONS,
   FIELD_BOSS_REGIONS,
@@ -145,7 +146,8 @@ function getFieldBossSyncState(boss, now) {
   const autoSynced = Boolean(
     boss?.manualSpawnOverride !== true &&
     boss?.autoFieldBossSyncedAt != null &&
-    Number(boss?.autoFieldBossTargetAt) === rawTime
+    Number(boss?.autoFieldBossTargetAt) === rawTime &&
+    boss?.autoFieldBossSourceVersion === FIELD_BOSS_CACHE_SOURCE_VERSION
   )
   const staleSynced = autoSynced && hasRawTime && rawTime <= now
   const syncNeeded = !autoSynced && isSyncNeeded(boss, now)
@@ -167,7 +169,8 @@ function buildFieldBossSyncPayload(boss, targetAt, syncedAt) {
     lastKillTimestamp: intervalMs ? targetAt - intervalMs : null,
     manualSpawnOverride: false,
     autoFieldBossTargetAt: targetAt,
-    autoFieldBossSyncedAt: syncedAt
+    autoFieldBossSyncedAt: syncedAt,
+    autoFieldBossSourceVersion: FIELD_BOSS_CACHE_SOURCE_VERSION
   }
 }
 
@@ -1234,11 +1237,13 @@ export default function App() {
         if (regionIndex !== state.link.regionIndex || bossCode !== state.link.bossCode) return
 
         const targetAt = findFieldBossTarget(cache, activeServerId, regionIndex, bossCode)
-        if (!targetAt || Number(boss?.nextSpawnTimestamp) === targetAt) return
+        if (!targetAt) return
 
         const payload = buildFieldBossSyncPayload(boss, targetAt, syncedAt)
         Object.entries(payload).forEach(([field, value]) => {
-          updates[`${roomId}/bosses/${key}/${field}`] = value
+          if (boss?.[field] !== value) {
+            updates[`${roomId}/bosses/${key}/${field}`] = value
+          }
         })
       })
 
@@ -1874,7 +1879,8 @@ export default function App() {
       nextSpawnTimestamp,
       manualSpawnOverride: true,
       autoFieldBossTargetAt: null,
-      autoFieldBossSyncedAt: null
+      autoFieldBossSyncedAt: null,
+      autoFieldBossSourceVersion: null
     })
     closeRemainingDialog()
   }
@@ -1999,6 +2005,7 @@ export default function App() {
       payload.manualSpawnOverride = false
       payload.autoFieldBossTargetAt = null
       payload.autoFieldBossSyncedAt = null
+      payload.autoFieldBossSourceVersion = null
     }
 
     const chaseTeams = editingKey ? normalizeChaseTeams(bosses[editingKey]?.chaseTeams) : []

@@ -1,7 +1,9 @@
 const FIELD_BOSS_CACHE_MIRROR_URL = 'https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json'
+const FIELD_BOSS_CACHE_MIRROR_CDN_URL = 'https://cdn.jsdelivr.net/gh/artrointel/aion2boss@field-boss-cache/api/notmeter-field-boss-public.json'
 export const FIELD_BOSS_CACHE_SOURCE_VERSION = 'notmeter-source-mirror-v2'
 
 export const FIELD_BOSS_CACHE_URLS = [
+  FIELD_BOSS_CACHE_MIRROR_CDN_URL,
   FIELD_BOSS_CACHE_MIRROR_URL,
   'https://raw.githubusercontent.com/Not4You-Dev/NotMeter-Update/main/presence/notmeter-field-boss-public.json',
   'https://cdn.jsdelivr.net/gh/Not4You-Dev/NotMeter-Update@main/presence/notmeter-field-boss-public.json'

@@ -49,3 +49,4 @@ jobs:
           )
           git commit -m "Mirror local NotMeter field boss cache"
           git push --force "https://x-access-token:%GITHUB_TOKEN%@github.com/%GITHUB_REPOSITORY%.git" HEAD:field-boss-cache
+          curl -fsSL "https://purge.jsdelivr.net/gh/artrointel/aion2boss@field-boss-cache/api/notmeter-field-boss-public.json" || echo jsDelivr purge failed.

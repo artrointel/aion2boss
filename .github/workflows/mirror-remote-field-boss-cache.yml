@@ -1,0 +1,50 @@
+name: Mirror remote NotMeter field boss cache
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: field-boss-cache-publish
+  cancel-in-progress: false
+
+jobs:
+  mirror-remote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Mirror remote NotMeter field boss cache
+        env:
+          FIELD_BOSS_SKIP_LOCAL_CACHE: 'true'
+          FIELD_BOSS_ALLOW_MISSING_LOCAL_CACHE: 'true'
+        run: node scripts/mirror-local-field-boss-cache.mjs
+
+      - name: Publish mirror branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          cd .field-boss-cache
+          git init
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B field-boss-cache
+          git add api/notmeter-field-boss-public.json
+          git diff --cached --quiet && {
+            echo "No field boss cache changes to publish."
+            exit 0
+          }
+          git commit -m "Mirror remote NotMeter field boss cache"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:field-boss-cache
+          curl -fsSL "https://purge.jsdelivr.net/gh/artrointel/aion2boss@field-boss-cache/api/notmeter-field-boss-public.json" || echo "jsDelivr purge failed."

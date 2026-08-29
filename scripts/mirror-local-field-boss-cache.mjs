@@ -8,6 +8,8 @@ const DEFAULT_LOCAL_CACHE_PATH = path.join(
   'field-boss-server-cache.json'
 )
 const LOCAL_CACHE_PATH = process.env.FIELD_BOSS_LOCAL_CACHE_PATH || ''
+const SKIP_LOCAL_CACHE = process.env.FIELD_BOSS_SKIP_LOCAL_CACHE === 'true'
+const ALLOW_MISSING_LOCAL_CACHE = process.env.FIELD_BOSS_ALLOW_MISSING_LOCAL_CACHE === 'true'
 const NOTMETER_VPS_CACHE_URL = process.env.FIELD_BOSS_NOTMETER_VPS_CACHE_URL ||
   'https://notmeter.112-168-140-142.sslip.io/field-boss/v1/public'
 const EXISTING_MIRROR_URL = process.env.FIELD_BOSS_EXISTING_MIRROR_URL ||
@@ -78,6 +80,10 @@ async function findUserProfileCaches() {
 }
 
 async function resolveLocalCachePath() {
+  if (SKIP_LOCAL_CACHE) {
+    return null
+  }
+
   const explicitPath = LOCAL_CACHE_PATH.trim()
   if (explicitPath) {
     try {
@@ -96,6 +102,10 @@ async function resolveLocalCachePath() {
   const userProfileCaches = await findUserProfileCaches()
   if (userProfileCaches.length) {
     return userProfileCaches[0].path
+  }
+
+  if (ALLOW_MISSING_LOCAL_CACHE) {
+    return null
   }
 
   throw new Error(`NotMeter local field boss cache not found. Set FIELD_BOSS_LOCAL_CACHE_PATH to the full path, e.g. C:\\Users\\<user>\\AppData\\Local\\Not4You-Meter\\field-boss-server-cache.json`)
@@ -228,6 +238,8 @@ function addPublicServers(serversById, cache, sourceName, sourceUrl) {
 }
 
 function addLocalServers(serversById, localCache) {
+  if (!Array.isArray(localCache?.servers)) return
+
   localCache.servers.map(convertLocalServer).forEach((server) => {
     const candidate = {
       ...server,
@@ -276,7 +288,7 @@ function mergeCaches(existingCache, notMeterVpsCache, notMeterPublicCaches, loca
     mirroredFrom: {
       sources: {
         [SOURCE_NAMES.vps]: NOTMETER_VPS_CACHE_URL,
-        [SOURCE_NAMES.local]: localCache.sourcePath,
+        [SOURCE_NAMES.local]: localCache?.sourcePath || null,
         [SOURCE_NAMES.public]: NOTMETER_PUBLIC_CACHE_URLS,
         [SOURCE_NAMES.mirror]: EXISTING_MIRROR_URL
       },
@@ -286,9 +298,14 @@ function mergeCaches(existingCache, notMeterVpsCache, notMeterPublicCaches, loca
 }
 
 const resolvedLocalCachePath = await resolveLocalCachePath()
-const localCache = JSON.parse(await readFile(resolvedLocalCachePath, 'utf8'))
-localCache.sourcePath = resolvedLocalCachePath
-validateLocalSnapshotCache(localCache)
+const localCache = resolvedLocalCachePath
+  ? JSON.parse(await readFile(resolvedLocalCachePath, 'utf8'))
+  : null
+
+if (localCache) {
+  localCache.sourcePath = resolvedLocalCachePath
+  validateLocalSnapshotCache(localCache)
+}
 
 const [existingCache, notMeterVpsCache, notMeterPublicCaches] = await Promise.all([
   fetchExistingMirror(),
@@ -303,5 +320,5 @@ await Promise.all(OUTPUT_PATHS.map(async (outputPath) => {
   await writeFile(outputPath, body, 'utf8')
 }))
 
-const localServerIds = localCache.servers.map((server) => normalizeInteger(server.serverId)).join(', ')
+const localServerIds = localCache?.servers?.map((server) => normalizeInteger(server.serverId)).join(', ') || 'none'
 console.log(`Mirrored NotMeter field boss cache with local servers [${localServerIds}] into ${mirroredCache.servers.length} total servers.`)

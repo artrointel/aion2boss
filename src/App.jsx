@@ -169,15 +169,21 @@ function formatFieldBossSourceUpdatedAt(value) {
   return `${pad2(date.getMonth() + 1)}/${pad2(date.getDate())} ${pad2(date.getHours())}:${pad2(date.getMinutes())}:${pad2(date.getSeconds())}`
 }
 
-function buildFieldBossSourceCard(boss) {
-  const sourceName = typeof boss?.autoFieldBossSourceName === 'string' && boss.autoFieldBossSourceName.trim()
+function buildFieldBossSourceCard(boss, cache, serverId) {
+  const link = getFieldBossLink(boss)
+  const targetInfo = link ? findFieldBossTargetInfo(cache, serverId, link.regionIndex, link.bossCode) : null
+  const cachedSourceName = typeof targetInfo?.sourceName === 'string' && targetInfo.sourceName.trim()
+    ? targetInfo.sourceName.trim()
+    : null
+  const storedSourceName = typeof boss?.autoFieldBossSourceName === 'string' && boss.autoFieldBossSourceName.trim()
     ? boss.autoFieldBossSourceName.trim()
     : null
-  const sourceUpdatedAt = Number(boss?.autoFieldBossSourceUpdatedAt)
+  const sourceName = cachedSourceName || storedSourceName
+  const sourceUpdatedAt = Number(targetInfo?.sourceUpdatedAt ?? boss?.autoFieldBossSourceUpdatedAt)
   if (!sourceName && !Number.isSafeInteger(sourceUpdatedAt)) return null
 
   return {
-    sourceName: sourceName || 'Unknown',
+    sourceName: sourceName || '-',
     updatedText: formatFieldBossSourceUpdatedAt(sourceUpdatedAt)
   }
 }
@@ -214,8 +220,6 @@ function buildFieldBossSyncPayload(boss, targetInfo, syncedAt) {
     manualSpawnOverride: false,
     autoFieldBossTargetAt: targetAt,
     autoFieldBossSyncedAt: syncedAt,
-    autoFieldBossSourceName: targetInfo?.sourceName || null,
-    autoFieldBossSourceUpdatedAt: targetInfo?.sourceUpdatedAt || null,
     autoFieldBossSourceVersion: FIELD_BOSS_CACHE_SOURCE_VERSION
   }
 }
@@ -1926,8 +1930,6 @@ export default function App() {
       manualSpawnOverride: true,
       autoFieldBossTargetAt: null,
       autoFieldBossSyncedAt: null,
-      autoFieldBossSourceName: null,
-      autoFieldBossSourceUpdatedAt: null,
       autoFieldBossSourceVersion: null
     })
     closeRemainingDialog()
@@ -2053,8 +2055,6 @@ export default function App() {
       payload.manualSpawnOverride = false
       payload.autoFieldBossTargetAt = null
       payload.autoFieldBossSyncedAt = null
-      payload.autoFieldBossSourceName = null
-      payload.autoFieldBossSourceUpdatedAt = null
       payload.autoFieldBossSourceVersion = null
     }
 
@@ -3127,7 +3127,7 @@ export default function App() {
                     const autoSynced = syncState.autoSynced
                     const staleSynced = syncState.staleSynced
                     const freshSynced = autoSynced && !staleSynced
-                    const sourceCard = autoSynced ? buildFieldBossSourceCard(boss) : null
+                    const sourceCard = autoSynced ? buildFieldBossSourceCard(boss, fieldBossCache, fieldBossServerId) : null
                     const mapReady = hasMapPoint(boss)
                     const syncNeeded = !isTimerExcluded && syncState.syncNeeded
                     const chaseTeams = normalizeChaseTeams(boss.chaseTeams)

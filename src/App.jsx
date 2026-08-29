@@ -283,7 +283,7 @@ export default function App() {
   const [adjacentBossThresholdInput, setAdjacentBossThresholdInput] = useState(String(DEFAULT_ADJACENT_BOSS_THRESHOLD_SEC))
   const [autoSortEnabled, setAutoSortEnabled] = useState(false)
   const [fieldBossServerId, setFieldBossServerId] = useState(DEFAULT_FIELD_BOSS_SERVER_ID)
-  const [, setFieldBossCache] = useState(null)
+  const [fieldBossCache, setFieldBossCache] = useState(null)
   const [timeDialog, setTimeDialog] = useState({
     open: false,
     key: '',

@@ -14,14 +14,10 @@ const NOTMETER_VPS_CACHE_URL = process.env.FIELD_BOSS_NOTMETER_VPS_CACHE_URL ||
   'https://notmeter.112-168-140-142.sslip.io/field-boss/v1/public'
 const EXISTING_MIRROR_URL = process.env.FIELD_BOSS_EXISTING_MIRROR_URL ||
   'https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json'
-const NOTMETER_PUBLIC_CACHE_URLS = (process.env.FIELD_BOSS_NOTMETER_PUBLIC_CACHE_URLS ||
-  [
-    'https://raw.githubusercontent.com/Not4You-Dev/NotMeter-Update/main/presence/notmeter-field-boss-public.json',
-    'https://cdn.jsdelivr.net/gh/Not4You-Dev/NotMeter-Update@main/presence/notmeter-field-boss-public.json'
-  ].join(path.delimiter))
-  .split(path.delimiter)
-  .map((url) => url.trim())
-  .filter(Boolean)
+const DEFAULT_NOTMETER_PUBLIC_CACHE_URLS = [
+  'https://raw.githubusercontent.com/Not4You-Dev/NotMeter-Update/main/presence/notmeter-field-boss-public.json',
+  'https://cdn.jsdelivr.net/gh/Not4You-Dev/NotMeter-Update@main/presence/notmeter-field-boss-public.json'
+]
 const FETCH_TIMEOUT_MS = Number(process.env.FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS) || 8000
 const OUTPUT_PATHS = (process.env.FIELD_BOSS_CACHE_OUTPUT_PATHS || path.join('.field-boss-cache', 'api', 'notmeter-field-boss-public.json'))
   .split(path.delimiter)
@@ -44,6 +40,19 @@ function normalizeInteger(value, fallback = 0) {
   const number = Math.trunc(Number(value))
   return Number.isSafeInteger(number) ? number : fallback
 }
+
+function parseUrlList(value, fallback) {
+  const source = value || fallback.join('\n')
+  return source
+    .split(/\r?\n|,/)
+    .map((url) => url.trim())
+    .filter(Boolean)
+}
+
+const NOTMETER_PUBLIC_CACHE_URLS = parseUrlList(
+  process.env.FIELD_BOSS_NOTMETER_PUBLIC_CACHE_URLS,
+  DEFAULT_NOTMETER_PUBLIC_CACHE_URLS
+)
 
 async function fileExists(filePath) {
   try {

@@ -5,8 +5,8 @@ export const FIELD_BOSS_CACHE_SOURCE_VERSION = 'notmeter-source-mirror-v2'
 export const FIELD_BOSS_CACHE_URLS = [
   FIELD_BOSS_CACHE_MIRROR_CDN_URL,
   FIELD_BOSS_CACHE_MIRROR_URL,
-  'https://raw.githubusercontent.com/Not4You-Dev/NotMeter-Update/main/presence/notmeter-field-boss-public.json',
-  'https://cdn.jsdelivr.net/gh/Not4You-Dev/NotMeter-Update@main/presence/notmeter-field-boss-public.json'
+  'https://raw.githubusercontent.com/Not4You-Dev/NotMeter-Web/main/presence/notmeter-field-boss-public.json',
+  'https://notmeter.com/presence/notmeter-field-boss-public.json'
 ]
 
 export const FIELD_BOSS_CACHE_SCHEMA = 'notmeter-field-boss-public-cache-v1'

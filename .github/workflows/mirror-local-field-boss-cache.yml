@@ -29,6 +29,7 @@ jobs:
         shell: cmd
         env:
           FIELD_BOSS_LOCAL_CACHE_PATH: ${{ vars.FIELD_BOSS_LOCAL_CACHE_PATH }}
+          FIELD_BOSS_CACHE_MAX_OUTPUT_AGE_SECONDS: '7200'
         run: node scripts/mirror-local-field-boss-cache.mjs
 
       - name: Publish mirror branch

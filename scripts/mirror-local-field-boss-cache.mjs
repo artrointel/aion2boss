@@ -19,6 +19,7 @@ const DEFAULT_NOTMETER_PUBLIC_CACHE_URLS = [
   'https://cdn.jsdelivr.net/gh/Not4You-Dev/NotMeter-Update@main/presence/notmeter-field-boss-public.json'
 ]
 const FETCH_TIMEOUT_MS = Number(process.env.FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS) || 8000
+const MAX_OUTPUT_AGE_SECONDS = Number(process.env.FIELD_BOSS_CACHE_MAX_OUTPUT_AGE_SECONDS) || 0
 const OUTPUT_PATHS = (process.env.FIELD_BOSS_CACHE_OUTPUT_PATHS || path.join('.field-boss-cache', 'api', 'notmeter-field-boss-public.json'))
   .split(path.delimiter)
   .map((outputPath) => outputPath.trim())
@@ -39,6 +40,69 @@ const SOURCE_PRIORITY = {
 function normalizeInteger(value, fallback = 0) {
   const number = Math.trunc(Number(value))
   return Number.isSafeInteger(number) ? number : fallback
+}
+
+function formatKstTimestamp(seconds) {
+  const timestamp = normalizeInteger(seconds)
+  if (timestamp <= 0) return 'unknown'
+
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  }).format(new Date(timestamp * 1000))
+}
+
+function countCacheEntries(cache) {
+  return (cache?.servers || []).reduce((serverSum, server) =>
+    serverSum + (server?.regions || []).reduce((regionSum, region) =>
+      regionSum + (Array.isArray(region?.entries) ? region.entries.length : 0), 0), 0)
+}
+
+function getCacheMaxGeneratedAt(cache) {
+  return (cache?.servers || []).reduce((max, server) =>
+    Math.max(max, normalizeInteger(server?.generatedAt)), normalizeInteger(cache?.generatedAt))
+}
+
+function createCandidateSummary(name, cache, url = null) {
+  if (!cache) {
+    return {
+      name,
+      ...(url ? { url } : {}),
+      available: false
+    }
+  }
+
+  const generatedAt = getCacheMaxGeneratedAt(cache)
+  return {
+    name,
+    ...(url ? { url } : {}),
+    available: true,
+    generatedAt,
+    generatedAtKst: formatKstTimestamp(generatedAt),
+    serverCount: Array.isArray(cache.servers) ? cache.servers.length : 0,
+    entryCount: countCacheEntries(cache)
+  }
+}
+
+function logCandidateSummaries(candidateSummaries) {
+  console.log('Field boss cache candidates:')
+  candidateSummaries.forEach((summary) => {
+    if (!summary.available) {
+      console.log(`- ${summary.name}: unavailable${summary.url ? ` (${summary.url})` : ''}`)
+      return
+    }
+
+    console.log(
+      `- ${summary.name}: generatedAt=${summary.generatedAt} (${summary.generatedAtKst} KST), ` +
+      `servers=${summary.serverCount}, entries=${summary.entryCount}${summary.url ? `, url=${summary.url}` : ''}`
+    )
+  })
 }
 
 function parseUrlList(value, fallback) {
@@ -266,7 +330,7 @@ function stripMirrorMetadata(server) {
   return publicServer
 }
 
-function mergeCaches(existingCache, notMeterVpsCache, notMeterPublicCaches, localCache) {
+function mergeCaches(existingCache, notMeterVpsCache, notMeterPublicCaches, localCache, candidateSummaries = []) {
   const serversById = new Map()
 
   addPublicServers(serversById, existingCache, SOURCE_NAMES.mirror, EXISTING_MIRROR_URL)
@@ -301,8 +365,28 @@ function mergeCaches(existingCache, notMeterVpsCache, notMeterPublicCaches, loca
         [SOURCE_NAMES.public]: NOTMETER_PUBLIC_CACHE_URLS,
         [SOURCE_NAMES.mirror]: EXISTING_MIRROR_URL
       },
-      selectedServerCounts: sourceCount
+      selectedServerCounts: sourceCount,
+      candidateSummaries
     }
+  }
+}
+
+function assertFreshOutput(cache) {
+  if (MAX_OUTPUT_AGE_SECONDS <= 0) return
+
+  const generatedAt = normalizeInteger(cache?.generatedAt)
+  const ageSeconds = Math.floor(Date.now() / 1000) - generatedAt
+  console.log(
+    `Selected field boss cache generatedAt=${generatedAt} ` +
+    `(${formatKstTimestamp(generatedAt)} KST), age=${ageSeconds}s, maxAge=${MAX_OUTPUT_AGE_SECONDS}s.`
+  )
+
+  if (generatedAt <= 0 || ageSeconds > MAX_OUTPUT_AGE_SECONDS) {
+    throw new Error(
+      `Refusing to publish stale field boss cache. ` +
+      `Newest generatedAt is ${formatKstTimestamp(generatedAt)} KST, age ${ageSeconds}s, ` +
+      `limit ${MAX_OUTPUT_AGE_SECONDS}s.`
+    )
   }
 }
 
@@ -321,7 +405,19 @@ const [existingCache, notMeterVpsCache, notMeterPublicCaches] = await Promise.al
   fetchNotMeterVpsCache(),
   fetchNotMeterPublicCaches()
 ])
-const mirroredCache = mergeCaches(existingCache, notMeterVpsCache, notMeterPublicCaches, localCache)
+const candidateSummaries = [
+  createCandidateSummary(SOURCE_NAMES.mirror, existingCache, EXISTING_MIRROR_URL),
+  createCandidateSummary(SOURCE_NAMES.vps, notMeterVpsCache, NOTMETER_VPS_CACHE_URL),
+  ...NOTMETER_PUBLIC_CACHE_URLS.map((url) => {
+    const match = notMeterPublicCaches.find((candidate) => candidate.url === url)
+    return createCandidateSummary(SOURCE_NAMES.public, match?.cache || null, url)
+  }),
+  createCandidateSummary(SOURCE_NAMES.local, localCache, localCache?.sourcePath || null)
+]
+logCandidateSummaries(candidateSummaries)
+
+const mirroredCache = mergeCaches(existingCache, notMeterVpsCache, notMeterPublicCaches, localCache, candidateSummaries)
+assertFreshOutput(mirroredCache)
 const body = `${JSON.stringify(mirroredCache, null, 2)}\n`
 
 await Promise.all(OUTPUT_PATHS.map(async (outputPath) => {
@@ -330,4 +426,5 @@ await Promise.all(OUTPUT_PATHS.map(async (outputPath) => {
 }))
 
 const localServerIds = localCache?.servers?.map((server) => normalizeInteger(server.serverId)).join(', ') || 'none'
+console.log(`Selected server counts: ${JSON.stringify(mirroredCache.mirroredFrom.selectedServerCounts)}`)
 console.log(`Mirrored NotMeter field boss cache with local servers [${localServerIds}] into ${mirroredCache.servers.length} total servers.`)

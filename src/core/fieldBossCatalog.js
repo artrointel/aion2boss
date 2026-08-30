@@ -157,9 +157,8 @@ function hasFieldBossCacheServer(cache, serverId) {
   return cache?.servers?.some((item) => Number(item?.serverId) === Number(serverId)) === true
 }
 
-function isUsableFieldBossCache(cache, nowMs, serverId = null) {
-  return isFreshFieldBossCache(cache, nowMs) &&
-    cache.servers.length > 0 &&
+function isUsableFieldBossCache(cache, serverId = null) {
+  return cache.servers.length > 0 &&
     hasFieldBossCacheServer(cache, serverId)
 }
 
@@ -192,7 +191,11 @@ export async function fetchFieldBossPublicCache(nowMs = Date.now(), serverId = n
   const caches = results
     .filter((result) => result.status === 'fulfilled')
     .map((result) => result.value)
-    .filter((cache) => isUsableFieldBossCache(cache, nowMs, serverId))
+    .filter((cache) => isUsableFieldBossCache(cache, serverId))
+    .map((cache) => ({
+      ...cache,
+      fieldBossCacheFresh: isFreshFieldBossCache(cache, nowMs)
+    }))
     .sort((a, b) => Number(b?.generatedAt) - Number(a?.generatedAt))
 
   if (caches.length) {
@@ -203,5 +206,5 @@ export async function fetchFieldBossPublicCache(nowMs = Date.now(), serverId = n
     result.status === 'rejected'
       ? result.reason instanceof Error ? result.reason.message : String(result.reason)
       : 'unknown error')
-  throw new Error([...fallbackErrors, 'no fresh cache'].join(' / '))
+  throw new Error([...fallbackErrors, 'no cache for selected server'].join(' / '))
 }

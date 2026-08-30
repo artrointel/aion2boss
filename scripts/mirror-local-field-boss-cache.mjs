@@ -371,7 +371,7 @@ function mergeCaches(existingCache, notMeterVpsCache, notMeterPublicCaches, loca
   }
 }
 
-function assertFreshOutput(cache) {
+function warnIfStaleOutput(cache) {
   if (MAX_OUTPUT_AGE_SECONDS <= 0) return
 
   const generatedAt = normalizeInteger(cache?.generatedAt)
@@ -382,8 +382,8 @@ function assertFreshOutput(cache) {
   )
 
   if (generatedAt <= 0 || ageSeconds > MAX_OUTPUT_AGE_SECONDS) {
-    throw new Error(
-      `Refusing to publish stale field boss cache. ` +
+    console.warn(
+      `Publishing stale field boss cache because it is still the newest available candidate. ` +
       `Newest generatedAt is ${formatKstTimestamp(generatedAt)} KST, age ${ageSeconds}s, ` +
       `limit ${MAX_OUTPUT_AGE_SECONDS}s.`
     )
@@ -417,7 +417,7 @@ const candidateSummaries = [
 logCandidateSummaries(candidateSummaries)
 
 const mirroredCache = mergeCaches(existingCache, notMeterVpsCache, notMeterPublicCaches, localCache, candidateSummaries)
-assertFreshOutput(mirroredCache)
+warnIfStaleOutput(mirroredCache)
 const body = `${JSON.stringify(mirroredCache, null, 2)}\n`
 
 await Promise.all(OUTPUT_PATHS.map(async (outputPath) => {

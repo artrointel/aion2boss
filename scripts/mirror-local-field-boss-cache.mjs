@@ -15,9 +15,10 @@ const LEGACY_NOTMETER_VPS_CACHE_URL = 'https://notmeter.112-168-140-142.sslip.io
 const NOTMETER_VPS_CACHE_URL_OVERRIDE = process.env.FIELD_BOSS_NOTMETER_VPS_CACHE_URL || ''
 const NOTMETER_CONTROL_SCHEMA = 'notmeter-control-endpoint-v1'
 const NOTMETER_CONTROL_SIGNATURE_ALGORITHM = 'RSA-SHA256-PKCS1-v1'
-const NOTMETER_CONTROL_KEY_ID = 'notmeter-ranking-2026-07'
 const NOTMETER_CONTROL_MAX_LIFETIME_SECONDS = 14 * 24 * 60 * 60
-const NOTMETER_CONTROL_PUBLIC_KEY_BASE64 = 'MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEArn8f2jGTdnIRUHtso8FmmUcmN7rgOzJ7lQRcy9e3Lekt8S2Tg8L1++9/8AKAhnY/hpJbdHkgdTvvv3oyGZVMU/owyv7u9CcmiKQm1dIx7JkoHz0fnBbpytyVRH9Y21HF/PyLX6GcHmkYsfA5keNq3BjK/C+3MTuC8h9EFGPlWBlDwTuLOq4ky4McZMBV5wAu15xLvcyPHeaUhGMuc2XufGyyLLXV2hHXpUsIKZineKWEyN3UoaCXnWzAw5VqSd6cfhB5jY3CFFnthMbQk62ddJUT2B6GWZHjz39rg0u6qSTuGWW1M3BfUR+F6GUllxgDumWmxPHfNcs5MI4rNGsKyuLRrk6z85EYIyL4eduEM8NaQQ5gY03BsgT81jTFfbG+PVgqgkz9t322JycjgCUKLlva0FlZzGXmE57d7N5KcxMlnfdpPq5dcmyvLN2J8vAK4Sct9bKjUEZWeA4npCIHpBPXob9WlTkuLPasWrkuHiUPPPx5xfZzmnRKmCswr0fdAgMBAAE='
+const NOTMETER_CONTROL_TRUSTED_KEYS = {
+  'notmeter-ranking-2026-07': 'MIIBojANBgkqhkiG9w0BAQEFAAOCAY8AMIIBigKCAYEArn8f2jGTdnIRUHtso8FmmUcmN7rgOzJ7lQRcy9e3Lekt8S2Tg8L1++9/8AKAhnY/hpJbdHkgdTvvv3oyGZVMU/owyv7u9CcmiKQm1dIx7JkoHz0fnBbpytyVRH9Y21HF/PyLX6GcHmkYsfA5keNq3BjK/C+3MTuC8h9EFGPlWBlDwTuLOq4ky4McZMBV5wAu15xLvcyPHeaUhGMuc2XufGyyLLXV2hHXpUsIKZineKWEyN3UoaCXnWzAw5VqSd6cfhB5jY3CFFnthMbQk62ddJUT2B6GWZHjz39rg0u6qSTuGWW1M3BfUR+F6GUllxgDumWmxPHfNcs5MI4rNGsKyuLRrk6z85EYIyL4eduEM8NaQQ5gY03BsgT81jTFfbG+PVgqgkz9t322JycjgCUKLlva0FlZzGXmE57d7N5KcxMlnfdpPq5dcmyvLN2J8vAK4Sct9bKjUEZWeA4npCIHpBPXob9WlTkuLPasWrkuHiUPPPx5xfZzmnRKmCswr0fdAgMBAAE='
+}
 const DEFAULT_NOTMETER_CONTROL_URLS = [
   'https://raw.githubusercontent.com/Not4You-Dev/NotMeter-Web/main/control/notmeter-control-endpoint.json',
   'https://notmeter.com/control/notmeter-control-endpoint.json',
@@ -30,6 +31,8 @@ const DEFAULT_NOTMETER_PUBLIC_CACHE_URLS = [
   'https://notmeter.com/presence/notmeter-field-boss-public.json'
 ]
 const FETCH_TIMEOUT_MS = Number(process.env.FIELD_BOSS_CACHE_FETCH_TIMEOUT_MS) || 8000
+const VPS_FETCH_ATTEMPTS = Math.max(1, Math.min(4, Number(process.env.FIELD_BOSS_VPS_FETCH_ATTEMPTS) || 3))
+const VPS_RETRY_BASE_DELAY_MS = Math.max(100, Number(process.env.FIELD_BOSS_VPS_RETRY_BASE_DELAY_MS) || 500)
 const MAX_OUTPUT_AGE_SECONDS = Number(process.env.FIELD_BOSS_CACHE_MAX_OUTPUT_AGE_SECONDS) || 0
 const OUTPUT_PATHS = (process.env.FIELD_BOSS_CACHE_OUTPUT_PATHS || path.join('.field-boss-cache', 'api', 'notmeter-field-boss-public.json'))
   .split(path.delimiter)
@@ -156,11 +159,13 @@ function normalizeControlEndpoint(value) {
 }
 
 function validateControlDocument(document) {
+  const keyId = String(document?.keyId || '')
+  const publicKey = NOTMETER_CONTROL_TRUSTED_KEYS[keyId]
   if (
     document?.schema !== NOTMETER_CONTROL_SCHEMA ||
     normalizeInteger(document?.version) !== 1 ||
     document?.signatureAlgorithm !== NOTMETER_CONTROL_SIGNATURE_ALGORITHM ||
-    document?.keyId !== NOTMETER_CONTROL_KEY_ID ||
+    !publicKey ||
     !/^[0-9a-f]{12,64}$/i.test(String(document?.generation || ''))
   ) {
     return null
@@ -191,7 +196,7 @@ function validateControlDocument(document) {
     endpoints[0],
     endpoints.slice(1).join(','),
     NOTMETER_CONTROL_SIGNATURE_ALGORITHM,
-    NOTMETER_CONTROL_KEY_ID
+    keyId
   ].join('\n')
   const signature = String(document.signature || '').replace(/\s+/g, '')
 
@@ -199,10 +204,12 @@ function validateControlDocument(document) {
     const valid = verifySignature(
       'RSA-SHA256',
       Buffer.from(payload, 'utf8'),
-      toPemPublicKey(NOTMETER_CONTROL_PUBLIC_KEY_BASE64),
+      toPemPublicKey(publicKey),
       Buffer.from(signature, 'base64')
     )
-    return valid ? { endpoints, generatedAt, validUntil, generation: document.generation } : null
+    return valid
+      ? { endpoints, generatedAt, validUntil, generation: document.generation, keyId, signedDocument: document }
+      : null
   } catch {
     return null
   }
@@ -228,39 +235,68 @@ async function fetchJson(url, label, timeoutMs = 4000) {
   }
 }
 
-async function resolveNotMeterVpsCacheUrls() {
+function decodeControlDocument(document) {
+  if (document?.encoding?.toLowerCase() !== 'base64' || typeof document.content !== 'string') {
+    return document
+  }
+
+  try {
+    return JSON.parse(Buffer.from(document.content.replace(/\s+/g, ''), 'base64').toString('utf8'))
+  } catch {
+    return null
+  }
+}
+
+function createVpsResolution(control, sourceUrl, resolutionSource) {
+  const urls = control.endpoints.map((endpoint) => `${endpoint}/field-boss/v1/public`)
+  console.log(
+    `NotMeter control endpoint generation=${control.generation}, ` +
+    `validUntil=${formatKstTimestamp(control.validUntil)} KST, source=${resolutionSource}, ` +
+    `endpoints=${urls.join(', ')}`
+  )
+  return {
+    urls,
+    attemptedUrls: [...urls],
+    control: { ...control, sourceUrl, resolutionSource }
+  }
+}
+
+async function resolveNotMeterVpsCacheUrls(cachedDocument = null, force = false) {
   const overrideUrls = parseUrlList(NOTMETER_VPS_CACHE_URL_OVERRIDE, [])
   if (overrideUrls.length) {
     console.log(`Using FIELD_BOSS_NOTMETER_VPS_CACHE_URL override: ${overrideUrls.join(', ')}`)
-    return { urls: overrideUrls, control: null }
+    return { urls: overrideUrls, attemptedUrls: [...overrideUrls], control: null }
   }
 
-  for (const controlUrl of NOTMETER_CONTROL_URLS) {
-    let document = await fetchJson(controlUrl, `NotMeter control endpoint ${controlUrl}`)
-    if (document?.encoding?.toLowerCase() === 'base64' && typeof document.content === 'string') {
-      try {
-        document = JSON.parse(Buffer.from(document.content.replace(/\s+/g, ''), 'base64').toString('utf8'))
-      } catch {
-        document = null
-      }
-    }
-
+  const downloaded = await Promise.all(NOTMETER_CONTROL_URLS.map(async (controlUrl) => {
+    const label = `${force ? 'Forced ' : ''}NotMeter control endpoint ${controlUrl}`
+    const document = decodeControlDocument(await fetchJson(controlUrl, label))
     const control = validateControlDocument(document)
-    if (!control) {
-      console.warn(`NotMeter control endpoint rejected: ${controlUrl}`)
-      continue
+    if (document && !control) console.warn(`NotMeter control endpoint rejected: ${controlUrl}`)
+    return control ? { control, controlUrl, resolutionSource: force ? 'forced-refresh' : 'download' } : null
+  }))
+  const cachedControl = validateControlDocument(cachedDocument)
+  const candidates = [
+    ...downloaded.filter(Boolean),
+    ...(cachedControl
+      ? [{ control: cachedControl, controlUrl: EXISTING_MIRROR_URL, resolutionSource: 'cached-mirror' }]
+      : [])
+  ]
+  const newest = candidates
+    .sort((a, b) => b.control.generatedAt - a.control.generatedAt)[0]
+  if (newest) {
+    if (newest.resolutionSource === 'cached-mirror') {
+      console.warn('Using the newer last valid signed NotMeter control document from the existing mirror.')
     }
-
-    const urls = control.endpoints.map((endpoint) => `${endpoint}/field-boss/v1/public`)
-    console.log(
-      `NotMeter control endpoint generation=${control.generation}, ` +
-      `validUntil=${formatKstTimestamp(control.validUntil)} KST, endpoints=${urls.join(', ')}`
-    )
-    return { urls, control: { ...control, sourceUrl: controlUrl } }
+    return createVpsResolution(newest.control, newest.controlUrl, newest.resolutionSource)
   }
 
   console.warn(`No valid NotMeter control endpoint. Falling back to legacy URL: ${LEGACY_NOTMETER_VPS_CACHE_URL}`)
-  return { urls: [LEGACY_NOTMETER_VPS_CACHE_URL], control: null }
+  return {
+    urls: [LEGACY_NOTMETER_VPS_CACHE_URL],
+    attemptedUrls: [LEGACY_NOTMETER_VPS_CACHE_URL],
+    control: null
+  }
 }
 
 async function fileExists(filePath) {
@@ -380,10 +416,19 @@ function fetchExistingMirror() {
 }
 
 async function fetchNotMeterVpsCaches(urls) {
-  const results = await Promise.all(urls.map(async (url) => ({
-    url,
-    cache: await fetchPublicCache(url, `${SOURCE_NAMES.vps} ${url}`)
-  })))
+  const results = await Promise.all(urls.map(async (url) => {
+    let cache = null
+    for (let attempt = 1; attempt <= VPS_FETCH_ATTEMPTS; attempt += 1) {
+      cache = await fetchPublicCache(url, `${SOURCE_NAMES.vps} ${url} (attempt ${attempt}/${VPS_FETCH_ATTEMPTS})`)
+      if (cache) break
+      if (attempt < VPS_FETCH_ATTEMPTS) {
+        const delayMs = Math.min(5000, VPS_RETRY_BASE_DELAY_MS * (2 ** (attempt - 1)))
+        console.warn(`${SOURCE_NAMES.vps} retrying ${url} in ${delayMs}ms.`)
+        await new Promise((resolve) => setTimeout(resolve, delayMs))
+      }
+    }
+    return { url, cache }
+  }))
   return results.filter((result) => result.cache)
 }
 
@@ -511,7 +556,7 @@ function mergeCaches(existingCache, notMeterVpsCaches, notMeterPublicCaches, loc
     mirroredAt: Math.floor(Date.now() / 1000),
     mirroredFrom: {
       sources: {
-        [SOURCE_NAMES.vps]: vpsResolution?.urls || [],
+        [SOURCE_NAMES.vps]: vpsResolution?.attemptedUrls || vpsResolution?.urls || [],
         [SOURCE_NAMES.local]: localCache?.sourcePath || null,
         [SOURCE_NAMES.public]: NOTMETER_PUBLIC_CACHE_URLS,
         [SOURCE_NAMES.mirror]: EXISTING_MIRROR_URL
@@ -552,15 +597,28 @@ if (localCache) {
   validateLocalSnapshotCache(localCache)
 }
 
-const vpsResolution = await resolveNotMeterVpsCacheUrls()
-const [existingCache, notMeterVpsCaches, notMeterPublicCaches] = await Promise.all([
-  fetchExistingMirror(),
-  fetchNotMeterVpsCaches(vpsResolution.urls),
-  fetchNotMeterPublicCaches()
-])
+const existingCachePromise = fetchExistingMirror()
+const notMeterPublicCachesPromise = fetchNotMeterPublicCaches()
+const existingCache = await existingCachePromise
+const cachedControlDocument = existingCache?.mirroredFrom?.vpsControl?.signedDocument || null
+let vpsResolution = await resolveNotMeterVpsCacheUrls(cachedControlDocument)
+let notMeterVpsCaches = await fetchNotMeterVpsCaches(vpsResolution.urls)
+
+if (notMeterVpsCaches.length === 0 && !NOTMETER_VPS_CACHE_URL_OVERRIDE.trim()) {
+  console.warn('All NotMeter VPS endpoints failed. Forcing a control endpoint refresh before retrying.')
+  const refreshedResolution = await resolveNotMeterVpsCacheUrls(cachedControlDocument, true)
+  const attemptedUrls = [...new Set([
+    ...(vpsResolution.attemptedUrls || vpsResolution.urls),
+    ...(refreshedResolution.attemptedUrls || refreshedResolution.urls)
+  ])]
+  vpsResolution = { ...refreshedResolution, attemptedUrls }
+  notMeterVpsCaches = await fetchNotMeterVpsCaches(refreshedResolution.urls)
+}
+
+const notMeterPublicCaches = await notMeterPublicCachesPromise
 const candidateSummaries = [
   createCandidateSummary(SOURCE_NAMES.mirror, existingCache, EXISTING_MIRROR_URL),
-  ...vpsResolution.urls.map((url) => {
+  ...(vpsResolution.attemptedUrls || vpsResolution.urls).map((url) => {
     const match = notMeterVpsCaches.find((candidate) => candidate.url === url)
     return createCandidateSummary(SOURCE_NAMES.vps, match?.cache || null, url)
   }),

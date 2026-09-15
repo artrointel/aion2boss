@@ -1,0 +1,6841 @@
+{
+  "schema": "notmeter-field-boss-public-cache-v1",
+  "version": 1,
+  "generatedAt": 1789500608,
+  "expiresAfterSeconds": 900,
+  "maximumRegions": 6,
+  "servers": [
+    {
+      "serverId": 1001,
+      "generatedAt": 1789500601,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500565,
+          "entries": [
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789521127346
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789521248247
+            },
+            {
+              "bossCode": 2101016,
+              "targetAt": 1789521343997
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520625200
+            },
+            {
+              "bossCode": 2101120,
+              "targetAt": 1789521576996
+            },
+            {
+              "bossCode": 2101122,
+              "targetAt": 1789521671145
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520730199
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789492657,
+          "entries": [
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520766378
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521630229
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500556,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789509396699
+            },
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789509339796
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789521880498
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789521995898
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521349449
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521475798
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789494777,
+          "entries": [
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522330127
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789522431676
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521549077
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521347083
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500436,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789522035113
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500601,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500601,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1002,
+      "generatedAt": 1789500546,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500546,
+          "entries": [
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789521927340
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789522098841
+            },
+            {
+              "bossCode": 2101016,
+              "targetAt": 1789521877641
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520641142
+            },
+            {
+              "bossCode": 2101120,
+              "targetAt": 1789522009940
+            },
+            {
+              "bossCode": 2101122,
+              "targetAt": 1789522150941
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520799293
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789493002,
+          "entries": [
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520621488
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521390037
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500501,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789509869691
+            },
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789510657591
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789522347291
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789522478691
+            },
+            {
+              "bossCode": 2101416,
+              "targetAt": 1789508204442
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521723942
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521381943
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789492234,
+          "entries": [
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521319337
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521025938
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789498816,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500545,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500546,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1003,
+      "generatedAt": 1789500600,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500600,
+          "entries": [
+            {
+              "bossCode": 2100177,
+              "targetAt": 1789510585454
+            },
+            {
+              "bossCode": 2100178,
+              "targetAt": 1789511112154
+            },
+            {
+              "bossCode": 2100582,
+              "targetAt": 1789509346405
+            },
+            {
+              "bossCode": 2100617,
+              "targetAt": 1789508784305
+            },
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789521589653
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789508667109
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789521270855
+            },
+            {
+              "bossCode": 2100876,
+              "targetAt": 1789509530154
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789509370455
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789508908355
+            },
+            {
+              "bossCode": 2101016,
+              "targetAt": 1789521693154
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520764707
+            },
+            {
+              "bossCode": 2101120,
+              "targetAt": 1789521750353
+            },
+            {
+              "bossCode": 2101122,
+              "targetAt": 1789521804503
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520979861
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789484599,
+          "entries": [
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520733077
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521671881
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500594,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789509734303
+            },
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789509637855
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789522283354
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789522367955
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521670158
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521462008
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789491797,
+          "entries": [
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521187027
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521101726
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500497,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500578,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500600,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1004,
+      "generatedAt": 1789500589,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500589,
+          "entries": [
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789521468193
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789521549842
+            },
+            {
+              "bossCode": 2101016,
+              "targetAt": 1789521600593
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520767195
+            },
+            {
+              "bossCode": 2101120,
+              "targetAt": 1789521834743
+            },
+            {
+              "bossCode": 2101122,
+              "targetAt": 1789521738893
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520865644
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789491962,
+          "entries": [
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520657058
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521118862
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500554,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789508145293
+            },
+            {
+              "bossCode": 2101306,
+              "targetAt": 1789522029992
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789521849944
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789521923344
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521302594
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521176845
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789494696,
+          "entries": [
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522439056
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789521992257
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521089708
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521003858
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500298,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500584,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500589,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1005,
+      "generatedAt": 1789500561,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500519,
+          "entries": [
+            {
+              "bossCode": 2100177,
+              "targetAt": 1789508826260
+            },
+            {
+              "bossCode": 2100582,
+              "targetAt": 1789508860959
+            },
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789521342560
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789521160658
+            },
+            {
+              "bossCode": 2100876,
+              "targetAt": 1789508400159
+            },
+            {
+              "bossCode": 2101016,
+              "targetAt": 1789521593858
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520662861
+            },
+            {
+              "bossCode": 2101120,
+              "targetAt": 1789521751909
+            },
+            {
+              "bossCode": 2101122,
+              "targetAt": 1789521461909
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520742711
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789495049,
+          "entries": [
+            {
+              "bossCode": 2400504,
+              "targetAt": 1789508132479
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520637579
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521264380
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500561,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789512208610
+            },
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789510185759
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789522175461
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789522229210
+            },
+            {
+              "bossCode": 2101416,
+              "targetAt": 1789508367509
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521952013
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521852663
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789492090,
+          "entries": [
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521396581
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521176530
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500433,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500447,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500561,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1006,
+      "generatedAt": 1789500579,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500579,
+          "entries": [
+            {
+              "bossCode": 2100178,
+              "targetAt": 1789511260675
+            },
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789522079024
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789521909624
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520676980
+            },
+            {
+              "bossCode": 2101120,
+              "targetAt": 1789522026774
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521014779
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789495319,
+          "entries": [
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520652586
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521261736
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500469,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789508760976
+            },
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789508675026
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789521810329
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789522476626
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521218584
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789520964529
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789494493,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789508390927
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789508450080
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789521970377
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789521889277
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521475079
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521217229
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789498323,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789523336901
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500494,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500579,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1007,
+      "generatedAt": 1789500605,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500605,
+          "entries": [
+            {
+              "bossCode": 2100177,
+              "targetAt": 1789509349691
+            },
+            {
+              "bossCode": 2100178,
+              "targetAt": 1789509815591
+            },
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789521547291
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789521714340
+            },
+            {
+              "bossCode": 2101016,
+              "targetAt": 1789521886492
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520697692
+            },
+            {
+              "bossCode": 2101122,
+              "targetAt": 1789522037042
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520934193
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789493754,
+          "entries": [
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789508101799
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789525788518
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789526123267
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500580,
+          "entries": [
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789523494292
+            },
+            {
+              "bossCode": 2101416,
+              "targetAt": 1789508306791
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521582893
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521451544
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789484174,
+          "entries": [
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521505249
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521413000
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500350,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500583,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500605,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1008,
+      "generatedAt": 1789500602,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500602,
+          "entries": [
+            {
+              "bossCode": 2100177,
+              "targetAt": 1789509601808
+            },
+            {
+              "bossCode": 2100178,
+              "targetAt": 1789509694007
+            },
+            {
+              "bossCode": 2100582,
+              "targetAt": 1789509479157
+            },
+            {
+              "bossCode": 2100617,
+              "targetAt": 1789508354559
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789508146758
+            },
+            {
+              "bossCode": 2100876,
+              "targetAt": 1789509365308
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789508645508
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520687660
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520869410
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789494179,
+          "entries": [
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520691900
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521288948
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500591,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789510999258
+            },
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789510902259
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789523622208
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789523792258
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789522231814
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521846861
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789495363,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789509715846
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789509606746
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789521920149
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789522882348
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521342399
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521248998
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789497919,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789499962,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500602,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1009,
+      "generatedAt": 1789500596,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500596,
+          "entries": [
+            {
+              "bossCode": 2100617,
+              "targetAt": 1789508884753
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789509119053
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789522201403
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789509691104
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789508502804
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520789804
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520838807
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789493429,
+          "entries": [
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520713526
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521500628
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500517,
+          "entries": [
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789522166806
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789522057704
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789499683,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789499307,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500596,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1010,
+      "generatedAt": 1789500579,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500579,
+          "entries": [
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789521522268
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789508332069
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789508794419
+            },
+            {
+              "bossCode": 2101016,
+              "targetAt": 1789521656567
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520677070
+            },
+            {
+              "bossCode": 2101120,
+              "targetAt": 1789522118319
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520804077
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789495145,
+          "entries": [
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789508715577
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789508183276
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520767730
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789522060579
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500459,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789511301369
+            },
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789511063618
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789522770469
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789522906119
+            },
+            {
+              "bossCode": 2101416,
+              "targetAt": 1789511212668
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789522194521
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521978270
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789492600,
+          "entries": [
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521217731
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521092880
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500433,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500547,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500579,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1011,
+      "generatedAt": 1789500564,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500564,
+          "entries": [
+            {
+              "bossCode": 2100582,
+              "targetAt": 1789510965168
+            },
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789521350519
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789521248019
+            },
+            {
+              "bossCode": 2100876,
+              "targetAt": 1789510260169
+            },
+            {
+              "bossCode": 2101016,
+              "targetAt": 1789521545769
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520824571
+            },
+            {
+              "bossCode": 2101120,
+              "targetAt": 1789521680967
+            },
+            {
+              "bossCode": 2101122,
+              "targetAt": 1789521428168
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521165472
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789484432,
+          "entries": [
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520740136
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521389436
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500370,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789512142468
+            },
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789512004918
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789523109469
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789523787420
+            },
+            {
+              "bossCode": 2101416,
+              "targetAt": 1789509031669
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521849671
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521942571
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789482378,
+          "entries": [
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521614636
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521504186
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789499956,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500562,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500564,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1012,
+      "generatedAt": 1789500565,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500448,
+          "entries": [
+            {
+              "bossCode": 2100177,
+              "targetAt": 1789508253995
+            },
+            {
+              "bossCode": 2100617,
+              "targetAt": 1789508317867
+            },
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789522033215
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789508634367
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789521949467
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789508517416
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789508695516
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520649168
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521560818
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789497247,
+          "entries": [
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789508456705
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520782756
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521495156
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500565,
+          "entries": [
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789510033718
+            },
+            {
+              "bossCode": 2101306,
+              "targetAt": 1789511177618
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789526137318
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789525934066
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789522176019
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789522097918
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789494698,
+          "entries": [
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521442363
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521310758
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789499551,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789499690,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500565,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1013,
+      "generatedAt": 1789500608,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500369,
+          "entries": [
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789521396960
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789521309760
+            },
+            {
+              "bossCode": 2100876,
+              "targetAt": 1789509291859
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789508194111
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789508326661
+            },
+            {
+              "bossCode": 2101016,
+              "targetAt": 1789521445810
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520718761
+            },
+            {
+              "bossCode": 2101122,
+              "targetAt": 1789521747259
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521168711
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500533,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789513279809
+            },
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789513112859
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789524688010
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789524377510
+            },
+            {
+              "bossCode": 2101416,
+              "targetAt": 1789509105559
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521640711
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521889063
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789484769,
+          "entries": [
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521019823
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789520911422
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500608,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500572,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500608,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1014,
+      "generatedAt": 1789500581,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500581,
+          "entries": [
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789521162440
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789521521540
+            },
+            {
+              "bossCode": 2100876,
+              "targetAt": 1789511015540
+            },
+            {
+              "bossCode": 2101016,
+              "targetAt": 1789521231689
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520662090
+            },
+            {
+              "bossCode": 2101120,
+              "targetAt": 1789518568813
+            },
+            {
+              "bossCode": 2101122,
+              "targetAt": 1789521584490
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520756890
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500538,
+          "entries": [
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789514502539
+            },
+            {
+              "bossCode": 2101306,
+              "targetAt": 1789508704590
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789523087341
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789523280339
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521317441
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521188842
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789483856,
+          "entries": [
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789522982825
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789522955824
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789499897,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500400,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500581,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1015,
+      "generatedAt": 1789500605,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500605,
+          "entries": [
+            {
+              "bossCode": 2100177,
+              "targetAt": 1789509586166
+            },
+            {
+              "bossCode": 2100178,
+              "targetAt": 1789509457414
+            },
+            {
+              "bossCode": 2100617,
+              "targetAt": 1789510808415
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789510732565
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789510658616
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789511334266
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520679365
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521116268
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789492182,
+          "entries": [
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520611879
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521744129
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500599,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789512038764
+            },
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789512161868
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789523042116
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789523138865
+            },
+            {
+              "bossCode": 2101416,
+              "targetAt": 1789508911514
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789522260217
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789522356418
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789493585,
+          "entries": [
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522341974
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789522221375
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521574877
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521385376
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500558,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500556,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789566000000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500605,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1016,
+      "generatedAt": 1789500583,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500583,
+          "entries": [
+            {
+              "bossCode": 2100617,
+              "targetAt": 1789509008385
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789508782637
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789508937636
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789508638435
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520687786
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521791536
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789496910,
+          "entries": [
+            {
+              "bossCode": 2400424,
+              "targetAt": 1789508253402
+            },
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789511308902
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789511198053
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520653517
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789520795965
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500471,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789510326185
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789523052486
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789523129838
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789522219890
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789522288637
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789495336,
+          "entries": [
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522329859
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789522409709
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521271710
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521165610
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500343,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500461,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500583,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1017,
+      "generatedAt": 1789500586,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500533,
+          "entries": [
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789521284421
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789521638618
+            },
+            {
+              "bossCode": 2101016,
+              "targetAt": 1789521771618
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520705221
+            },
+            {
+              "bossCode": 2101120,
+              "targetAt": 1789521845919
+            },
+            {
+              "bossCode": 2101122,
+              "targetAt": 1789521707169
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521339923
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500581,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789510500321
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789524231870
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789525136921
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521405622
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521301524
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789484447,
+          "entries": [
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789522096876
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789522024527
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789495166,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500586,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500586,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1018,
+      "generatedAt": 1789500450,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500450,
+          "entries": [
+            {
+              "bossCode": 2100582,
+              "targetAt": 1789511122947
+            },
+            {
+              "bossCode": 2100617,
+              "targetAt": 1789510189049
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789510112098
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789521973048
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789510606697
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789510311349
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520683098
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520802498
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789495537,
+          "entries": [
+            {
+              "bossCode": 2400424,
+              "targetAt": 1789509249297
+            },
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789509643296
+            },
+            {
+              "bossCode": 2400504,
+              "targetAt": 1789509110146
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789509568845
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520668097
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521614749
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500420,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789513942147
+            },
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789513689648
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789522605247
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789522929647
+            },
+            {
+              "bossCode": 2101416,
+              "targetAt": 1789510268947
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789522553298
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789522395748
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789483519,
+          "entries": [
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521509899
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521567448
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500049,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500378,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500450,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1019,
+      "generatedAt": 1789500590,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500590,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520720147
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521105496
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789492837,
+          "entries": [
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520608803
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789520993853
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500502,
+          "entries": [
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789522778646
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789522934753
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521793300
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521731599
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789494395,
+          "entries": [
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522020901
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789522090401
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521157303
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521107906
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500450,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789522658109
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500585,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500590,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1020,
+      "generatedAt": 1789500565,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500515,
+          "entries": [
+            {
+              "bossCode": 2100617,
+              "targetAt": 1789509539443
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789508659094
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789509245792
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789509237844
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520641443
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520794544
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789493629,
+          "entries": [
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520617448
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521187950
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500526,
+          "entries": [
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789524986945
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789524732143
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521278194
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521189644
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789495583,
+          "entries": [
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521447099
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521315549
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500518,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500565,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500565,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 1021,
+      "generatedAt": 1789500537,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789500444,
+          "entries": [
+            {
+              "bossCode": 2100617,
+              "targetAt": 1789508832893
+            },
+            {
+              "bossCode": 2100661,
+              "targetAt": 1789521406741
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789508811640
+            },
+            {
+              "bossCode": 2100718,
+              "targetAt": 1789521306791
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789509020342
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789509058041
+            },
+            {
+              "bossCode": 2101016,
+              "targetAt": 1789521464391
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520696641
+            },
+            {
+              "bossCode": 2101120,
+              "targetAt": 1789521676240
+            },
+            {
+              "bossCode": 2101122,
+              "targetAt": 1789521578191
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520833942
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789492140,
+          "entries": [
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520796342
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521976993
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789500212,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789511439440
+            },
+            {
+              "bossCode": 2101279,
+              "targetAt": 1789511346991
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789522855592
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789523091942
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521338144
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521197342
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789495420,
+          "entries": [
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521592091
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521387342
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789498265,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500537,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500537,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2001,
+      "generatedAt": 1789500588,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789495156,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520662861
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520742711
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500554,
+          "entries": [
+            {
+              "bossCode": 2400474,
+              "targetAt": 1789510996877
+            },
+            {
+              "bossCode": 2400504,
+              "targetAt": 1789508132479
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789521384228
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521718077
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520637579
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521264380
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789495172,
+          "entries": [
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789522175461
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789522229210
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521952013
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521852663
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500580,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789510862529
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789510766128
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789521810128
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789521741680
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521396581
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521176530
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500588,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500554,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500588,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2002,
+      "generatedAt": 1789500589,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789494947,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520720147
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521105496
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500589,
+          "entries": [
+            {
+              "bossCode": 2400358,
+              "targetAt": 1789509130599
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789520974749
+            },
+            {
+              "bossCode": 2400607,
+              "targetAt": 1789508818851
+            },
+            {
+              "bossCode": 2400659,
+              "targetAt": 1789521500650
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521062599
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520608803
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789520993853
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789521248799
+            },
+            {
+              "bossCode": 2400855,
+              "targetAt": 1789521305849
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789495090,
+          "entries": [
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789522778646
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789522934753
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521793300
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521731599
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500549,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789509120300
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789508946700
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522020901
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789522090401
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521157303
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521107906
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500573,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500585,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500589,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2003,
+      "generatedAt": 1789500573,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789493537,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520676980
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521014779
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500548,
+          "entries": [
+            {
+              "bossCode": 2400419,
+              "targetAt": 1789509747275
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789520981725
+            },
+            {
+              "bossCode": 2400659,
+              "targetAt": 1789521531724
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521136725
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520652586
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521261736
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789521589626
+            },
+            {
+              "bossCode": 2400855,
+              "targetAt": 1789521380080
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789483980,
+          "entries": [
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521218584
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789520964529
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500573,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789508390927
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789508450080
+            },
+            {
+              "bossCode": 2406132,
+              "targetAt": 1789522149224
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789521970377
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789521889277
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521475079
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521217229
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500374,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500446,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500573,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2004,
+      "generatedAt": 1789500559,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789492967,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520767195
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520865644
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500551,
+          "entries": [
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789509236056
+            },
+            {
+              "bossCode": 2400474,
+              "targetAt": 1789508331859
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789521017554
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789509245806
+            },
+            {
+              "bossCode": 2400659,
+              "targetAt": 1789521400904
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521102204
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520657058
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521118862
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789521215055
+            },
+            {
+              "bossCode": 2400855,
+              "targetAt": 1789521289406
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789494366,
+          "entries": [
+            {
+              "bossCode": 2101278,
+              "targetAt": 1789508145293
+            },
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789521849944
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789521923344
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521302594
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521176845
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500550,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789509528756
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789509451106
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522439056
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789521992257
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521089708
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521003858
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500559,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789523336901
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500466,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500559,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2005,
+      "generatedAt": 1789500569,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789493177,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520764707
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520979861
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500569,
+          "entries": [
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789508609775
+            },
+            {
+              "bossCode": 2400504,
+              "targetAt": 1789508446074
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789521685623
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789508792975
+            },
+            {
+              "bossCode": 2400659,
+              "targetAt": 1789521828423
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521344224
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520733077
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521671881
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789521530175
+            },
+            {
+              "bossCode": 2400855,
+              "targetAt": 1789521609725
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789493612,
+          "entries": [
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789522283354
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789522367955
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521670158
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521462008
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500546,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789509047926
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789509108224
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789521656775
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789521536326
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521187027
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521101726
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500512,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789522035113
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500406,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500569,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2006,
+      "generatedAt": 1789500577,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789491971,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520625200
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520730199
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500549,
+          "entries": [
+            {
+              "bossCode": 2400358,
+              "targetAt": 1789510909428
+            },
+            {
+              "bossCode": 2400419,
+              "targetAt": 1789510647575
+            },
+            {
+              "bossCode": 2400424,
+              "targetAt": 1789509711325
+            },
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789509771625
+            },
+            {
+              "bossCode": 2400504,
+              "targetAt": 1789509836428
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789509682276
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789522018775
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520766378
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521630229
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789494803,
+          "entries": [
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789521880498
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789521995898
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521349449
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521475798
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500577,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789509676828
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789509759424
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522330127
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789522431676
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521549077
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521347083
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789497922,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789522658109
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500283,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500577,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2007,
+      "generatedAt": 1789500559,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789495074,
+          "entries": [
+            {
+              "bossCode": 2100617,
+              "targetAt": 1789509008385
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789508782637
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789508937636
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789508638435
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520687786
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521791536
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500543,
+          "entries": [
+            {
+              "bossCode": 2400419,
+              "targetAt": 1789508105911
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789521352757
+            },
+            {
+              "bossCode": 2400607,
+              "targetAt": 1789508359508
+            },
+            {
+              "bossCode": 2400659,
+              "targetAt": 1789521753306
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521589357
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520653517
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789520795965
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789521486906
+            },
+            {
+              "bossCode": 2400855,
+              "targetAt": 1789521667058
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789482123,
+          "entries": [
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789522219890
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789522288637
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500557,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789510245958
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789510891659
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522329859
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789522409709
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521271710
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521165610
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500409,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500559,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500559,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2008,
+      "generatedAt": 1789500608,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789492863,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520683098
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520802498
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500562,
+          "entries": [
+            {
+              "bossCode": 2400358,
+              "targetAt": 1789509289696
+            },
+            {
+              "bossCode": 2400424,
+              "targetAt": 1789509249297
+            },
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789509643296
+            },
+            {
+              "bossCode": 2400504,
+              "targetAt": 1789509110146
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789521386445
+            },
+            {
+              "bossCode": 2400659,
+              "targetAt": 1789521811046
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521748146
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520668097
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521614749
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789521628945
+            },
+            {
+              "bossCode": 2400855,
+              "targetAt": 1789521849646
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789494144,
+          "entries": [
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789522605247
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789522929647
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789522553298
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789522395748
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500547,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789511092445
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789510314246
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522484001
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789523043147
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521509899
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521567448
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500593,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500608,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500608,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2009,
+      "generatedAt": 1789500580,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789496476,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520677070
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520804077
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500562,
+          "entries": [
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789508715577
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789521985826
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789508183276
+            },
+            {
+              "bossCode": 2400659,
+              "targetAt": 1789513520985
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521756876
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520767730
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789522060579
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789521887975
+            },
+            {
+              "bossCode": 2400855,
+              "targetAt": 1789521939126
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789494375,
+          "entries": [
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789522770469
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789522906119
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789522194521
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521978270
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500564,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789512474928
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789512726027
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789521778384
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789523225927
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521217731
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521092880
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500580,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500315,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500580,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2010,
+      "generatedAt": 1789500573,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789492106,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520687660
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520869410
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500494,
+          "entries": [
+            {
+              "bossCode": 2400474,
+              "targetAt": 1789508125497
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789521207947
+            },
+            {
+              "bossCode": 2400607,
+              "targetAt": 1789509393597
+            },
+            {
+              "bossCode": 2400659,
+              "targetAt": 1789521656346
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521073148
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520691900
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521288948
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789521556196
+            },
+            {
+              "bossCode": 2400855,
+              "targetAt": 1789521433947
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500573,
+          "entries": [
+            {
+              "bossCode": 2406094,
+              "targetAt": 1789509561047
+            },
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789509715846
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789509606746
+            },
+            {
+              "bossCode": 2406132,
+              "targetAt": 1789522082046
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789521920149
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789522882348
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521342399
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521248998
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789499905,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789499260,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789566000000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500573,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2011,
+      "generatedAt": 1789500606,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789493286,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520697692
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520934193
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500577,
+          "entries": [
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789508101799
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521623846
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520737050
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521709151
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789522068395
+            },
+            {
+              "bossCode": 2400855,
+              "targetAt": 1789521911446
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789495095,
+          "entries": [
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789523494292
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789523635791
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521582893
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521451544
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500606,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789511322798
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789511108047
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522715198
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789522650398
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521505249
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521413000
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500451,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789522757198
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500590,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500606,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2012,
+      "generatedAt": 1789500570,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789482485,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520789804
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520838807
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500570,
+          "entries": [
+            {
+              "bossCode": 2400424,
+              "targetAt": 1789510532775
+            },
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789510831076
+            },
+            {
+              "bossCode": 2400504,
+              "targetAt": 1789510681225
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789511173475
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520713526
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521500628
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500550,
+          "entries": [
+            {
+              "bossCode": 2406132,
+              "targetAt": 1789511770675
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521396331
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521310727
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789498795,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789526372599
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500461,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500570,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2013,
+      "generatedAt": 1789500601,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789492265,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520679365
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521116268
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500549,
+          "entries": [
+            {
+              "bossCode": 2400358,
+              "targetAt": 1789509464724
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789521838674
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521881974
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520611879
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521744129
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789522031227
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789495085,
+          "entries": [
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789523042116
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789523138865
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789522260217
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789522356418
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500562,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789509090630
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789509531675
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522341974
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789522221375
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521574877
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521385376
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500101,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500601,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500601,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2014,
+      "generatedAt": 1789500605,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789492986,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520662090
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520756890
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500605,
+          "entries": [
+            {
+              "bossCode": 2400424,
+              "targetAt": 1789510225122
+            },
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789510126621
+            },
+            {
+              "bossCode": 2400504,
+              "targetAt": 1789509738174
+            },
+            {
+              "bossCode": 2400607,
+              "targetAt": 1789508555321
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789509609021
+            },
+            {
+              "bossCode": 2400659,
+              "targetAt": 1789509530824
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520605973
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789523010974
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789493247,
+          "entries": [
+            {
+              "bossCode": 2101306,
+              "targetAt": 1789508704590
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521317441
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521188842
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500510,
+          "entries": [
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789528831473
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789528981222
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789522982825
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789522955824
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500374,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500529,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500605,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2015,
+      "generatedAt": 1789500590,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789491912,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520705221
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521339923
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500590,
+          "entries": [
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789508715775
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789521619074
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789508444125
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521494823
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520649877
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521704076
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789484739,
+          "entries": [
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521405622
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521301524
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500556,
+          "entries": [
+            {
+              "bossCode": 2406094,
+              "targetAt": 1789509008475
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789526674424
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789523634875
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789522096876
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789522024527
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500328,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500553,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500590,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2016,
+      "generatedAt": 1789500568,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789495243,
+          "entries": [
+            {
+              "bossCode": 2100617,
+              "targetAt": 1789509539443
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789508659094
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789509245792
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789509237844
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520641443
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520794544
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500568,
+          "entries": [
+            {
+              "bossCode": 2400419,
+              "targetAt": 1789509303298
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789521790996
+            },
+            {
+              "bossCode": 2400607,
+              "targetAt": 1789509551397
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521736396
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520617448
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521187950
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789521919096
+            },
+            {
+              "bossCode": 2400855,
+              "targetAt": 1789508557191
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789493193,
+          "entries": [
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521278194
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521189644
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500563,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789508540240
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789508283790
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789521591390
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789524793898
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521447099
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521315549
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789498261,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500452,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500568,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2017,
+      "generatedAt": 1789500598,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789494310,
+          "entries": [
+            {
+              "bossCode": 2100617,
+              "targetAt": 1789508317867
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789508634367
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789508517416
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789508695516
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520649168
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521560818
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500598,
+          "entries": [
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789521205556
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789508456705
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521379455
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520782756
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521495156
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789521806154
+            },
+            {
+              "bossCode": 2400855,
+              "targetAt": 1789522017605
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789483914,
+          "entries": [
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789522176019
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789522097918
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500577,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789513165255
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789513543756
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789523639105
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789523810955
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521442363
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521310758
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500574,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789526372599
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500418,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500598,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2018,
+      "generatedAt": 1789500604,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789492726,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520641142
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520799293
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500604,
+          "entries": [
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789520970135
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520621488
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521390037
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789521351285
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789484270,
+          "entries": [
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521723942
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521381943
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500565,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789509589385
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789509613437
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522281335
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789522462637
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521319337
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521025938
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500338,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736700000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565700000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500603,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565700000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565700000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500604,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2019,
+      "generatedAt": 1789500594,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789494657,
+          "entries": [
+            {
+              "bossCode": 2100617,
+              "targetAt": 1789508832893
+            },
+            {
+              "bossCode": 2100708,
+              "targetAt": 1789508811640
+            },
+            {
+              "bossCode": 2100877,
+              "targetAt": 1789509020342
+            },
+            {
+              "bossCode": 2100989,
+              "targetAt": 1789509058041
+            },
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520696641
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789520833942
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500552,
+          "entries": [
+            {
+              "bossCode": 2400424,
+              "targetAt": 1789508597040
+            },
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789508720838
+            },
+            {
+              "bossCode": 2400504,
+              "targetAt": 1789508888139
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789521522090
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789509179690
+            },
+            {
+              "bossCode": 2400659,
+              "targetAt": 1789522067189
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789521876138
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520796342
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521976993
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789521975539
+            },
+            {
+              "bossCode": 2400855,
+              "targetAt": 1789521715939
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789495319,
+          "entries": [
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789522855592
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789523091942
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521338144
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521197342
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500594,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789514606241
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789514456689
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789528170939
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789525883339
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521592091
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521387342
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789498696,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500582,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500594,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2020,
+      "generatedAt": 1789500598,
+      "regions": [
+        {
+          "region": 1,
+          "observedAt": 1789499698,
+          "entries": [
+            {
+              "bossCode": 2400424,
+              "targetAt": 1789509661370
+            },
+            {
+              "bossCode": 2400425,
+              "targetAt": 1789509616222
+            },
+            {
+              "bossCode": 2400474,
+              "targetAt": 1789509663521
+            },
+            {
+              "bossCode": 2400504,
+              "targetAt": 1789509761171
+            },
+            {
+              "bossCode": 2400607,
+              "targetAt": 1789508574021
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789509870871
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520609323
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521820771
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789482821,
+          "entries": [
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521640711
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521889063
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500496,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789511974971
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789511741621
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789525736671
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789524957821
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521019823
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789520911422
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500598,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789566000000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500133,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789566000000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789737000000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500598,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    },
+    {
+      "serverId": 2021,
+      "generatedAt": 1789500590,
+      "regions": [
+        {
+          "region": 0,
+          "observedAt": 1789495441,
+          "entries": [
+            {
+              "bossCode": 2101074,
+              "targetAt": 1789520824571
+            },
+            {
+              "bossCode": 2101131,
+              "targetAt": 1789521165472
+            }
+          ]
+        },
+        {
+          "region": 1,
+          "observedAt": 1789500571,
+          "entries": [
+            {
+              "bossCode": 2400358,
+              "targetAt": 1789508383933
+            },
+            {
+              "bossCode": 2400504,
+              "targetAt": 1789508253334
+            },
+            {
+              "bossCode": 2400593,
+              "targetAt": 1789521522482
+            },
+            {
+              "bossCode": 2400608,
+              "targetAt": 1789508429834
+            },
+            {
+              "bossCode": 2400709,
+              "targetAt": 1789522042733
+            },
+            {
+              "bossCode": 2400800,
+              "targetAt": 1789520740136
+            },
+            {
+              "bossCode": 2400853,
+              "targetAt": 1789521389436
+            },
+            {
+              "bossCode": 2400854,
+              "targetAt": 1789521939282
+            },
+            {
+              "bossCode": 2400855,
+              "targetAt": 1789521808284
+            }
+          ]
+        },
+        {
+          "region": 2,
+          "observedAt": 1789495317,
+          "entries": [
+            {
+              "bossCode": 2101349,
+              "targetAt": 1789523109469
+            },
+            {
+              "bossCode": 2101350,
+              "targetAt": 1789523787420
+            },
+            {
+              "bossCode": 2101600,
+              "targetAt": 1789521849671
+            },
+            {
+              "bossCode": 2101601,
+              "targetAt": 1789521942571
+            }
+          ]
+        },
+        {
+          "region": 3,
+          "observedAt": 1789500589,
+          "entries": [
+            {
+              "bossCode": 2406129,
+              "targetAt": 1789509422283
+            },
+            {
+              "bossCode": 2406131,
+              "targetAt": 1789509336384
+            },
+            {
+              "bossCode": 2406181,
+              "targetAt": 1789522526833
+            },
+            {
+              "bossCode": 2406182,
+              "targetAt": 1789522274934
+            },
+            {
+              "bossCode": 2406990,
+              "targetAt": 1789521614636
+            },
+            {
+              "bossCode": 2406991,
+              "targetAt": 1789521504186
+            }
+          ]
+        },
+        {
+          "region": 4,
+          "observedAt": 1789500327,
+          "entries": [
+            {
+              "bossCode": 2600068,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600084,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600093,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600094,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600096,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600097,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600098,
+              "targetAt": 1789565400000
+            }
+          ]
+        },
+        {
+          "region": 5,
+          "observedAt": 1789500590,
+          "entries": [
+            {
+              "bossCode": 2600150,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600156,
+              "targetAt": 1789736400000
+            },
+            {
+              "bossCode": 2600520,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600521,
+              "targetAt": 1789565400000
+            },
+            {
+              "bossCode": 2600522,
+              "targetAt": 1789565400000
+            }
+          ]
+        }
+      ],
+      "source": {
+        "name": "NotMeter Cache Mirror",
+        "updatedAt": 1789500590,
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+      }
+    }
+  ],
+  "mirroredAt": 1789510285,
+  "mirroredFrom": {
+    "sources": {
+      "NotMeter VPS API": [
+        "https://notmeter.112-168-140-142.sslip.io/field-boss/v1/public"
+      ],
+      "Artrointel Local NotMeter": null,
+      "NotMeter Public JSON": [
+        "https://raw.githubusercontent.com/Not4You-Dev/NotMeter-Web/main/presence/notmeter-field-boss-public.json",
+        "https://notmeter.com/presence/notmeter-field-boss-public.json"
+      ],
+      "NotMeter Cache Mirror": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json"
+    },
+    "vpsControl": null,
+    "selectedServerCounts": {
+      "NotMeter Cache Mirror": 42
+    },
+    "candidateSummaries": [
+      {
+        "name": "NotMeter Cache Mirror",
+        "url": "https://raw.githubusercontent.com/artrointel/aion2boss/field-boss-cache/api/notmeter-field-boss-public.json",
+        "available": true,
+        "generatedAt": 1789500608,
+        "generatedAtKst": "2026-09-16 04:30:08",
+        "serverCount": 42,
+        "entryCount": 1211
+      },
+      {
+        "name": "NotMeter VPS API",
+        "url": "https://notmeter.112-168-140-142.sslip.io/field-boss/v1/public",
+        "available": true,
+        "generatedAt": 1789500508,
+        "generatedAtKst": "2026-09-16 04:28:28",
+        "serverCount": 40,
+        "entryCount": 590
+      },
+      {
+        "name": "NotMeter Public JSON",
+        "url": "https://raw.githubusercontent.com/Not4You-Dev/NotMeter-Web/main/presence/notmeter-field-boss-public.json",
+        "available": true,
+        "generatedAt": 1788973215,
+        "generatedAtKst": "2026-09-10 02:00:15",
+        "serverCount": 42,
+        "entryCount": 2357
+      },
+      {
+        "name": "NotMeter Public JSON",
+        "url": "https://notmeter.com/presence/notmeter-field-boss-public.json",
+        "available": false
+      },
+      {
+        "name": "Artrointel Local NotMeter",
+        "available": false
+      }
+    ]
+  }
+}
